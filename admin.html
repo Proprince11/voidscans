@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>VoidScans Admin Panel</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    .admin-container { max-width: 800px; margin: 40px auto; background: var(--surface); padding: 30px; border-radius: var(--r-md); border: 1px solid var(--border); }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; color: var(--text-soft); font-size: 0.9rem; }
+    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); border-radius: var(--r-sm); }
+    .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+    .tab-btn { padding: 10px 20px; cursor: pointer; color: var(--text-muted); font-weight: 600; }
+    .tab-btn.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-inner">
+      <div class="nav-logo">VOID<span>ADMIN</span></div>
+      <a href="index.html" class="nav-link" target="_blank">View Live Site ↗</a>
+    </div>
+  </nav>
+
+  <div class="admin-container fade-up">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('add-series')">📘 Add New Series</button>
+      <button class="tab-btn" onclick="switchTab('add-chapter')">📄 Add New Chapter</button>
+    </div>
+
+    <div id="add-series" class="tab-content active">
+      <h2>Publish New Manhwa</h2>
+      <form id="series-form">
+        <div class="form-group">
+          <label>Series Title</label>
+          <input type="text" id="s-title" required>
+        </div>
+        <div class="form-group">
+          <label>URL Slug (no spaces, e.g. solo-raven)</label>
+          <input type="text" id="s-slug" required>
+        </div>
+        <div class="form-group">
+          <label>Cover Image URL (Catbox/R2)</label>
+          <input type="url" id="s-cover" required>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="s-desc" rows="4" required></textarea>
+        </div>
+        <div class="form-group" style="display: flex; gap: 10px;">
+          <div style="flex: 1;"><label>Type</label><select id="s-type"><option>Manhwa</option><option>Manga</option></select></div>
+          <div style="flex: 1;"><label>Status</label><select id="s-status"><option>Ongoing</option><option>Completed</option></select></div>
+        </div>
+        <button type="submit" class="btn btn-primary">Publish Series</button>
+      </form>
+    </div>
+
+    <div id="add-chapter" class="tab-content">
+      <h2>Upload New Chapter</h2>
+      <form id="chapter-form">
+        <div class="form-group">
+          <label>Series Slug (e.g. solo-raven)</label>
+          <input type="text" id="c-series-slug" required>
+        </div>
+        <div class="form-group">
+          <label>Chapter Number</label>
+          <input type="number" id="c-num" required>
+        </div>
+        <div class="form-group">
+          <label>Image URLs (Paste Catbox/Imgbb links here, one per line)</label>
+          <textarea id="c-images" rows="10" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Publish Chapter</button>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { db } from './assets/js/firebase.js';
+    import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    window.switchTab = function(tabId) {
+      document.querySelectorAll('.tab-content, .tab-btn').forEach(t => t.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      event.target.classList.add('active');
+    };
+
+    document.getElementById('series-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        await addDoc(collection(db, "series"), {
+          title: document.getElementById('s-title').value,
+          slug: document.getElementById('s-slug').value,
+          cover: document.getElementById('s-cover').value,
+          description: document.getElementById('s-desc').value,
+          type: document.getElementById('s-type').value,
+          status: document.getElementById('s-status').value,
+          latestChapter: 0,
+          createdAt: serverTimestamp()
+        });
+        alert("Series published successfully!"); e.target.reset();
+      } catch (error) { alert("Failed to publish series."); }
+    });
+
+    document.getElementById('chapter-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const rawImages = document.getElementById('c-images').value;
+      const imageUrls = rawImages.split('\n').map(url => url.trim()).filter(url => url !== "");
+      try {
+        await addDoc(collection(db, "chapters"), {
+          seriesSlug: document.getElementById('c-series-slug').value,
+          chapterNum: Number(document.getElementById('c-num').value),
+          images: imageUrls,
+          createdAt: serverTimestamp()
+        });
+        alert("Chapter published successfully!"); e.target.reset();
+      } catch (error) { alert("Failed to publish chapter."); }
+    });
+  </script>
+</body>
+</html>

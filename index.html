@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoidScans — Free Manhwa Translations</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="nav-inner">
+      <div class="nav-logo">VOID<span>SCANS</span></div>
+      <div class="nav-links">
+        <a href="#" class="nav-link active">Home</a>
+        <a href="#" class="nav-link">Browse</a>
+      </div>
+    </div>
+  </nav>
+
+  <section class="section" id="latest">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Latest Updates</h2>
+      </div>
+      <div class="update-list" id="dynamic-updates-list">
+        <p style="color: var(--text-muted);">Loading latest chapters from the void...</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Popular Series</h2>
+      </div>
+      <div class="card-grid" id="dynamic-series-grid">
+         </div>
+    </div>
+  </section>
+
+  <script type="module">
+    import { db } from './assets/js/firebase.js';
+    import { collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    async function loadSiteData() {
+      const grid = document.getElementById('dynamic-series-grid');
+      const updateList = document.getElementById('dynamic-updates-list');
+      grid.innerHTML = ''; 
+      updateList.innerHTML = '';
+
+      try {
+        const q = query(collection(db, "series"), orderBy("createdAt", "desc"));
+        const querySnapshot = await getDocs(q);
+
+        querySnapshot.forEach((doc) => {
+          const series = doc.data();
+          
+          // 1. Build Grid Cards (Change YOUR-NEOCITIES-USERNAME below)
+          const cardHTML = `
+            <div class="card" onclick="window.location.href='https://YOUR-NEOCITIES-USERNAME.neocities.org/reader.html?series=${series.slug}&ch=${series.latestChapter}'">
+              <div class="card-img-wrap">
+                <img src="${series.cover}" class="card-img" alt="${series.title}">
+                <div class="card-badge badge-ongoing">${series.status}</div>
+                <div class="card-chapter">Ch. ${series.latestChapter}</div>
+              </div>
+              <div class="card-info">
+                <div class="card-title">${series.title}</div>
+                <div class="card-type">${series.type}</div>
+              </div>
+            </div>
+          `;
+          grid.innerHTML += cardHTML;
+
+          // 2. Build Latest Updates
+          if(series.latestChapter > 0) {
+            const updateHTML = `
+              <div class="update-item" onclick="window.location.href='https://YOUR-NEOCITIES-USERNAME.neocities.org/reader.html?series=${series.slug}&ch=${series.latestChapter}'">
+                <img class="update-thumb" src="${series.cover}" alt="${series.title}">
+                <div class="update-meta">
+                  <div class="update-title">${series.title}</div>
+                  <div class="update-chapters">
+                    <span class="update-ch-link">Ch. ${series.latestChapter}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+            updateList.innerHTML += updateHTML;
+          }
+        });
+      } catch (error) {
+        console.error("Database Error:", error);
+        grid.innerHTML = '<p>Failed to connect to database.</p>';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadSiteData);
+  </script>
+</body>
+</html>
