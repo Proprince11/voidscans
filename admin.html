@@ -77,7 +77,8 @@
   </div>
 
   <script type="module">
-import { db } from './firebase.js';    import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { db } from './firebase.js';
+    import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     window.switchTab = function(tabId) {
       document.querySelectorAll('.tab-content, .tab-btn').forEach(t => t.classList.remove('active'));
