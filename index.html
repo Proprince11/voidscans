@@ -4,8 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VoidScans — Free Manhwa Translations</title>
-  <link rel="stylesheet" href="assets/css/style.css">
-</head>
+<link rel="stylesheet" href="style.css"></head>
 <body>
 
   <nav class="navbar">
@@ -40,7 +39,7 @@
   </section>
 
   <script type="module">
-    import { db } from './assets/js/firebase.js';
+   import { db } from './firebase.js';
     import { collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     async function loadSiteData() {

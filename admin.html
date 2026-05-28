@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>VoidScans Admin Panel</title>
-  <link rel="stylesheet" href="assets/css/style.css">
-  <style>
+<link rel="stylesheet" href="style.css">  <style>
     .admin-container { max-width: 800px; margin: 40px auto; background: var(--surface); padding: 30px; border-radius: var(--r-md); border: 1px solid var(--border); }
     .form-group { margin-bottom: 15px; }
     .form-group label { display: block; margin-bottom: 5px; color: var(--text-soft); font-size: 0.9rem; }
@@ -78,8 +77,7 @@
   </div>
 
   <script type="module">
-    import { db } from './assets/js/firebase.js';
-    import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { db } from './firebase.js';    import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     window.switchTab = function(tabId) {
       document.querySelectorAll('.tab-content, .tab-btn').forEach(t => t.classList.remove('active'));
