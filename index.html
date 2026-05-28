@@ -58,7 +58,7 @@
           
           // 1. Build Grid Cards (Change YOUR-NEOCITIES-USERNAME below)
           const cardHTML = `
-            <div class="card" onclick="window.location.href='https://YOUR-NEOCITIES-USERNAME.neocities.org/reader.html?series=${series.slug}&ch=${series.latestChapter}'">
+            <div class="card" onclick="window.location.href='https://voidscans.neocities.org/reader.html?series=${series.slug}&ch=${series.latestChapter}'">
               <div class="card-img-wrap">
                 <img src="${series.cover}" class="card-img" alt="${series.title}">
                 <div class="card-badge badge-ongoing">${series.status}</div>
@@ -75,7 +75,7 @@
           // 2. Build Latest Updates
           if(series.latestChapter > 0) {
             const updateHTML = `
-              <div class="update-item" onclick="window.location.href='https://YOUR-NEOCITIES-USERNAME.neocities.org/reader.html?series=${series.slug}&ch=${series.latestChapter}'">
+              <div class="update-item" onclick="window.location.href='https://voidscans.neocities.org/reader.html?series=${series.slug}&ch=${series.latestChapter}'">
                 <img class="update-thumb" src="${series.cover}" alt="${series.title}">
                 <div class="update-meta">
                   <div class="update-title">${series.title}</div>
