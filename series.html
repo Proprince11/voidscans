@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoidScans — Series Details</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <nav class="navbar glass">
+    <div class="nav-inner">
+      <div class="nav-logo">VOID<span>SCANS</span></div>
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="index.html#popular" class="nav-link">Popular Details</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="series-hero">
+    <div class="series-hero-bg" id="hero-bg-blur" style="background-image: url('');"></div>
+    <div class="series-hero-overlay"></div>
+    <div class="container">
+      <div class="series-hero-content">
+        <div class="series-cover">
+          <img id="series-img" src="" alt="Loading Cover...">
+        </div>
+        <div class="series-meta">
+          <h1 class="series-title" id="series-title">Loading Title...</h1>
+          <div class="series-stats">
+            <div class="stat-item">Type: <strong id="series-type">--</strong></div>
+            <div class="stat-item">Status: <strong id="series-status">--</strong></div>
+          </div>
+          <p class="comment-text" id="series-description" style="margin-top: 15px; max-width: 700px;">
+            Loading summary from the void...
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Available Chapters</h2>
+      </div>
+      <div class="chapter-list" id="chapters-container">
+        <p style="padding: 20px; color: var(--text-muted);">Hunting down chapters...</p>
+      </div>
+    </div>
+  </section>
+
+  <script type="module">
+    import { db } from './firebase.js';
+    import { collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // XSS Protection Filter
+    const escapeHTML = (str) => {
+      if (!str) return '';
+      return String(str).replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+      }[tag] || tag));
+    };
+
+    // 1. Extract the Series Slug from the URL (?slug=xyz)
+    const urlParams = new URLSearchParams(window.location.search);
+    const seriesSlug = urlParams.get('slug');
+
+    async function loadSeriesDetails() {
+      if (!seriesSlug) {
+        document.getElementById('series-title').innerText = "Error: No Series Specified";
+        return;
+      }
+
+      try {
+        // 2. Fetch the Metadata of the Series
+        const seriesQuery = query(collection(db, "series"), where("slug", "==", seriesSlug));
+        const seriesSnapshot = await getDocs(seriesQuery);
+
+        if (seriesSnapshot.empty) {
+          document.getElementById('series-title').innerText = "Series Not Found";
+          return;
+        }
+
+        const seriesData = seriesSnapshot.docs[0].data();
+
+        // Target UI Elements
+        const title = escapeHTML(seriesData.title);
+        const cover = escapeHTML(seriesData.cover);
+
+        document.getElementById('series-title').innerText = title;
+        document.getElementById('series-type').innerText = escapeHTML(seriesData.type);
+        document.getElementById('series-status').innerText = escapeHTML(seriesData.status);
+        document.getElementById('series-description').innerText = escapeHTML(seriesData.description);
+        document.getElementById('series-img').src = cover;
+        document.getElementById('hero-bg-blur').style.backgroundImg = `url('${cover}')`;
+
+        // 3. Fetch all Chapters belonging to this series slug
+        const chaptersQuery = query(
+          collection(db, "chapters"),
+          where("seriesSlug", "==", seriesSlug),
+          orderBy("chapterNum", "desc") // Newest chapters at the top
+        );
+        const chaptersSnapshot = await getDocs(chaptersQuery);
+        const chaptersContainer = document.getElementById('chapters-container');
+        chaptersContainer.innerHTML = '';
+
+        if (chaptersSnapshot.empty) {
+          chaptersContainer.innerHTML = `<p style="padding: 20px; color: var(--text-muted);">No chapters found for this series yet.</p>`;
+          return;
+        }
+
+        // 4. Loop and render chapter listings
+        chaptersSnapshot.forEach((doc) => {
+          const ch = doc.data();
+          const chNum = escapeHTML(ch.chapterNum);
+          
+          const chRow = `
+            <div class="chapter-row">
+              <div class="chapter-num">Chapter ${chNum}</div>
+              <div class="chapter-title">Read official translation</div>
+              <button class="chapter-read-btn" onclick="window.location.href='./reader.html?series=${seriesSlug}&ch=${chNum}'">
+                Read
+              </button>
+            </div>
+          `;
+          chaptersContainer.innerHTML += chRow;
+        });
+
+      } catch (error) {
+        console.error("Error loading details:", error);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadSeriesDetails);
+  </script>
+</body>
+</html>

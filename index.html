@@ -77,8 +77,7 @@
 
           // 2. Build Grid Cards (ADDED: glass-panel class to the card)
           const cardHTML = `
-            <div class="card glass-panel" onclick="window.location.href='./reader.html?series=${safeSlug}&ch=${safeChapter}'">
-              <div class="card-img-wrap">
+<div class="card glass" onclick="window.location.href='./series.html?slug=${safeSlug}'">              <div class="card-img-wrap">
                 <img src="${safeCover}" class="card-img" alt="${safeTitle}">
                 <div class="card-badge badge-ongoing">${safeStatus}</div>
                 <div class="card-chapter">Ch. ${safeChapter}</div>
