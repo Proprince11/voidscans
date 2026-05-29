@@ -175,44 +175,48 @@
       }
     });
 
-    // 5. Chapter Form Submission
-  // 4. SECURE Series Form Submission
-    document.getElementById('series-form').addEventListener('submit', async (e) => {
+    // 5. Chapter Form Submission (With Auto-Update Logic)
+    import { updateDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    document.getElementById('chapter-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      // Grab values and trim whitespace
-      const title = document.getElementById('s-title').value.trim();
-      const slug = document.getElementById('s-slug').value.trim();
-      const cover = document.getElementById('s-cover').value.trim();
-      const desc = document.getElementById('s-desc').value.trim();
+      const targetSlug = document.getElementById('c-series-slug').value.trim();
+      const chapterNumber = Number(document.getElementById('c-num').value);
+      const rawImages = document.getElementById('c-images').value;
+      const imageUrls = rawImages.split('\n').map(url => url.trim()).filter(url => url !== "");
       
-      // Priority 4: Form Validation (Block empty inputs)
-      if (!title || !slug || !cover || !desc) {
-        alert("Error: Fields cannot be empty or just spaces.");
-        return; // Stops the code from talking to Firebase
-      }
-
-      // Basic URL validation for the cover image
-      if (!cover.startsWith('http://') && !cover.startsWith('https://')) {
-        alert("Error: Cover must be a valid URL starting with http/https");
-        return;
-      }
-
       try {
-        await addDoc(collection(db, "series"), {
-          title: title,
-          slug: slug,
-          cover: cover,
-          description: desc,
-          type: document.getElementById('s-type').value,
-          status: document.getElementById('s-status').value,
-          latestChapter: 0,
+        // A. Upload the new chapter to the database
+        await addDoc(collection(db, "chapters"), {
+          seriesSlug: targetSlug,
+          chapterNum: chapterNumber,
+          images: imageUrls,
           createdAt: serverTimestamp()
         });
-        alert("Series published successfully!"); 
+
+        // B. Find the matching Series and update its "Latest Chapter"
+        const q = query(collection(db, "series"), where("slug", "==", targetSlug));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          // Grab the specific series document
+          const seriesDoc = querySnapshot.docs[0]; 
+          const currentLatest = seriesDoc.data().latestChapter || 0;
+          
+          // Only update if the uploaded chapter is newer than the current badge
+          if (chapterNumber > currentLatest) {
+            await updateDoc(seriesDoc.ref, {
+              latestChapter: chapterNumber,
+              createdAt: serverTimestamp() // Bumps it to the top of "Latest Updates"
+            });
+          }
+        }
+
+        alert(`Chapter ${chapterNumber} published and series updated!`); 
         e.target.reset();
       } catch (error) { 
-        alert("Failed to publish series.");
+        alert("Failed to publish chapter.");
         console.error(error);
       }
     });
