@@ -45,8 +45,8 @@
 
   <div id="admin-section" class="admin-container fade-up" style="display: none;">
     <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('add-series')">📘 Add New Series</button>
-      <button class="tab-btn" onclick="switchTab('add-chapter')">📄 Add New Chapter</button>
+      <button class="tab-btn active" onclick="switchTab('add-series', event)">📘 Add New Series</button>
+      <button class="tab-btn" onclick="switchTab('add-chapter', event)">📄 Add New Chapter</button>
     </div>
 
     <div id="add-series" class="tab-content active">
@@ -94,19 +94,29 @@
         <button type="submit" class="btn btn-primary">Publish Chapter</button>
       </form>
     </div>
+
+    <section class="section glass" style="margin-top: 40px; padding: 20px; border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--border);">
+      <div class="section-header" style="margin-bottom: 15px;">
+        <h2 class="section-title">Database Management</h2>
+      </div>
+      <div id="admin-series-list" style="display: flex; flex-direction: column; gap: 8px;">
+        <p style="color: var(--text-muted);">Fetching database records...</p>
+      </div>
+    </section>
   </div>
 
   <script type="module">
-    // IMPORTANT: Make sure auth is imported from your firebase.js file!
     import { db, auth } from './firebase.js'; 
-    import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
     // Tab Switching Logic
-    window.switchTab = function(tabId) {
+    window.switchTab = function(tabId, event) {
       document.querySelectorAll('.tab-content, .tab-btn').forEach(t => t.classList.remove('active'));
       document.getElementById(tabId).classList.add('active');
-      event.target.classList.add('active');
+      if (event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
+      }
     };
 
     // DOM Elements for Auth
@@ -119,12 +129,11 @@
     // 1. Listen for Login Status (The Gatekeeper)
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        // User is logged in! Hide login, show admin panel.
         loginSection.style.display = 'none';
         adminSection.style.display = 'block';
         logoutBtn.style.display = 'block';
+        loadAdminSeries(); // Automatically reload records when logged in
       } else {
-        // User is logged out. Show login, hide admin panel.
         loginSection.style.display = 'block';
         adminSection.style.display = 'none';
         logoutBtn.style.display = 'none';
@@ -159,8 +168,8 @@
       try {
         await addDoc(collection(db, "series"), {
           title: document.getElementById('s-title').value,
-          slug: document.getElementById('s-slug').value,
-          cover: document.getElementById('s-cover').value,
+          slug: document.getElementById('s-slug').value.trim(),
+          cover: document.getElementById('s-cover').value.trim(),
           description: document.getElementById('s-desc').value,
           type: document.getElementById('s-type').value,
           status: document.getElementById('s-status').value,
@@ -169,6 +178,7 @@
         });
         alert("Series published successfully!"); 
         e.target.reset();
+        loadAdminSeries(); // Refresh records list
       } catch (error) { 
         alert("Failed to publish series.");
         console.error(error);
@@ -176,8 +186,6 @@
     });
 
     // 5. Chapter Form Submission (With Auto-Update Logic)
-    import { updateDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
     document.getElementById('chapter-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       
@@ -200,15 +208,13 @@
         const querySnapshot = await getDocs(q);
         
         if (!querySnapshot.empty) {
-          // Grab the specific series document
           const seriesDoc = querySnapshot.docs[0]; 
           const currentLatest = seriesDoc.data().latestChapter || 0;
           
-          // Only update if the uploaded chapter is newer than the current badge
           if (chapterNumber > currentLatest) {
             await updateDoc(seriesDoc.ref, {
               latestChapter: chapterNumber,
-              createdAt: serverTimestamp() // Bumps it to the top of "Latest Updates"
+              createdAt: serverTimestamp() 
             });
           }
         }
@@ -220,6 +226,85 @@
         console.error(error);
       }
     });
+
+    // ==========================================
+    // PHASE 3: DATABASE MANAGEMENT ENGINE
+    // ==========================================
+    
+    // 1. The XSS Sanitizer
+    const escapeHTML = (str) => {
+      if (!str) return '';
+      return String(str).replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+      }[tag] || tag));
+    };
+
+    // 2. Fetch and Display the Records
+    async function loadAdminSeries() {
+      const list = document.getElementById('admin-series-list');
+      if (!list) return;
+
+      let htmlString = ''; 
+      
+      try {
+        const q = query(collection(db, "series"), orderBy("createdAt", "desc"));
+        const snapshot = await getDocs(q);
+        
+        if(snapshot.empty) {
+          list.innerHTML = '<p style="color: var(--text-muted);">No records found in database.</p>';
+          return;
+        }
+
+        snapshot.forEach((document) => {
+          const data = document.data();
+          const docId = document.id;
+          const safeSlug = escapeHTML(data.slug);
+          const safeTitle = escapeHTML(data.title);
+          
+          htmlString += `
+            <div style="display: flex; align-items: center; justify-content: space-between; background: var(--surface); padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--r-sm); margin-bottom: 8px;">
+              <div>
+                <strong style="color: var(--text);">${safeTitle}</strong> 
+                <span style="color: var(--text-muted); font-size: 0.85rem; margin-left: 8px;">(/${safeSlug})</span>
+              </div>
+              <button class="btn btn-sm" style="background: #ff4d4d; color: white;" onclick="deleteRecord('${docId}', '${safeTitle}', '${safeSlug}')">
+                Delete Record
+              </button>
+            </div>
+          `;
+        });
+        
+        list.innerHTML = htmlString;
+      } catch (error) {
+        console.error("Failed to fetch records:", error);
+      }
+    }
+
+    // 3. The Cascading Delete Function
+    window.deleteRecord = async (docId, title, slug) => {
+      if(confirm(`WARNING: Are you sure you want to drop "${title}" AND all its chapters? This is permanent.`)) {
+        try {
+          // A. Hunt down and delete all child chapters first
+          const chaptersQuery = query(collection(db, "chapters"), where("seriesSlug", "==", slug));
+          const chaptersSnapshot = await getDocs(chaptersQuery);
+          
+          const deletePromises = [];
+          chaptersSnapshot.forEach((chDoc) => {
+            deletePromises.push(deleteDoc(doc(db, "chapters", chDoc.id)));
+          });
+          await Promise.all(deletePromises);
+
+          // B. Delete the main parent series document
+          await deleteDoc(doc(db, "series", docId));
+          
+          alert(`Successfully deleted "${title}" and ${deletePromises.length} associated chapters.`);
+          loadAdminSeries(); 
+        } catch (error) {
+          console.error("Execution failed:", error);
+          alert("Critical error: Failed to drop records.");
+        }
+      }
+    };
   </script>
 </body>
 </html>
