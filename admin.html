@@ -3,27 +3,47 @@
 <head>
   <meta charset="UTF-8">
   <title>VoidScans Admin Panel</title>
-<link rel="stylesheet" href="style.css">  <style>
+  <link rel="stylesheet" href="style.css">
+  <style>
     .admin-container { max-width: 800px; margin: 40px auto; background: var(--surface); padding: 30px; border-radius: var(--r-md); border: 1px solid var(--border); }
     .form-group { margin-bottom: 15px; }
     .form-group label { display: block; margin-bottom: 5px; color: var(--text-soft); font-size: 0.9rem; }
     .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); border-radius: var(--r-sm); }
     .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-    .tab-btn { padding: 10px 20px; cursor: pointer; color: var(--text-muted); font-weight: 600; }
+    .tab-btn { padding: 10px 20px; cursor: pointer; color: var(--text-muted); font-weight: 600; background: none; border: none; font-size: 1rem; }
     .tab-btn.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
+    .btn { padding: 10px 20px; border: none; border-radius: var(--r-sm); cursor: pointer; font-weight: bold; background: var(--surface-2); color: var(--text); }
+    .btn-primary { background: var(--accent); color: #fff; }
   </style>
 </head>
 <body>
   <nav class="navbar">
     <div class="nav-inner">
       <div class="nav-logo">VOID<span>ADMIN</span></div>
-      <a href="index.html" class="nav-link" target="_blank">View Live Site ↗</a>
+      <div style="display: flex; gap: 15px; align-items: center;">
+        <a href="index.html" class="nav-link" target="_blank">View Live Site ↗</a>
+        <button id="logout-btn" class="btn" style="display: none; padding: 5px 15px;">Logout</button>
+      </div>
     </div>
   </nav>
 
-  <div class="admin-container fade-up">
+  <div id="login-section" class="admin-container fade-up">
+    <h2 style="margin-bottom: 20px;">Admin Login</h2>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="admin-email" required>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="admin-password" required>
+    </div>
+    <button id="login-btn" class="btn btn-primary">Login</button>
+    <p id="login-error" style="color: #ff4d4d; display: none; margin-top: 15px; font-weight: bold;">Invalid credentials.</p>
+  </div>
+
+  <div id="admin-section" class="admin-container fade-up" style="display: none;">
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('add-series')">📘 Add New Series</button>
       <button class="tab-btn" onclick="switchTab('add-chapter')">📄 Add New Chapter</button>
@@ -77,15 +97,63 @@
   </div>
 
   <script type="module">
-import { db } from './firebase.js';
+    // IMPORTANT: Make sure auth is imported from your firebase.js file!
+    import { db, auth } from './firebase.js'; 
     import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+    // Tab Switching Logic
     window.switchTab = function(tabId) {
       document.querySelectorAll('.tab-content, .tab-btn').forEach(t => t.classList.remove('active'));
       document.getElementById(tabId).classList.add('active');
       event.target.classList.add('active');
     };
 
+    // DOM Elements for Auth
+    const loginSection = document.getElementById('login-section');
+    const adminSection = document.getElementById('admin-section');
+    const logoutBtn = document.getElementById('logout-btn');
+    const loginBtn = document.getElementById('login-btn');
+    const errorMsg = document.getElementById('login-error');
+
+    // 1. Listen for Login Status (The Gatekeeper)
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // User is logged in! Hide login, show admin panel.
+        loginSection.style.display = 'none';
+        adminSection.style.display = 'block';
+        logoutBtn.style.display = 'block';
+      } else {
+        // User is logged out. Show login, hide admin panel.
+        loginSection.style.display = 'block';
+        adminSection.style.display = 'none';
+        logoutBtn.style.display = 'none';
+      }
+    });
+
+    // 2. Handle Login Button Click
+    loginBtn.addEventListener('click', () => {
+      const email = document.getElementById('admin-email').value;
+      const password = document.getElementById('admin-password').value;
+      
+      signInWithEmailAndPassword(auth, email, password)
+        .then(() => {
+          errorMsg.style.display = 'none';
+          document.getElementById('admin-email').value = '';
+          document.getElementById('admin-password').value = '';
+        })
+        .catch((error) => {
+          errorMsg.style.display = 'block';
+          console.error("Login failed:", error);
+        });
+    });
+
+    // 3. Handle Logout Button Click
+    logoutBtn.addEventListener('click', () => {
+      signOut(auth);
+    });
+
+    // 4. Series Form Submission
     document.getElementById('series-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       try {
@@ -99,10 +167,15 @@ import { db } from './firebase.js';
           latestChapter: 0,
           createdAt: serverTimestamp()
         });
-        alert("Series published successfully!"); e.target.reset();
-      } catch (error) { alert("Failed to publish series."); }
+        alert("Series published successfully!"); 
+        e.target.reset();
+      } catch (error) { 
+        alert("Failed to publish series.");
+        console.error(error);
+      }
     });
 
+    // 5. Chapter Form Submission
     document.getElementById('chapter-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const rawImages = document.getElementById('c-images').value;
@@ -114,8 +187,12 @@ import { db } from './firebase.js';
           images: imageUrls,
           createdAt: serverTimestamp()
         });
-        alert("Chapter published successfully!"); e.target.reset();
-      } catch (error) { alert("Failed to publish chapter."); }
+        alert("Chapter published successfully!"); 
+        e.target.reset();
+      } catch (error) { 
+        alert("Failed to publish chapter.");
+        console.error(error);
+      }
     });
   </script>
 </body>
