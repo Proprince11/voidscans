@@ -1602,3 +1602,34 @@ textarea.comment-input {
 .toast.show { transform: translateX(0); }
 .toast.error { border-color: var(--accent-red); }
 .toast.success { border-color: var(--accent-green); }
+.glass {
+  position: relative;
+  /* Darkened the background for your theme */
+  background: rgba(30, 30, 35, 0.45);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  /* Softened the border so it doesn't glare */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--r-md); /* Matched your existing curved edges */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 
+              inset 0 4px 20px rgba(255, 255, 255, 0.03);
+  z-index: 1;
+}
+
+.glass::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: inherit;
+  backdrop-filter: blur(1px);
+  /* Adjusted the inset shadows for a dark theme rim light */
+  box-shadow: inset -2px -2px 0px -1px rgba(255, 255, 255, 0.05),
+              inset 0px -2px 0px -1px rgba(255, 255, 255, 0.1);
+  opacity: 0.8;
+  z-index: -1;
+  filter: blur(1px) drop-shadow(4px 4px 6px rgba(0,0,0,0.5));
+}
