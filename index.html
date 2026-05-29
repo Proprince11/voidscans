@@ -4,10 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VoidScans — Free Manhwa Translations</title>
-<link rel="stylesheet" href="style.css"></head>
+  <link rel="stylesheet" href="style.css">
+</head>
 <body>
 
-  <nav class="navbar">
+  <nav class="navbar glass-panel">
     <div class="nav-inner">
       <div class="nav-logo">VOID<span>SCANS</span></div>
       <div class="nav-links">
@@ -34,13 +35,25 @@
         <h2 class="section-title">Popular Series</h2>
       </div>
       <div class="card-grid" id="dynamic-series-grid">
-         </div>
+      </div>
     </div>
   </section>
 
   <script type="module">
-   import { db } from './firebase.js';
+    import { db } from './firebase.js';
     import { collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // XSS SECURITY GATE: This strips executable code out of database strings
+    const escapeHTML = (str) => {
+      if (str === null || str === undefined) return '';
+      return String(str).replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+      }[tag] || tag));
+    };
 
     async function loadSiteData() {
       const grid = document.getElementById('dynamic-series-grid');
@@ -55,31 +68,39 @@
         querySnapshot.forEach((doc) => {
           const series = doc.data();
           
-          // 1. Build Grid Cards (Change YOUR-NEOCITIES-USERNAME below)
+          // 1. Sanitize all incoming data
+          const safeTitle = escapeHTML(series.title);
+          const safeCover = escapeHTML(series.cover);
+          const safeStatus = escapeHTML(series.status);
+          const safeType = escapeHTML(series.type);
+          const safeSlug = escapeHTML(series.slug);
+          const safeChapter = escapeHTML(series.latestChapter);
+
+          // 2. Build Grid Cards (ADDED: glass-panel class to the card)
           const cardHTML = `
-            <div class="card" onclick="window.location.href='https://voidscans.neocities.org/reader.html?series=${series.slug}&ch=${series.latestChapter}'">
+            <div class="card glass-panel" onclick="window.location.href='https://voidscans.neocities.org/reader.html?series=${safeSlug}&ch=${safeChapter}'">
               <div class="card-img-wrap">
-                <img src="${series.cover}" class="card-img" alt="${series.title}">
-                <div class="card-badge badge-ongoing">${series.status}</div>
-                <div class="card-chapter">Ch. ${series.latestChapter}</div>
+                <img src="${safeCover}" class="card-img" alt="${safeTitle}">
+                <div class="card-badge badge-ongoing">${safeStatus}</div>
+                <div class="card-chapter">Ch. ${safeChapter}</div>
               </div>
               <div class="card-info">
-                <div class="card-title">${series.title}</div>
-                <div class="card-type">${series.type}</div>
+                <div class="card-title">${safeTitle}</div>
+                <div class="card-type">${safeType}</div>
               </div>
             </div>
           `;
           grid.innerHTML += cardHTML;
 
-          // 2. Build Latest Updates
+          // 3. Build Latest Updates (ADDED: glass-panel class to the item)
           if(series.latestChapter > 0) {
             const updateHTML = `
-              <div class="update-item" onclick="window.location.href='https://voidscans.neocities.org/reader.html?series=${series.slug}&ch=${series.latestChapter}'">
-                <img class="update-thumb" src="${series.cover}" alt="${series.title}">
+              <div class="update-item glass-panel" style="margin-bottom: 8px;" onclick="window.location.href='https://voidscans.neocities.org/reader.html?series=${safeSlug}&ch=${safeChapter}'">
+                <img class="update-thumb" src="${safeCover}" alt="${safeTitle}">
                 <div class="update-meta">
-                  <div class="update-title">${series.title}</div>
+                  <div class="update-title">${safeTitle}</div>
                   <div class="update-chapters">
-                    <span class="update-ch-link">Ch. ${series.latestChapter}</span>
+                    <span class="update-ch-link">Ch. ${safeChapter}</span>
                   </div>
                 </div>
               </div>

@@ -10,6 +10,11 @@
    ===================================================== */
 :root {
   /* Colors */
+  /* The Premium Glass Variables */
+  --glass-bg: rgba(30, 30, 35, 0.45);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-blur: blur(16px);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
   --bg:           #0a0a0c;
   --bg-deep:      #050507;
   --surface:      #141417;
@@ -102,6 +107,14 @@ input, textarea, select { font-family: inherit; }
 /* =====================================================
    4. LAYOUT UTILITIES
    ===================================================== */
+   /* Premium Glassmorphism Class */
+.glass-panel {
+  background: var(--glass-bg) !important;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--glass-shadow);
+}
 .container {
   max-width: var(--max-w);
   margin: 0 auto;
