@@ -70,3 +70,8 @@ input[type=number] { -moz-appearance: textfield; }
   border-radius: var(--r-xs);
 }
 :focus:not(:focus-visible) { outline: none; }
+
+/* Make HTML's `hidden` attribute always work — !important to win
+   against display:flex/grid set on classes like .login-shell or .admin-shell.
+   Without this, [hidden] elements with such classes still render. */
+[hidden] { display: none !important; }
