@@ -66,6 +66,9 @@
   isolation: isolate;
   padding: var(--s-6) 0;
 }
+@media (min-width: 768px) {
+  .series-hero { padding: var(--s-10) 0 var(--s-8); }
+}
 .series-hero-bg {
   position: absolute;
   inset: 0;
@@ -92,16 +95,18 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--s-5);
+  align-items: start;
 }
 @media (min-width: 768px) {
-  .series-grid { grid-template-columns: 220px 1fr; gap: var(--s-6); }
+  .series-grid { grid-template-columns: 200px 1fr; gap: var(--s-6); }
 }
 @media (min-width: 1024px) {
-  .series-grid { grid-template-columns: 260px 1fr; gap: var(--s-8); }
+  .series-grid { grid-template-columns: 240px 1fr; gap: var(--s-8); }
 }
 
 .series-cover {
-  width: 160px;
+  width: 150px;
+  max-width: 55vw;
   margin: 0 auto;
   aspect-ratio: 2/3;
   border-radius: var(--r-md);
@@ -110,8 +115,9 @@
   border: 1px solid var(--glass-border);
   background: var(--surface-2);
   flex-shrink: 0;
+  align-self: start;
 }
-@media (min-width: 768px) { .series-cover { width: 100%; margin: 0; min-width: 180px; } }
+@media (min-width: 768px) { .series-cover { width: 100%; max-width: none; margin: 0; } }
 .series-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 .series-meta { display: flex; flex-direction: column; gap: var(--s-3); }
@@ -126,26 +132,38 @@
 .series-alt { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 4px; }
 
 .series-stats {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
   gap: var(--s-4);
+  padding: var(--s-4);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
   font-size: var(--fs-sm);
   color: var(--text-soft);
 }
 .series-stats .stat {
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 .series-stats .stat-label {
   font-size: var(--fs-xs);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .series-stats .stat-value {
   font-family: var(--font-display);
   font-weight: var(--fw-semibold);
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .series-actions {
