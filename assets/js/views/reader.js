@@ -3,12 +3,17 @@
 // progress bar, settings drawer, keyboard nav, swipe.
 // =====================================================
 
-import { fetchChapter, fetchChapters, fetchSeriesBySlug } from '../lib/api.js';
+import {
+  fetchChapter, fetchChapters, fetchSeriesBySlug,
+  trackChapterView, fetchChapterComments, postComment, likeComment
+} from '../lib/api.js';
 import {
   recordRead, saveProgress, getProgress,
-  getReaderPrefs, setReaderPrefs
+  getReaderPrefs, setReaderPrefs,
+  hasLikedComment, markCommentLiked
 } from '../lib/library.js';
-import { esc, html, throttle, isMobile, isTouch } from '../lib/utils.js';
+import { getProfile } from '../lib/account.js';
+import { esc, html, throttle, timeAgo, avatarLetter, isMobile, isTouch } from '../lib/utils.js';
 import { spinner, toast, drawer, share } from '../lib/ui.js';
 
 export async function reader(params, ctx) {
@@ -55,11 +60,20 @@ export async function reader(params, ctx) {
   // Build view
   ctx.outlet.innerHTML = renderReader(s, ch, prev, next, sorted, prefs);
 
+  // Inject JSON-LD chapter schema for SEO
+  injectChapterJsonLd(s, ch);
+
+  // Track chapter view (sessioned, fail-silent if rules reject)
+  trackChapterView(slug, ch.number).catch(() => {});
+
   // Wire up
   const cleanup = wireUp(s, ch, prev, next, sorted, prefs);
 
   // Mark as read on entry (persistent)
   recordRead(slug, ch.number, ch.pages.length, 0);
+
+  // Lazy-load chapter comments (don't block reader)
+  loadChapterComments(s, ch);
 
   // Precache this chapter's images for offline reading
   if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
@@ -136,6 +150,27 @@ function renderReader(s, ch, prev, next, all, prefs) {
         ? `<a href="/read/${esc(s.slug)}/${next.number}" class="btn btn-primary">Ch.${next.number} →</a>`
         : `<a href="/series/${esc(s.slug)}" class="btn btn-primary">All Done · Series</a>`}
     </div>
+
+    <!-- Per-chapter comments -->
+    <section class="container section" id="chapterCommentsSection" style="max-width: 800px;">
+      <div class="section-header" style="margin-bottom: var(--s-4);">
+        <h2 class="section-title">Chapter Comments</h2>
+        <span class="results-count" id="chCommentCount"></span>
+      </div>
+      <div id="chCommentForm">
+        <div class="field-row">
+          <input type="text" class="input" id="chcName" placeholder="Your name (optional)" maxlength="40">
+          <div></div>
+        </div>
+        <textarea class="textarea" id="chcText" placeholder="What did you think of this chapter? (2–1000 chars)" maxlength="1000"></textarea>
+        <div class="row gap-3" style="margin-top: var(--s-2); align-items: center;">
+          <span class="field-hint" id="chcCounter">0 / 1000</span>
+          <span class="nav-spacer"></span>
+          <button class="btn btn-primary" id="chcSubmit">Post Comment</button>
+        </div>
+      </div>
+      <div class="comments-list" id="chCommentList" style="margin-top: var(--s-5);">${spinner('sm')}</div>
+    </section>
   `;
 }
 
@@ -312,5 +347,134 @@ function openSettingsDrawer(prefs) {
     dw.el.querySelectorAll('#rGap .tag-pill').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     applyClasses();
+  });
+}
+
+
+// =====================================================
+// JSON-LD CHAPTER SCHEMA (SEO)
+// Adds Schema.org BlogPosting / Chapter entity so search engines
+// understand chapter pages as discrete content.
+// =====================================================
+function injectChapterJsonLd(s, ch) {
+  document.querySelectorAll('script[data-vs-jsonld]').forEach(el => el.remove());
+  const data = {
+    '@context': 'https://schema.org',
+    '@type': 'Chapter',
+    name: `${s.title} — Chapter ${ch.number}${ch.title ? `: ${ch.title}` : ''}`,
+    isPartOf: { '@type': 'Book', name: s.title, image: s.cover },
+    position: ch.number,
+    image: ch.pages?.[0],
+    inLanguage: 'en',
+    url: location.href,
+    datePublished: ch.createdAt?.toDate
+      ? ch.createdAt.toDate().toISOString()
+      : (ch.createdAt?.seconds ? new Date(ch.createdAt.seconds * 1000).toISOString() : undefined)
+  };
+  Object.keys(data).forEach(k => data[k] === undefined && delete data[k]);
+  const script = document.createElement('script');
+  script.type = 'application/ld+json';
+  script.dataset.vsJsonld = '1';
+  script.textContent = JSON.stringify(data);
+  document.head.appendChild(script);
+}
+
+// =====================================================
+// PER-CHAPTER COMMENTS
+// Stored under /series/{slug}/comments with chapter field.
+// =====================================================
+async function loadChapterComments(s, ch) {
+  const list = document.getElementById('chCommentList');
+  if (!list) return;
+
+  let items = [];
+  try {
+    items = await fetchChapterComments(s.slug, ch.number, 30);
+  } catch (e) {
+    list.innerHTML = `<p class="text-muted" style="text-align:center;">Couldn't load comments.</p>`;
+    return;
+  }
+
+  // Pre-fill name from profile
+  const profile = getProfile();
+  const nameInput = document.getElementById('chcName');
+  if (profile?.displayName && nameInput && !nameInput.value) {
+    nameInput.value = profile.displayName;
+  }
+
+  // Counter
+  const txt = document.getElementById('chcText');
+  const counter = document.getElementById('chcCounter');
+  txt?.addEventListener('input', () => {
+    counter.textContent = `${txt.value.length} / 1000`;
+  });
+
+  // Submit
+  document.getElementById('chcSubmit')?.addEventListener('click', async () => {
+    const name = nameInput?.value.trim() || 'Anonymous';
+    const text = txt.value.trim();
+    const last = Number(localStorage.getItem('vs:lastComment') || 0);
+    if (Date.now() - last < 60_000) { toast('Please wait a minute before commenting again', 'error'); return; }
+    if (text.length < 2) { toast('Comment too short', 'error'); return; }
+    try {
+      await postComment(s.slug, { authorName: name, text, chapter: Number(ch.number) });
+      localStorage.setItem('vs:lastComment', String(Date.now()));
+      txt.value = ''; counter.textContent = '0 / 1000';
+      toast('Posted!', 'success');
+      const fresh = await fetchChapterComments(s.slug, ch.number, 30);
+      paintChapterComments(s, fresh);
+    } catch (e) {
+      console.error(e);
+      toast(e.message || 'Could not post', 'error');
+    }
+  });
+
+  paintChapterComments(s, items);
+}
+
+function paintChapterComments(s, items) {
+  const list = document.getElementById('chCommentList');
+  const counter = document.getElementById('chCommentCount');
+  if (!list) return;
+  if (counter) counter.innerHTML = `<strong>${items.length}</strong> comment${items.length === 1 ? '' : 's'}`;
+  if (!items.length) {
+    list.innerHTML = `<p class="text-muted" style="text-align:center;padding:var(--s-5);">Be the first to comment on this chapter!</p>`;
+    return;
+  }
+  list.innerHTML = items.map(c => {
+    const ts = c.createdAt?.toDate ? timeAgo(c.createdAt.toDate()) : '';
+    const liked = hasLikedComment(c.id);
+    return `
+      <article class="comment">
+        <div class="comment-avatar" aria-hidden="true">${esc(avatarLetter(c.authorName))}</div>
+        <div class="comment-body">
+          <div class="comment-head">
+            <span class="comment-name">${esc(c.authorName || 'Anonymous')}</span>
+            <span class="comment-time">${esc(ts)}</span>
+          </div>
+          <div class="comment-text">${esc(c.text)}</div>
+          <div class="comment-actions">
+            <button class="comment-action ${liked ? 'active' : ''}" data-like="${esc(c.id)}">
+              👍 <span>${esc(c.likes || 0)}</span>
+            </button>
+          </div>
+        </div>
+      </article>
+    `;
+  }).join('');
+  list.querySelectorAll('[data-like]').forEach(b => {
+    b.addEventListener('click', async () => {
+      const id = b.dataset.like;
+      if (hasLikedComment(id)) { toast('Already liked', 'info'); return; }
+      try {
+        await likeComment(s.slug, id);
+        markCommentLiked(id);
+        const span = b.querySelector('span');
+        span.textContent = String(Number(span.textContent) + 1);
+        b.classList.add('active');
+      } catch {
+        toast('Could not like', 'error');
+      }
+    });
   });
 }

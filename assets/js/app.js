@@ -5,7 +5,10 @@
 // =====================================================
 
 import * as router from './lib/router.js';
-import { mountBackToTop } from './lib/ui.js';
+import { mountBackToTop, openAuthModal } from './lib/ui.js';
+import { onAuthChange, signOut, getUser } from './lib/auth.js';
+import { onProfileChange, getProfile } from './lib/account.js';
+import { avatarLetter, esc } from './lib/utils.js';
 
 // Lazy-import views: code-split so a slow chapter image
 // doesn't prevent the home page from rendering.
@@ -16,6 +19,7 @@ import { genre }    from './views/genre.js';
 import { series }   from './views/series.js';
 import { reader }   from './views/reader.js';
 import { library }  from './views/library.js';
+import { profile }  from './views/profile.js';
 import { notFound } from './views/notFound.js';
 
 // =====================================================
@@ -34,6 +38,7 @@ router.register('/genre/:slug',            genre);
 router.register('/series/:slug',           series);
 router.register('/read/:slug/:chapter',    reader);
 router.register('/library',                library);
+router.register('/profile',                profile);
 router.register('*',                       notFound);
 
 // =====================================================
@@ -79,6 +84,107 @@ function onScroll() {
 window.addEventListener('scroll', onScroll, { passive: true });
 
 // =====================================================
+// AUTH UI in navbar — Sign In button (signed-out) or
+// avatar dropdown (signed-in). Mounted once.
+// =====================================================
+function mountAuthChrome() {
+  const navActions = document.querySelector('#topnav .nav-actions');
+  if (!navActions || navActions.querySelector('[data-auth-slot]')) return;
+
+  const slot = document.createElement('div');
+  slot.dataset.authSlot = '1';
+  slot.style.position = 'relative';
+  slot.style.display = 'flex';
+  slot.style.alignItems = 'center';
+  navActions.appendChild(slot);
+
+  function paint(user, profileData) {
+    slot.innerHTML = '';
+    if (!user) {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-outline btn-sm';
+      btn.id = 'navSignIn';
+      btn.textContent = 'Sign In';
+      btn.addEventListener('click', () => openAuthModal({ initialTab: 'signin' }));
+      slot.appendChild(btn);
+      return;
+    }
+
+    // Signed in — avatar button
+    const photoURL = profileData?.photoURL || user.photoURL || '';
+    const initial = avatarLetter(profileData?.displayName || user.displayName || user.email);
+
+    const trigger = document.createElement('button');
+    trigger.className = 'icon-btn';
+    trigger.setAttribute('aria-label', 'Account menu');
+    trigger.style.cssText = `
+      width: 32px; height: 32px;
+      border-radius: var(--r-full);
+      background: ${photoURL ? `url('${esc(photoURL)}') center/cover` : 'linear-gradient(135deg, var(--accent), var(--accent-2))'};
+      color: var(--bg);
+      font-family: var(--font-display);
+      font-weight: var(--fw-bold);
+      font-size: var(--fs-sm);
+      ${photoURL ? '' : 'display: grid; place-items: center;'}
+    `;
+    trigger.textContent = photoURL ? '' : initial;
+    slot.appendChild(trigger);
+
+    let popover = null;
+    function close() { popover?.remove(); popover = null; document.removeEventListener('click', onDocClick); }
+    function onDocClick(e) { if (popover && !slot.contains(e.target)) close(); }
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (popover) { close(); return; }
+      popover = document.createElement('div');
+      popover.style.cssText = `
+        position: absolute; top: calc(100% + 8px); right: 0;
+        background: var(--surface-1); border: 1px solid var(--border);
+        border-radius: var(--r-md); box-shadow: var(--sh-lg);
+        padding: var(--s-2); min-width: 220px; z-index: var(--z-sticky);
+        display: flex; flex-direction: column; gap: 4px;
+      `;
+      popover.innerHTML = `
+        <div style="padding: var(--s-3); border-bottom: 1px solid var(--border-soft); margin-bottom: var(--s-1);">
+          <div style="font-weight: var(--fw-semibold); font-size: var(--fs-sm);">${esc(profileData?.displayName || user.displayName || 'Reader')}</div>
+          <div style="font-size: var(--fs-xs); color: var(--text-muted);">${esc(user.email || '')}</div>
+        </div>
+        <a href="/profile" class="nav-link" style="padding: var(--s-2) var(--s-3);">My Profile</a>
+        <a href="/library" class="nav-link" style="padding: var(--s-2) var(--s-3);">Library</a>
+        <a href="/library?tab=history" class="nav-link" style="padding: var(--s-2) var(--s-3);">History</a>
+        <hr style="border: 0; border-top: 1px solid var(--border-soft); margin: var(--s-1) 0;">
+        <button class="nav-link" data-act="signout" style="padding: var(--s-2) var(--s-3); text-align: left; color: var(--danger); width: 100%;">Sign Out</button>
+      `;
+      slot.appendChild(popover);
+      popover.querySelector('[data-act="signout"]').addEventListener('click', async () => {
+        close();
+        await signOut();
+      });
+      popover.addEventListener('click', (ev) => {
+        if (ev.target.closest('a')) close();
+      });
+      setTimeout(() => document.addEventListener('click', onDocClick), 0);
+    });
+  }
+
+  // Repaint on auth changes + profile changes
+  let lastUser = null;
+  let lastProfile = null;
+  onAuthChange((user) => {
+    lastUser = user;
+    paint(lastUser, lastProfile);
+  });
+  onProfileChange((p) => {
+    lastProfile = p;
+    paint(lastUser, lastProfile);
+  });
+  // Initial paint
+  paint(getUser(), getProfile());
+}
+mountAuthChrome();
+
+// =====================================================
 // Mobile menu drawer
 // =====================================================
 const menuBtn = document.getElementById('navMenuBtn');
@@ -100,6 +206,7 @@ menuBtn?.addEventListener('click', () => {
         <a href="/browse"  class="nav-link" style="padding:var(--s-3); font-size:var(--fs-base);">Browse</a>
         <a href="/search"  class="nav-link" style="padding:var(--s-3); font-size:var(--fs-base);">Search</a>
         <a href="/library" class="nav-link" style="padding:var(--s-3); font-size:var(--fs-base);">My Library</a>
+        <a href="/profile" class="nav-link" style="padding:var(--s-3); font-size:var(--fs-base);">My Profile</a>
         <hr style="border: 0; border-top: 1px solid var(--border); margin: var(--s-3) 0;">
         <a href="/admin"   class="nav-link" target="_blank" style="padding:var(--s-3); font-size:var(--fs-sm); color:var(--text-muted);">Admin</a>
       </nav>
