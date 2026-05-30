@@ -2,9 +2,9 @@
 # Cloudflare Workers Static Assets respects this file.
 # See: https://developers.cloudflare.com/workers/static-assets/binding/
 
-# Source-only directories
+# Server-only directories
 scripts/
-workers/cache-api/
+workers/
 docs/
 
 # Top-level non-asset files
