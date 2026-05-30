@@ -2,309 +2,107 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>VoidScans Admin Panel</title>
-  <link rel="stylesheet" href="style.css">
-  <style>
-    .admin-container { max-width: 800px; margin: 40px auto; background: var(--surface); padding: 30px; border-radius: var(--r-md); border: 1px solid var(--border); }
-    .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; margin-bottom: 5px; color: var(--text-soft); font-size: 0.9rem; }
-    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); border-radius: var(--r-sm); }
-    .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-    .tab-btn { padding: 10px 20px; cursor: pointer; color: var(--text-muted); font-weight: 600; background: none; border: none; font-size: 1rem; }
-    .tab-btn.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-    .btn { padding: 10px 20px; border: none; border-radius: var(--r-sm); cursor: pointer; font-weight: bold; background: var(--surface-2); color: var(--text); }
-    .btn-primary { background: var(--accent); color: #fff; }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0c">
+  <meta name="color-scheme" content="dark">
+  <meta name="robots" content="noindex,nofollow">
+
+  <title>Admin · VoidScans</title>
+
+  <link rel="icon" type="image/svg+xml" href="/assets/images/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/reset.css">
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="stylesheet" href="/assets/css/components.css">
+  <link rel="stylesheet" href="/assets/css/admin.css">
 </head>
 <body>
-  <nav class="navbar">
-    <div class="nav-inner">
-      <div class="nav-logo">VOID<span>ADMIN</span></div>
-      <div style="display: flex; gap: 15px; align-items: center;">
-        <a href="index.html" class="nav-link" target="_blank">View Live Site ↗</a>
-        <button id="logout-btn" class="btn" style="display: none; padding: 5px 15px;">Logout</button>
-      </div>
-    </div>
-  </nav>
 
-  <div id="login-section" class="admin-container fade-up">
-    <h2 style="margin-bottom: 20px;">Admin Login</h2>
-    <div class="form-group">
-      <label>Email</label>
-      <input type="email" id="admin-email" required>
-    </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="admin-password" required>
-    </div>
-    <button id="login-btn" class="btn btn-primary">Login</button>
-    <p id="login-error" style="color: #ff4d4d; display: none; margin-top: 15px; font-weight: bold;">Invalid credentials.</p>
+  <!-- Initial loading state -->
+  <div id="bootLoader" class="login-shell">
+    <div class="spinner"></div>
   </div>
 
-  <div id="admin-section" class="admin-container fade-up" style="display: none;">
-    <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('add-series', event)">📘 Add New Series</button>
-      <button class="tab-btn" onclick="switchTab('add-chapter', event)">📄 Add New Chapter</button>
-    </div>
+  <!-- Login screen (shown when signed out) -->
+  <div id="loginShell" class="login-shell" hidden>
+    <form class="login-card" id="loginForm">
+      <h2 style="text-align:center;">Admin</h2>
+      <p class="login-sub">Sign in to manage VoidScans.</p>
 
-    <div id="add-series" class="tab-content active">
-      <h2>Publish New Manhwa</h2>
-      <form id="series-form">
-        <div class="form-group">
-          <label>Series Title</label>
-          <input type="text" id="s-title" required>
-        </div>
-        <div class="form-group">
-          <label>URL Slug (no spaces, e.g. solo-raven)</label>
-          <input type="text" id="s-slug" required>
-        </div>
-        <div class="form-group">
-          <label>Cover Image URL (Catbox/R2)</label>
-          <input type="url" id="s-cover" required>
-        </div>
-        <div class="form-group">
-          <label>Description</label>
-          <textarea id="s-desc" rows="4" required></textarea>
-        </div>
-        <div class="form-group" style="display: flex; gap: 10px;">
-          <div style="flex: 1;"><label>Type</label><select id="s-type"><option>Manhwa</option><option>Manga</option></select></div>
-          <div style="flex: 1;"><label>Status</label><select id="s-status"><option>Ongoing</option><option>Completed</option></select></div>
-        </div>
-        <button type="submit" class="btn btn-primary">Publish Series</button>
-      </form>
-    </div>
-
-    <div id="add-chapter" class="tab-content">
-      <h2>Upload New Chapter</h2>
-      <form id="chapter-form">
-        <div class="form-group">
-          <label>Series Slug (e.g. solo-raven)</label>
-          <input type="text" id="c-series-slug" required>
-        </div>
-        <div class="form-group">
-          <label>Chapter Number</label>
-          <input type="number" id="c-num" required>
-        </div>
-        <div class="form-group">
-          <label>Image URLs (Paste Catbox/Imgbb links here, one per line)</label>
-          <textarea id="c-images" rows="10" required></textarea>
-        </div>
-        <button type="submit" class="btn btn-primary">Publish Chapter</button>
-      </form>
-    </div>
-
-    <section class="section glass" style="margin-top: 40px; padding: 20px; border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--border);">
-      <div class="section-header" style="margin-bottom: 15px;">
-        <h2 class="section-title">Database Management</h2>
+      <div class="field">
+        <label class="field-label" for="email">Email</label>
+        <input id="email" name="email" class="input" type="email" autocomplete="username" required>
       </div>
-      <div id="admin-series-list" style="display: flex; flex-direction: column; gap: 8px;">
-        <p style="color: var(--text-muted);">Fetching database records...</p>
+      <div class="field">
+        <label class="field-label" for="password">Password</label>
+        <input id="password" name="password" class="input" type="password" autocomplete="current-password" required>
       </div>
-    </section>
+
+      <button type="submit" class="btn btn-primary btn-block" id="loginBtn">Sign In</button>
+      <p id="loginErr" class="field-error" style="display:none; margin-top: var(--s-3); text-align:center;"></p>
+
+      <p style="text-align:center; margin-top: var(--s-4); font-size: var(--fs-xs); color: var(--text-muted);">
+        Forgot password? <a href="#" id="resetLink" style="color: var(--accent);">Reset via email</a>
+      </p>
+      <p style="text-align:center; margin-top: var(--s-3); font-size: var(--fs-xs); color: var(--text-muted);">
+        ← <a href="/" style="color: var(--text-muted);">Back to site</a>
+      </p>
+    </form>
   </div>
 
-  <script type="module">
-    import { db, auth } from './firebase.js'; 
-    import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-    import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  <!-- Admin app (shown when signed in + admin claim verified) -->
+  <div id="adminShell" class="admin-shell" hidden>
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" aria-label="Admin navigation">
+      <div class="admin-brand">VOID<span>ADMIN</span></div>
+      <a class="admin-nav-item" data-tab="dashboard" data-active>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <a class="admin-nav-item" data-tab="series">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        Series
+      </a>
+      <a class="admin-nav-item" data-tab="chapters">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Chapters
+      </a>
+      <a class="admin-nav-item" data-tab="comments">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Comments
+      </a>
+      <a class="admin-nav-item" data-tab="settings">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </a>
+      <hr style="border:0; border-top:1px solid var(--border); margin: var(--s-3) 0;">
+      <a class="admin-nav-item" href="/" target="_blank" rel="noopener">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        View Site
+      </a>
+    </aside>
 
-    // Tab Switching Logic
-    window.switchTab = function(tabId, event) {
-      document.querySelectorAll('.tab-content, .tab-btn').forEach(t => t.classList.remove('active'));
-      document.getElementById(tabId).classList.add('active');
-      if (event && event.currentTarget) {
-        event.currentTarget.classList.add('active');
-      }
-    };
+    <!-- Main content -->
+    <main class="admin-main" id="adminOutlet">
+      <div class="center" style="padding: var(--s-12);"><div class="spinner"></div></div>
+    </main>
+  </div>
 
-    // DOM Elements for Auth
-    const loginSection = document.getElementById('login-section');
-    const adminSection = document.getElementById('admin-section');
-    const logoutBtn = document.getElementById('logout-btn');
-    const loginBtn = document.getElementById('login-btn');
-    const errorMsg = document.getElementById('login-error');
+  <!-- Not-admin screen (signed in but no admin claim) -->
+  <div id="noAdminShell" class="login-shell" hidden>
+    <div class="login-card">
+      <h2 style="text-align:center;">Not Authorized</h2>
+      <p class="login-sub">Your account exists, but does not have admin permissions.</p>
+      <p style="font-size: var(--fs-sm); color: var(--text-muted); text-align:center;">
+        See <code>docs/09-user-tasks.md</code> for how to grant yourself admin access via the Firebase CLI.
+      </p>
+      <button class="btn btn-outline btn-block" id="signOutBtn" style="margin-top: var(--s-4);">Sign Out</button>
+    </div>
+  </div>
 
-    // 1. Listen for Login Status (The Gatekeeper)
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        loginSection.style.display = 'none';
-        adminSection.style.display = 'block';
-        logoutBtn.style.display = 'block';
-        loadAdminSeries(); // Automatically reload records when logged in
-      } else {
-        loginSection.style.display = 'block';
-        adminSection.style.display = 'none';
-        logoutBtn.style.display = 'none';
-      }
-    });
-
-    // 2. Handle Login Button Click
-    loginBtn.addEventListener('click', () => {
-      const email = document.getElementById('admin-email').value;
-      const password = document.getElementById('admin-password').value;
-      
-      signInWithEmailAndPassword(auth, email, password)
-        .then(() => {
-          errorMsg.style.display = 'none';
-          document.getElementById('admin-email').value = '';
-          document.getElementById('admin-password').value = '';
-        })
-        .catch((error) => {
-          errorMsg.style.display = 'block';
-          console.error("Login failed:", error);
-        });
-    });
-
-    // 3. Handle Logout Button Click
-    logoutBtn.addEventListener('click', () => {
-      signOut(auth);
-    });
-
-    // 4. Series Form Submission
-    document.getElementById('series-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      try {
-        await addDoc(collection(db, "series"), {
-          title: document.getElementById('s-title').value,
-          slug: document.getElementById('s-slug').value.trim(),
-          cover: document.getElementById('s-cover').value.trim(),
-          description: document.getElementById('s-desc').value,
-          type: document.getElementById('s-type').value,
-          status: document.getElementById('s-status').value,
-          latestChapter: 0,
-          createdAt: serverTimestamp()
-        });
-        alert("Series published successfully!"); 
-        e.target.reset();
-        loadAdminSeries(); // Refresh records list
-      } catch (error) { 
-        alert("Failed to publish series.");
-        console.error(error);
-      }
-    });
-
-    // 5. Chapter Form Submission (With Auto-Update Logic)
-    document.getElementById('chapter-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const targetSlug = document.getElementById('c-series-slug').value.trim();
-      const chapterNumber = Number(document.getElementById('c-num').value);
-      const rawImages = document.getElementById('c-images').value;
-      const imageUrls = rawImages.split('\n').map(url => url.trim()).filter(url => url !== "");
-      
-      try {
-        // A. Upload the new chapter to the database
-        await addDoc(collection(db, "chapters"), {
-          seriesSlug: targetSlug,
-          chapterNum: chapterNumber,
-          images: imageUrls,
-          createdAt: serverTimestamp()
-        });
-
-        // B. Find the matching Series and update its "Latest Chapter"
-        const q = query(collection(db, "series"), where("slug", "==", targetSlug));
-        const querySnapshot = await getDocs(q);
-        
-        if (!querySnapshot.empty) {
-          const seriesDoc = querySnapshot.docs[0]; 
-          const currentLatest = seriesDoc.data().latestChapter || 0;
-          
-          if (chapterNumber > currentLatest) {
-            await updateDoc(seriesDoc.ref, {
-              latestChapter: chapterNumber,
-              createdAt: serverTimestamp() 
-            });
-          }
-        }
-
-        alert(`Chapter ${chapterNumber} published and series updated!`); 
-        e.target.reset();
-      } catch (error) { 
-        alert("Failed to publish chapter.");
-        console.error(error);
-      }
-    });
-
-    // ==========================================
-    // PHASE 3: DATABASE MANAGEMENT ENGINE
-    // ==========================================
-    
-    // 1. The XSS Sanitizer
-    const escapeHTML = (str) => {
-      if (!str) return '';
-      return String(str).replace(/[&<>'"]/g, tag => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-      }[tag] || tag));
-    };
-
-    // 2. Fetch and Display the Records
-    async function loadAdminSeries() {
-      const list = document.getElementById('admin-series-list');
-      if (!list) return;
-
-      let htmlString = ''; 
-      
-      try {
-        const q = query(collection(db, "series"), orderBy("createdAt", "desc"));
-        const snapshot = await getDocs(q);
-        
-        if(snapshot.empty) {
-          list.innerHTML = '<p style="color: var(--text-muted);">No records found in database.</p>';
-          return;
-        }
-
-        snapshot.forEach((document) => {
-          const data = document.data();
-          const docId = document.id;
-          const safeSlug = escapeHTML(data.slug);
-          const safeTitle = escapeHTML(data.title);
-          
-          htmlString += `
-            <div style="display: flex; align-items: center; justify-content: space-between; background: var(--surface); padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--r-sm); margin-bottom: 8px;">
-              <div>
-                <strong style="color: var(--text);">${safeTitle}</strong> 
-                <span style="color: var(--text-muted); font-size: 0.85rem; margin-left: 8px;">(/${safeSlug})</span>
-              </div>
-              <button class="btn btn-sm" style="background: #ff4d4d; color: white;" onclick="deleteRecord('${docId}', '${safeTitle}', '${safeSlug}')">
-                Delete Record
-              </button>
-            </div>
-          `;
-        });
-        
-        list.innerHTML = htmlString;
-      } catch (error) {
-        console.error("Failed to fetch records:", error);
-      }
-    }
-
-    // 3. The Cascading Delete Function
-    window.deleteRecord = async (docId, title, slug) => {
-      if(confirm(`WARNING: Are you sure you want to drop "${title}" AND all its chapters? This is permanent.`)) {
-        try {
-          // A. Hunt down and delete all child chapters first
-          const chaptersQuery = query(collection(db, "chapters"), where("seriesSlug", "==", slug));
-          const chaptersSnapshot = await getDocs(chaptersQuery);
-          
-          const deletePromises = [];
-          chaptersSnapshot.forEach((chDoc) => {
-            deletePromises.push(deleteDoc(doc(db, "chapters", chDoc.id)));
-          });
-          await Promise.all(deletePromises);
-
-          // B. Delete the main parent series document
-          await deleteDoc(doc(db, "series", docId));
-          
-          alert(`Successfully deleted "${title}" and ${deletePromises.length} associated chapters.`);
-          loadAdminSeries(); 
-        } catch (error) {
-          console.error("Execution failed:", error);
-          alert("Critical error: Failed to drop records.");
-        }
-      }
-    };
-  </script>
+  <script type="module" src="/assets/js/admin.js"></script>
 </body>
 </html>
