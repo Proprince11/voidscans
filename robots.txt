@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin
 Disallow: /admin/*
 
-Sitemap: https://voidscans.pages.dev/sitemap.xml
+Sitemap: https://voidscans.isthe.workers.dev/sitemap.xml

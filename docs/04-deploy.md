@@ -29,7 +29,7 @@ Click **Save and Deploy**. First deploy takes ~30 seconds.
 
 ### 4. Verify the deploy
 
-- URL: `https://voidscans.pages.dev`
+- URL: `https://voidscans.isthe.workers.dev`
 - Open DevTools → Network tab → check that:
   - Service worker registers (look in Application → Service Workers).
   - Manifest loads (`/manifest.webmanifest` returns 200).
@@ -38,7 +38,7 @@ Click **Save and Deploy**. First deploy takes ~30 seconds.
 
 ### 5. Auto-deploy on push
 
-Once configured, every push to `main` deploys in ~30 seconds. Branch pushes get preview URLs (`https://abc123.voidscans.pages.dev`).
+Once configured, every push to `main` deploys in ~30 seconds. Branch pushes get preview URLs (`https://abc123.voidscans.isthe.workers.dev`).
 
 ---
 
@@ -98,7 +98,7 @@ Apply the same pattern to `fetchSeriesBySlug`, `fetchChapters`, `fetchChapter`. 
 ### 4. Custom domain for the Worker (optional)
 
 1. Cloudflare Dashboard → Workers & Pages → `voidscans-cache` → Triggers → Custom Domains.
-2. Add `api.voidscans.pages.dev` (or your real domain).
+2. Add `api.voidscans.isthe.workers.dev` (or your real domain).
 3. Update `API_BASE` in `api.js`.
 
 ---
@@ -106,7 +106,7 @@ Apply the same pattern to `fetchSeriesBySlug`, `fetchChapters`, `fetchChapter`. 
 ## Custom domain for the main site
 
 ### Free options
-- `voidscans.pages.dev` — instant, no setup, free forever.
+- `voidscans.isthe.workers.dev` — instant, no setup, free forever.
 - `voidscans.is-a.dev` — submit GitHub PR, takes 1–3 days.
 - `voidscans.eu.org` — apply at nic.eu.org, 2–6 weeks.
 
