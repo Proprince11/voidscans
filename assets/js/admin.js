@@ -5,6 +5,7 @@
 import { onAuthChange, signIn, signOut, resetPassword, verifyAdmin, getUser } from './lib/auth.js';
 import { toast } from './lib/ui.js';
 import { dashboard } from './admin/dashboard.js';
+import { reports } from './admin/reports.js';
 import { seriesAdmin } from './admin/series.js';
 import { chaptersAdmin } from './admin/chapters.js';
 import { commentsAdmin } from './admin/comments.js';
@@ -71,6 +72,7 @@ $('signOutBtn').addEventListener('click', () => signOut());
 // =====================================================
 const TABS = {
   dashboard: dashboard,
+  reports:   reports,
   series:    seriesAdmin,
   chapters:  chaptersAdmin,
   comments:  commentsAdmin,

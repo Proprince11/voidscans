@@ -220,3 +220,19 @@
   font-size: var(--fs-sm);
   margin-bottom: var(--s-5);
 }
+
+
+
+.report-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--s-4);
+  margin-top: var(--s-5);
+}
+@media (min-width: 900px) {
+  .report-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (min-width: 1400px) {
+  .report-grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .report-grid > .admin-card:nth-child(n+5) { grid-column: span 2; }
+}

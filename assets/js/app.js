@@ -165,7 +165,6 @@ function mountFooter() {
           <h4>Info</h4>
           <ul>
             <li><a href="/dmca">DMCA</a></li>
-            <li><a href="https://github.com/Proprince11/voidscans" target="_blank" rel="noopener">GitHub</a></li>
           </ul>
         </div>
       </div>
