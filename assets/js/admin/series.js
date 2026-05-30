@@ -5,6 +5,7 @@ import {
 import { esc, html, slugify, timeAgo } from '../lib/utils.js';
 import { toast, confirmModal, spinner } from '../lib/ui.js';
 import { GENRES } from '../views/_components.js';
+import { importFromMangaDex, importFromAniList } from './import.js';
 
 const TYPES = ['manhwa', 'manga', 'manhua'];
 const STATUSES = ['ongoing', 'completed', 'hiatus', 'dropped'];
@@ -103,6 +104,24 @@ export async function seriesAdmin({ outlet }) {
         <button class="btn btn-ghost" id="backBtn">← Back to list</button>
       </header>
 
+      ${!id ? `
+      <div class="admin-card" id="importCard" style="margin-bottom: var(--s-4); background: linear-gradient(135deg, var(--surface-1), var(--surface-2)); border-color: var(--accent-soft);">
+        <div class="row gap-3" style="align-items: baseline; margin-bottom: var(--s-3); flex-wrap: wrap;">
+          <h3 style="margin: 0;">Import metadata</h3>
+          <span class="text-muted" style="font-size: var(--fs-xs);">Auto-fill from MangaDex or AniList — saves ~5 min per series</span>
+        </div>
+        <div class="row gap-2" style="margin-bottom: var(--s-3); flex-wrap: wrap;">
+          <button type="button" class="tag-pill active" data-import-source="mangadex">📘 MangaDex</button>
+          <button type="button" class="tag-pill" data-import-source="anilist">🟦 AniList</button>
+        </div>
+        <div class="row gap-2" style="flex-wrap: wrap;">
+          <input class="input" id="importInput" placeholder="Paste MangaDex URL or UUID" style="flex: 1; min-width: 240px;" autocomplete="off">
+          <button type="button" class="btn btn-primary" id="importBtn">Fetch</button>
+        </div>
+        <p class="field-hint" id="importHint" style="margin-top: var(--s-2);">Pulls title, cover, description, genres, author, year. You can edit any field before saving.</p>
+      </div>
+      ` : ''}
+
       <form class="admin-card" id="seriesForm">
         <div class="field-row">
           <div class="field">
@@ -197,6 +216,93 @@ export async function seriesAdmin({ outlet }) {
 
     $f('#backBtn').addEventListener('click', render);
     $f('#cancelBtn').addEventListener('click', render);
+
+    // ============================================================
+    // IMPORT widget — only on the "New Series" form (not edit)
+    // ============================================================
+    if (!id) {
+      let importSource = 'mangadex';
+      const importInput = $f('#importInput');
+      const importBtn = $f('#importBtn');
+      const importHint = $f('#importHint');
+
+      const placeholders = {
+        mangadex: 'Paste MangaDex URL or UUID — e.g. https://mangadex.org/title/abc-123-...',
+        anilist: 'Paste AniList URL or numeric ID — e.g. https://anilist.co/manga/30013'
+      };
+
+      // Source toggle
+      outlet.querySelectorAll('[data-import-source]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          outlet.querySelectorAll('[data-import-source]').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          importSource = btn.dataset.importSource;
+          importInput.placeholder = placeholders[importSource];
+          importHint.style.color = '';
+          importHint.textContent = 'Pulls title, cover, description, genres, author, year. You can edit any field before saving.';
+        });
+      });
+
+      async function runImport() {
+        const value = importInput.value.trim();
+        if (!value) {
+          importHint.style.color = 'var(--danger)';
+          importHint.textContent = 'Paste a URL or ID first.';
+          return;
+        }
+        importBtn.disabled = true;
+        importBtn.textContent = 'Fetching…';
+        importHint.style.color = '';
+        importHint.textContent = `Fetching from ${importSource}…`;
+        try {
+          const data = importSource === 'anilist'
+            ? await importFromAniList(value)
+            : await importFromMangaDex(value);
+
+          // Fill the form fields
+          $f('#f-title').value = data.title || '';
+          $f('#f-slug').value = slugify(data.title || '');
+          $f('#f-slug').dataset.touched = ''; // let title->slug auto-fill keep working if user retypes
+          $f('#f-cover').value = data.cover || '';
+          $f('#f-cover').dispatchEvent(new Event('input'));  // triggers cover preview
+          $f('#f-type').value = data.type || 'manga';
+          $f('#f-status').value = data.status || 'ongoing';
+          $f('#f-author').value = data.author || '';
+          $f('#f-artist').value = data.artist || '';
+          $f('#f-year').value = data.year || '';
+          $f('#f-alt').value = (data.altTitles || []).join(', ');
+          $f('#f-tags').value = (data.tags || []).join(', ');
+          $f('#f-desc').value = data.description || '';
+
+          // Genre toggle pills
+          const want = new Set((data.genres || []).map(g => g.toLowerCase()));
+          $f('#f-genres').querySelectorAll('[data-genre]').forEach(btn => {
+            const isMatch = want.has(btn.dataset.genre.toLowerCase());
+            btn.classList.toggle('active', isMatch);
+          });
+
+          importHint.style.color = 'var(--success)';
+          importHint.innerHTML = `✓ Imported "<strong>${esc(data.title)}</strong>" from ${data.source}. <a href="${esc(data.sourceUrl)}" target="_blank" rel="noopener" style="color: var(--accent);">View source ↗</a> · Review the form and click "Create Series".`;
+          toast(`Imported: ${data.title}`, 'success');
+
+          // Scroll to the form so user can review
+          $f('#seriesForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (err) {
+          console.error(err);
+          importHint.style.color = 'var(--danger)';
+          importHint.textContent = `✗ ${err.message}`;
+          toast('Import failed', 'error');
+        } finally {
+          importBtn.disabled = false;
+          importBtn.textContent = 'Fetch';
+        }
+      }
+
+      importBtn.addEventListener('click', runImport);
+      importInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); runImport(); }
+      });
+    }
 
     // Auto-slug from title (only if empty / new)
     $f('#f-title').addEventListener('input', () => {
