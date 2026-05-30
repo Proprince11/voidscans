@@ -50,17 +50,22 @@ What's done, what's next, what's "maybe someday."
 
 ---
 
-## 🎯 Phase 2 — User accounts (next major milestone)
+## ✅ Phase 2 — User accounts (SHIPPED in v3.1.0)
 
-Estimated: 2 sessions. Trigger: when you start getting repeat readers.
+- [x] Sign-up / sign-in UI on public site (email/password + Google)
+- [x] Library / history sync across devices (Firestore-backed when signed in, IndexedDB-only when anonymous)
+- [x] User profiles (display name, avatar, bio, public-facing fields)
+- [x] Per-chapter comments
+- [x] Comment likes (anyone can increment)
+- [x] **Bonus:** Series/chapter view tracking (sessioned dedup)
+- [x] **Bonus:** Followers count (auto-increment on bookmark)
+- [x] **Bonus:** Continue Reading strip on home (driven by IndexedDB / cloud history)
+- [x] **Bonus:** JSON-LD structured data (Schema.org Book + Chapter)
 
-- [ ] Sign-up / sign-in UI on public site
-- [ ] Library / history sync across devices (Firestore-backed when signed in, IndexedDB-only when anonymous)
-- [ ] User profiles (display name, avatar, public lists)
-- [ ] Notification preferences per series
-- [ ] Per-chapter comments
-- [ ] Comment likes via authenticated counter
-- [ ] Browser push notifications for new chapters (Firebase Cloud Messaging)
+### Still pending (separate triggers)
+
+- [ ] Notification preferences per series — needs FCM VAPID key setup
+- [ ] Browser push notifications for new chapters — needs FCM VAPID key + service worker push handler
 
 ---
 

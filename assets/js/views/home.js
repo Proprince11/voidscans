@@ -3,6 +3,7 @@
 // =====================================================
 
 import { fetchHomeSections } from '../lib/api.js';
+import { getHistory } from '../lib/library.js';
 import { esc, html } from '../lib/utils.js';
 import { skeletonGrid } from '../lib/ui.js';
 import { seriesCard, updateRow, genreStrip, emptyState, statusBadge } from './_components.js';
@@ -51,6 +52,27 @@ export async function home(_params, ctx) {
 
   const { hero: heroItems, popular, newlyAdded, latest, all } = sections;
 
+  // Build the "Continue Reading" strip from local + cloud history.
+  // Looks up history items in the `all` series list to get cover/title.
+  let continueReading = [];
+  try {
+    const history = await getHistory({ limit: 30 });
+    const seen = new Set();
+    const seriesBySlug = new Map(all.map(s => [s.slug, s]));
+    for (const h of history) {
+      if (seen.has(h.seriesId)) continue;
+      const meta = seriesBySlug.get(h.seriesId);
+      if (!meta) continue; // series may have been deleted
+      seen.add(h.seriesId);
+      continueReading.push({
+        ...meta,
+        lastReadChapter: h.chapter,
+        readAt: h.readAt
+      });
+      if (continueReading.length >= 6) break;
+    }
+  } catch (e) { /* ignore — strip just won't render */ }
+
   // Build hero slider
   const heroHtml = heroItems.length === 0 ? '' : html`
     <section class="hero" id="hero">
@@ -97,6 +119,32 @@ export async function home(_params, ctx) {
   // Build the rest
   ctx.outlet.innerHTML = html`
     ${heroHtml}
+
+    ${continueReading.length > 0 ? html`
+    <section class="section" id="continue-reading">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Continue Reading</h2>
+          <a href="/library?tab=history" class="section-link">View history →</a>
+        </div>
+        <div class="card-grid">
+          ${continueReading.map(s => `
+            <a href="/read/${esc(s.slug)}/${esc(s.lastReadChapter)}" class="card" aria-label="Continue ${esc(s.title)}">
+              <div class="card-img-wrap">
+                <img src="${esc(s.cover || '/assets/images/placeholder.png')}" alt="${esc(s.title)}" class="card-img" loading="lazy" decoding="async"
+                     onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
+                <div class="card-chapter">Continue · Ch. ${esc(s.lastReadChapter)}</div>
+              </div>
+              <div class="card-info">
+                <div class="card-title">${esc(s.title)}</div>
+                <div class="card-meta"><span style="color: var(--accent);">▶ Resume</span></div>
+              </div>
+            </a>
+          `).join('')}
+        </div>
+      </div>
+    </section>
+    ` : ''}
 
     <section class="section" id="latest">
       <div class="container">

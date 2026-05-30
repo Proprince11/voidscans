@@ -7,13 +7,15 @@ import {
   fetchSeriesBySlug, fetchChapters, fetchAllSeries,
   fetchReactions, addReaction,
   fetchRating, submitRating,
-  fetchComments, postComment, likeComment
+  fetchComments, postComment, likeComment,
+  trackSeriesView, adjustFollowers
 } from '../lib/api.js';
 import {
   isInLibrary, addToLibrary, removeFromLibrary,
   hasReacted, markReacted, hasRated, markRated,
   hasLikedComment, markCommentLiked, getReadChapters
 } from '../lib/library.js';
+import { getProfile } from '../lib/account.js';
 import { esc, html, timeAgo, avatarLetter, compactNum } from '../lib/utils.js';
 import { spinner, toast, share, confirmModal } from '../lib/ui.js';
 import { seriesCard, statusBadge, emptyState } from './_components.js';
@@ -44,6 +46,12 @@ export async function series(params, ctx) {
 
   // Render shell first (instant), then enrich progressively
   ctx.outlet.innerHTML = renderShell(s);
+
+  // Inject JSON-LD structured data for SEO
+  injectJsonLd(s);
+
+  // Track view (sessioned, fail-silent if rules reject)
+  trackSeriesView(slug).catch(() => {});
 
   // Wire up shell actions
   const cleanup = wireUpShell(s);
@@ -102,6 +110,14 @@ function renderShell(s) {
               <div class="stat" id="ratingDisplay" style="min-width:80px;">
                 <span class="stat-label">Rating</span>
                 <span class="stat-value">—</span>
+              </div>
+              <div class="stat" id="viewsDisplay" style="min-width:80px;">
+                <span class="stat-label">Views</span>
+                <span class="stat-value">${esc(compactNum(s.views || 0))}</span>
+              </div>
+              <div class="stat" id="followersDisplay" style="min-width:80px;">
+                <span class="stat-label">Followers</span>
+                <span class="stat-value">${esc(compactNum(s.followers || 0))}</span>
               </div>
             </div>
             ${(s.genres || []).length > 0 ? `
@@ -257,9 +273,23 @@ function wireUpShell(s) {
     const inLib = await isInLibrary(s.slug);
     if (inLib) {
       await removeFromLibrary(s.slug);
+      adjustFollowers(s.slug, -1).catch(() => {});
+      const fd = document.getElementById('followersDisplay');
+      if (fd) {
+        const sv = fd.querySelector('.stat-value');
+        sv.textContent = compactNum(Math.max(0, (s.followers || 0) - 1));
+        s.followers = Math.max(0, (s.followers || 0) - 1);
+      }
       toast('Removed from library', 'info');
     } else {
       await addToLibrary(s);
+      adjustFollowers(s.slug, +1).catch(() => {});
+      const fd = document.getElementById('followersDisplay');
+      if (fd) {
+        const sv = fd.querySelector('.stat-value');
+        sv.textContent = compactNum((s.followers || 0) + 1);
+        s.followers = (s.followers || 0) + 1;
+      }
       toast('Added to library ⭐', 'success');
     }
     paintBookmark();
@@ -269,6 +299,13 @@ function wireUpShell(s) {
   const cText = document.getElementById('cText');
   const counter = document.getElementById('cCounter');
   cText?.addEventListener('input', () => { counter.textContent = `${cText.value.length} / 1000`; });
+
+  // Pre-fill comment name from signed-in profile if available
+  const profile = getProfile();
+  if (profile?.displayName) {
+    const nameInput = document.getElementById('cName');
+    if (nameInput && !nameInput.value) nameInput.value = profile.displayName;
+  }
 
   // Comment submit
   document.getElementById('cSubmit')?.addEventListener('click', async () => {
@@ -446,6 +483,44 @@ function renderComments(s, list) {
       }
     });
   });
+}
+
+// =====================================================
+// JSON-LD STRUCTURED DATA (SEO)
+// Adds a Schema.org Book entity so search engines understand the page.
+// =====================================================
+function injectJsonLd(s) {
+  // Remove any previous JSON-LD from older route
+  document.querySelectorAll('script[data-vs-jsonld]').forEach(el => el.remove());
+  const data = {
+    '@context': 'https://schema.org',
+    '@type': 'Book',
+    name: s.title,
+    alternateName: s.altTitles && s.altTitles.length ? s.altTitles : undefined,
+    image: s.cover,
+    description: s.description,
+    bookFormat: 'GraphicNovel',
+    author: s.author ? { '@type': 'Person', name: s.author } : undefined,
+    illustrator: s.artist ? { '@type': 'Person', name: s.artist } : undefined,
+    datePublished: s.year ? String(s.year) : undefined,
+    genre: s.genres && s.genres.length ? s.genres : undefined,
+    inLanguage: 'en',
+    aggregateRating: (s.rating?.total > 0) ? {
+      '@type': 'AggregateRating',
+      ratingValue: Number((s.rating.average || 0).toFixed(2)),
+      ratingCount: s.rating.total,
+      bestRating: 5,
+      worstRating: 1
+    } : undefined,
+    url: location.href
+  };
+  // Strip undefined keys
+  Object.keys(data).forEach(k => data[k] === undefined && delete data[k]);
+  const script = document.createElement('script');
+  script.type = 'application/ld+json';
+  script.dataset.vsJsonld = '1';
+  script.textContent = JSON.stringify(data);
+  document.head.appendChild(script);
 }
 
 // =====================================================

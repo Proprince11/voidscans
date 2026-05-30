@@ -11,16 +11,25 @@ import {
   signOut as fbSignOut,
   onAuthStateChanged,
   updateProfile,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  GoogleAuthProvider,
+  signInWithPopup,
+  setPersistence,
+  browserLocalPersistence
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 
 let currentUser = null;
 let isAdminCached = false;
+let initialized = false;
 const subscribers = new Set();
+
+// Persist auth across tabs and sessions
+setPersistence(auth, browserLocalPersistence).catch(() => {});
 
 onAuthStateChanged(auth, async (user) => {
   currentUser = user;
   isAdminCached = false;
+  initialized = true;
   if (user) {
     try {
       const tok = await user.getIdTokenResult();
@@ -32,11 +41,11 @@ onAuthStateChanged(auth, async (user) => {
 
 export function getUser() { return currentUser; }
 export function isAdmin() { return isAdminCached; }
+export function isAuthInitialized() { return initialized; }
 
 export function onAuthChange(fn) {
   subscribers.add(fn);
-  // Fire immediately if we already know
-  if (currentUser !== null) fn(currentUser, isAdminCached);
+  if (initialized) fn(currentUser, isAdminCached);
   return () => subscribers.delete(fn);
 }
 
@@ -48,6 +57,15 @@ export async function signIn(email, password) {
 export async function signUp(email, password, displayName) {
   const { user } = await createUserWithEmailAndPassword(auth, email, password);
   if (displayName) await updateProfile(user, { displayName });
+  return user;
+}
+
+/** Sign in with Google. Throws a clear error if Google provider isn't enabled
+ *  in Firebase Console (auth/operation-not-allowed). */
+export async function signInWithGoogle() {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  const { user } = await signInWithPopup(auth, provider);
   return user;
 }
 
@@ -72,4 +90,10 @@ export async function verifyAdmin() {
   } catch {
     return false;
   }
+}
+
+/** Update the user's auth profile (display name, photo URL). */
+export async function updateAuthProfile(patch) {
+  if (!currentUser) throw new Error('Not signed in');
+  await updateProfile(currentUser, patch);
 }
