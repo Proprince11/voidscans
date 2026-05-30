@@ -24,7 +24,7 @@ Targets:  Mobile-first, sub-1s LCP, PWA installable, offline reading
 ### See the site live
 1. Push to GitHub
 2. Cloudflare Pages → Connect repo → Deploy
-3. Done. URL: `https://voidscans.pages.dev`
+3. Done. URL: `https://voidscans.isthe.workers.dev`
 
 ### Open admin
 - `/admin`

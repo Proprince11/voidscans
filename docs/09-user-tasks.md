@@ -137,7 +137,7 @@ Next step: Sign out and sign back in at /admin
    - **Root directory:** *(leave empty)*
 6. Click **Save and Deploy**
 
-In ~30 seconds you'll have a URL like `https://voidscans.pages.dev`. The site is live.
+In ~30 seconds you'll have a URL like `https://voidscans.isthe.workers.dev`. The site is live.
 
 **Subsequent deploys:** Every push to `main` auto-deploys.
 
@@ -147,7 +147,7 @@ In ~30 seconds you'll have a URL like `https://voidscans.pages.dev`. The site is
 
 You have several options. Pick one:
 
-#### Option A — `voidscans.pages.dev` (instant, looks "less premium")
+#### Option A — `voidscans.isthe.workers.dev` (instant, looks "less premium")
 Already done by Task 4. No action needed.
 
 #### Option B — `voidscans.is-a.dev` (1–3 days, looks clean)
@@ -161,7 +161,7 @@ Already done by Task 4. No action needed.
        "email": "your@email.com"
      },
      "record": {
-       "CNAME": "voidscans.pages.dev"
+       "CNAME": "voidscans.isthe.workers.dev"
      }
    }
    ```
@@ -188,7 +188,7 @@ Buy at **[Porkbun](https://porkbun.com)**, then add as Custom Domain in Cloudfla
 
 1. Cloudflare Dashboard → **Turnstile** → **Add site**
 2. Name: `voidscans`
-3. Domain: `voidscans.pages.dev` (and `voidscans.is-a.dev` if applicable)
+3. Domain: `voidscans.isthe.workers.dev` (and `voidscans.is-a.dev` if applicable)
 4. Widget mode: **Managed**
 5. You get a **Site Key** and a **Secret Key**
 
@@ -217,7 +217,7 @@ const res = await fetch('https://voidscans-cache.YOUR-USERNAME.workers.dev/api/s
 return res.json();
 ```
 
-(Same pattern for `fetchSeriesBySlug`, `fetchChapters`, `fetchChapter`.) Or use a custom domain like `api.voidscans.pages.dev`.
+(Same pattern for `fetchSeriesBySlug`, `fetchChapters`, `fetchChapter`.) Or use a custom domain like `api.voidscans.isthe.workers.dev`.
 
 ---
 

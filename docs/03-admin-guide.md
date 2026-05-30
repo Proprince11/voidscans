@@ -4,7 +4,7 @@ Tour of every screen in `/admin`.
 
 ## Login
 
-URL: `/admin` (`https://voidscans.pages.dev/admin`)
+URL: `/admin` (`https://voidscans.isthe.workers.dev/admin`)
 
 - Sign in with the Firebase Auth user you created (see [Task 2](./09-user-tasks.md)).
 - Forgot password? Click the reset link → email sent via Firebase.
