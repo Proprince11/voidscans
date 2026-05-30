@@ -1,18 +1,27 @@
 // =====================================================
-// library.js — Local library, bookmarks, and reading
-// progress. Stored in IndexedDB so it survives across
-// sessions and works offline. Optional Firestore sync if
-// the user is signed in.
+// library.js — Local library, bookmarks, reading progress.
+//
+// Storage strategy:
+//   - IndexedDB is the primary (works offline, anonymous-friendly)
+//   - Firestore at /users/{uid}/library and /users/{uid}/history
+//     mirrors the local data when signed in (cross-device sync)
+//   - On first sign-in, syncLocalToCloud() pushes IndexedDB → Firestore once
+//   - getLibrary / getHistory prefer Firestore when signed in, fall back to local
 // =====================================================
 
-import { getUser } from './auth.js';
+import { db } from './firebase.js';
+import { getUser, onAuthChange } from './auth.js';
+import {
+  doc, setDoc, deleteDoc, collection, getDocs, query,
+  orderBy, limit as fbLimit, serverTimestamp, getDoc, where
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 const DB_NAME = 'voidscans';
 const DB_VERSION = 1;
 const STORES = {
-  library:  'library',   // { seriesId, title, cover, status, addedAt, currentChapter, lastReadAt, follow }
-  history:  'history',   // { id (seriesId_chNum), seriesId, chapter, page, total, readAt }
-  progress: 'progress'   // { seriesId_chNum: { page, total } }
+  library:  'library',
+  history:  'history',
+  progress: 'progress'
 };
 
 let dbPromise;
@@ -20,10 +29,7 @@ let dbPromise;
 function openDB() {
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve, reject) => {
-    if (!('indexedDB' in window)) {
-      reject(new Error('IndexedDB unavailable'));
-      return;
-    }
+    if (!('indexedDB' in window)) { reject(new Error('IndexedDB unavailable')); return; }
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
@@ -51,12 +57,36 @@ async function tx(store, mode = 'readonly') {
   const db = await openDB();
   return db.transaction(store, mode).objectStore(store);
 }
-
 function reqAsPromise(req) {
   return new Promise((resolve, reject) => {
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
+}
+
+// =====================================================
+// Cloud helpers
+// =====================================================
+function userRef(uid) { return doc(db, 'users', uid); }
+function libRef(uid, seriesId) { return doc(db, 'users', uid, 'library', seriesId); }
+function libCol(uid) { return collection(db, 'users', uid, 'library'); }
+function histRef(uid, id) { return doc(db, 'users', uid, 'history', id); }
+function histCol(uid) { return collection(db, 'users', uid, 'history'); }
+
+async function cloudPutLibrary(seriesId, data) {
+  const u = getUser(); if (!u) return;
+  try { await setDoc(libRef(u.uid, seriesId), data, { merge: true }); }
+  catch (e) { console.warn('cloud put library:', e); }
+}
+async function cloudDeleteLibrary(seriesId) {
+  const u = getUser(); if (!u) return;
+  try { await deleteDoc(libRef(u.uid, seriesId)); }
+  catch (e) { console.warn('cloud del library:', e); }
+}
+async function cloudPutHistory(id, data) {
+  const u = getUser(); if (!u) return;
+  try { await setDoc(histRef(u.uid, id), data, { merge: true }); }
+  catch (e) { console.warn('cloud put history:', e); }
 }
 
 // =====================================================
@@ -71,28 +101,34 @@ export async function isInLibrary(seriesId) {
 }
 
 export async function addToLibrary(series, status = 'reading') {
+  const seriesId = series.slug || series.id;
+  const data = {
+    seriesId,
+    title: series.title,
+    cover: series.cover,
+    status,
+    follow: true,
+    addedAt: Date.now(),
+    lastReadAt: Date.now(),
+    currentChapter: 0
+  };
+  // Local
   try {
     const t = await tx(STORES.library, 'readwrite');
-    await reqAsPromise(t.put({
-      seriesId: series.slug || series.id,
-      title: series.title,
-      cover: series.cover,
-      status,
-      follow: true,
-      addedAt: Date.now(),
-      lastReadAt: Date.now(),
-      currentChapter: 0
-    }));
-    return true;
+    await reqAsPromise(t.put(data));
   } catch (e) { console.warn(e); return false; }
+  // Cloud (best effort, doesn't block)
+  cloudPutLibrary(seriesId, data);
+  return true;
 }
 
 export async function removeFromLibrary(seriesId) {
   try {
     const t = await tx(STORES.library, 'readwrite');
     await reqAsPromise(t.delete(seriesId));
-    return true;
   } catch { return false; }
+  cloudDeleteLibrary(seriesId);
+  return true;
 }
 
 export async function setLibraryStatus(seriesId, status) {
@@ -102,17 +138,27 @@ export async function setLibraryStatus(seriesId, status) {
     if (!item) return false;
     item.status = status;
     await reqAsPromise(t.put(item));
+    cloudPutLibrary(seriesId, { status });
     return true;
   } catch { return false; }
 }
 
 export async function getLibrary(filter = 'all') {
+  // If signed in, prefer cloud (cross-device truth)
+  const u = getUser();
+  if (u) {
+    try {
+      const snap = await getDocs(libCol(u.uid));
+      const items = snap.docs.map(d => d.data());
+      const sorted = items.sort((a, b) => (b.lastReadAt || 0) - (a.lastReadAt || 0));
+      return filter === 'all' ? sorted : sorted.filter(x => x.status === filter);
+    } catch (e) { /* fall through to local */ }
+  }
   try {
     const t = await tx(STORES.library);
     const all = await reqAsPromise(t.getAll());
     const items = all.sort((a, b) => (b.lastReadAt || 0) - (a.lastReadAt || 0));
-    if (filter === 'all') return items;
-    return items.filter(x => x.status === filter);
+    return filter === 'all' ? items : items.filter(x => x.status === filter);
   } catch { return []; }
 }
 
@@ -120,13 +166,12 @@ export async function getLibrary(filter = 'all') {
 // HISTORY (reading history)
 // =====================================================
 export async function recordRead(seriesId, chapter, total = 0, page = 0) {
+  const id = `${seriesId}_${chapter}`;
+  const data = { id, seriesId, chapter: Number(chapter), page, total, readAt: Date.now() };
+  // Local
   try {
-    const id = `${seriesId}_${chapter}`;
     const t = await tx(STORES.history, 'readwrite');
-    await reqAsPromise(t.put({
-      id, seriesId, chapter: Number(chapter), page, total,
-      readAt: Date.now()
-    }));
+    await reqAsPromise(t.put(data));
 
     // Bump library lastReadAt + currentChapter
     const lib = await tx(STORES.library, 'readwrite');
@@ -135,11 +180,22 @@ export async function recordRead(seriesId, chapter, total = 0, page = 0) {
       item.lastReadAt = Date.now();
       item.currentChapter = Math.max(item.currentChapter || 0, Number(chapter));
       await reqAsPromise(lib.put(item));
+      cloudPutLibrary(seriesId, { lastReadAt: item.lastReadAt, currentChapter: item.currentChapter });
     }
   } catch (e) { console.warn(e); }
+  // Cloud (best effort)
+  cloudPutHistory(id, data);
 }
 
 export async function getHistory({ limit = 30 } = {}) {
+  const u = getUser();
+  if (u) {
+    try {
+      const q = query(histCol(u.uid), orderBy('readAt', 'desc'), fbLimit(limit));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => d.data());
+    } catch { /* fall through */ }
+  }
   try {
     const t = await tx(STORES.history);
     const all = await reqAsPromise(t.getAll());
@@ -165,7 +221,7 @@ export async function getReadChapters(seriesId) {
 }
 
 // =====================================================
-// PROGRESS (per-chapter reading position)
+// PROGRESS (per-chapter reading position) — local only
 // =====================================================
 export async function saveProgress(seriesId, chapter, page, total) {
   try {
@@ -184,14 +240,80 @@ export async function getProgress(seriesId, chapter) {
 }
 
 // =====================================================
+// CLOUD SYNC — push all local data to Firestore on first sign-in
+// =====================================================
+const SYNC_FLAG = (uid) => `vs:synced:${uid}`;
+
+export async function syncLocalToCloud() {
+  const u = getUser();
+  if (!u) return { skipped: true };
+  // Only sync once per user (in this browser)
+  if (localStorage.getItem(SYNC_FLAG(u.uid))) return { skipped: true };
+
+  try {
+    // Library
+    const lib = await tx(STORES.library);
+    const libItems = await reqAsPromise(lib.getAll());
+    await Promise.all(libItems.map(item =>
+      setDoc(libRef(u.uid, item.seriesId), item, { merge: true }).catch(() => {})
+    ));
+
+    // History (most recent 100 to keep it cheap)
+    const hist = await tx(STORES.history);
+    const histItems = await reqAsPromise(hist.getAll());
+    const recentHist = histItems.sort((a, b) => b.readAt - a.readAt).slice(0, 100);
+    await Promise.all(recentHist.map(item =>
+      setDoc(histRef(u.uid, item.id), item, { merge: true }).catch(() => {})
+    ));
+
+    localStorage.setItem(SYNC_FLAG(u.uid), String(Date.now()));
+    return { libraryCount: libItems.length, historyCount: recentHist.length };
+  } catch (e) {
+    console.warn('syncLocalToCloud failed:', e);
+    return { error: e.message };
+  }
+}
+
+// =====================================================
+// CLOUD → LOCAL hydration (when signing in on a new device)
+// =====================================================
+export async function hydrateFromCloud() {
+  const u = getUser();
+  if (!u) return;
+  try {
+    // Library
+    const libSnap = await getDocs(libCol(u.uid));
+    const t = await tx(STORES.library, 'readwrite');
+    for (const d of libSnap.docs) {
+      const data = d.data();
+      // Only overwrite local if cloud is newer (or local missing)
+      const existing = await reqAsPromise(t.get(data.seriesId));
+      if (!existing || (data.lastReadAt || 0) > (existing.lastReadAt || 0)) {
+        await reqAsPromise(t.put(data));
+      }
+    }
+  } catch (e) { console.warn('hydrateFromCloud failed:', e); }
+}
+
+// On sign-in: push local → cloud once, then pull cloud → local
+onAuthChange(async (user) => {
+  if (!user) return;
+  // Run async, don't block UI
+  setTimeout(async () => {
+    await syncLocalToCloud();
+    await hydrateFromCloud();
+  }, 1500);
+});
+
+// =====================================================
 // READER PREFERENCES (localStorage)
 // =====================================================
 const PREF_KEY = 'voidscans:reader-prefs';
 const DEFAULT_PREFS = {
-  fit: 'width',          // width | height | original
-  zoom: 100,             // 75 | 100 | 125 | 150
-  gap: 'small',          // small | medium | large
-  direction: 'vertical', // vertical | horizontal | rtl
+  fit: 'width',
+  zoom: 100,
+  gap: 'small',
+  direction: 'vertical',
   hideUI: false,
   preload: 3
 };

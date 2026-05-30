@@ -434,3 +434,92 @@ export async function fetchStats() {
     completed: series.filter(s => s.status === 'completed').length
   };
 }
+
+
+// =====================================================
+// VIEW TRACKING & FOLLOWERS
+// Counters live on series/chapter docs. Public-write is allowed
+// in Firestore rules ONLY for views/followers fields (locked-down
+// via affectedKeys() check). Sessioned dedup so a single visit
+// counts once per series/chapter.
+// =====================================================
+const SESS_KEY = (k) => `vs:viewed:${k}`;
+
+function alreadyViewed(key) {
+  try { return !!sessionStorage.getItem(SESS_KEY(key)); } catch { return false; }
+}
+function markViewed(key) {
+  try { sessionStorage.setItem(SESS_KEY(key), '1'); } catch {}
+}
+
+/** Track a series page view. Sessioned — counts once per session per series. */
+export async function trackSeriesView(slug) {
+  if (!slug) return;
+  const key = `series:${slug}`;
+  if (alreadyViewed(key)) return;
+  markViewed(key);
+  try {
+    await updateDoc(doc(db, 'series', slug), { views: increment(1) });
+    cacheBust(`series:`);
+  } catch (e) {
+    // If rules reject (e.g. not yet updated to allow views), fail silent
+    console.debug('trackSeriesView skipped:', e?.code || e?.message);
+  }
+}
+
+/** Track a chapter view. Increments chapter.views + parent series.views. */
+export async function trackChapterView(seriesSlug, chapterNum) {
+  if (!seriesSlug || !chapterNum) return;
+  const key = `ch:${seriesSlug}:${chapterNum}`;
+  if (alreadyViewed(key)) return;
+  markViewed(key);
+  try {
+    // Find chapter doc by composite query
+    const q = query(
+      collection(db, 'chapters'),
+      where('seriesSlug', '==', seriesSlug),
+      where('chapterNum', '==', Number(chapterNum)),
+      limit(1)
+    );
+    const snap = await getDocs(q);
+    if (snap.empty) return;
+    await updateDoc(snap.docs[0].ref, { views: increment(1) });
+    cacheBust(`chapters:${seriesSlug}`);
+  } catch (e) {
+    console.debug('trackChapterView skipped:', e?.code || e?.message);
+  }
+}
+
+/** Adjust series.followers counter. delta = +1 on bookmark, -1 on remove. */
+export async function adjustFollowers(slug, delta = 1) {
+  if (!slug) return;
+  try {
+    await updateDoc(doc(db, 'series', slug), { followers: increment(delta) });
+    cacheBust(`series:`);
+  } catch (e) {
+    console.debug('adjustFollowers skipped:', e?.code || e?.message);
+  }
+}
+
+// =====================================================
+// PER-CHAPTER COMMENTS
+// Stored under /series/{slug}/comments with a `chapter` field.
+// =====================================================
+export async function fetchChapterComments(slug, chapterNum, limitTo = 30) {
+  if (!slug || !chapterNum) return [];
+  return memoFetch(`comments:${slug}:ch:${chapterNum}:${limitTo}`, TTL.comments, async () => {
+    try {
+      const q = query(
+        collection(db, 'series', slug, 'comments'),
+        where('chapter', '==', Number(chapterNum)),
+        orderBy('createdAt', 'desc'),
+        limit(limitTo)
+      );
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      console.warn('fetchChapterComments failed:', e);
+      return [];
+    }
+  });
+}
