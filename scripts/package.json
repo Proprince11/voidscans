@@ -1,0 +1,17 @@
+{
+  "name": "voidscans-scripts",
+  "version": "1.0.0",
+  "description": "Maintenance scripts for VoidScans (admin claim, backup, migration, seed).",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "grant-admin": "node grant-admin.mjs",
+    "revoke-admin": "node grant-admin.mjs --revoke",
+    "backup": "node backup-firestore.mjs",
+    "migrate": "node migrate-schema.mjs",
+    "seed": "node seed-sample.mjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  }
+}
