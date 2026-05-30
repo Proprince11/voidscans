@@ -62,7 +62,7 @@ export async function search(_params, ctx) {
         <p class="results-count" style="margin-bottom: var(--s-4);"><strong>${matches.length}</strong> result${matches.length === 1 ? '' : 's'} for "${esc(q)}"</p>
         ${matches.length === 0
           ? emptyState({ icon: '🔍', title: 'No matches', subtitle: 'Try fewer keywords or browse by genre.' })
-          : `<div class="card-grid">${matches.map(s => seriesCard(s)).join('')}</div>`}
+          : `<div class="card-grid">${matches.map((s, i) => seriesCard(s, { eager: i < 6, priority: i === 0 })).join('')}</div>`}
       </div>
     `;
   }

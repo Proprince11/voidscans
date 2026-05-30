@@ -38,7 +38,7 @@ export async function genre(params, ctx) {
       cta: '<a href="/browse" class="btn btn-primary">Browse All</a>'
     });
   } else {
-    grid.innerHTML = `<div class="card-grid">${series.map(s => seriesCard(s)).join('')}</div>`;
+    grid.innerHTML = `<div class="card-grid">${series.map((s, i) => seriesCard(s, { eager: i < 6, priority: i === 0 })).join('')}</div>`;
   }
 
   return { title: `${niceName} · VoidScans` };

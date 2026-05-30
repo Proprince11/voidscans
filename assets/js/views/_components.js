@@ -10,16 +10,22 @@ export function statusBadge(status) {
   return `<span class="badge badge-${s}">${esc(s)}</span>`;
 }
 
-/** Single series card. */
+/** Single series card.
+ *  opts.eager (bool)    - Use loading="eager" instead of "lazy" (for above-the-fold cards)
+ *  opts.priority (bool) - Add fetchpriority="high" (use only for the LCP candidate, ie. the first card)
+ */
 export function seriesCard(series, opts = {}) {
   if (!series) return '';
+  const { eager = false, priority = false } = opts;
   const { slug, title, cover, type, status, latestChapter, hot, new: isNew } = series;
   const href = `/series/${encodeURIComponent(slug)}`;
   const cover_ = esc(cover || '/assets/images/placeholder.png');
+  const loadingAttr = eager ? 'eager' : 'lazy';
+  const priorityAttr = priority ? ' fetchpriority="high"' : '';
   return `
     <a href="${href}" class="card" aria-label="${esc(title)}">
       <div class="card-img-wrap">
-        <img src="${cover_}" alt="${esc(title)}" class="card-img" loading="lazy"
+        <img src="${cover_}" alt="${esc(title)}" class="card-img" loading="${loadingAttr}" decoding="async"${priorityAttr}
              onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
         ${status ? `<div class="card-badge">${statusBadge(status)}</div>` : ''}
         ${hot ? `<div class="card-badge card-badge-right"><span class="badge badge-hot">HOT</span></div>` : ''}
@@ -48,7 +54,7 @@ export function updateRow(series) {
   return `
     <div class="update-item">
       <a href="${seriesHref}" aria-label="${esc(title)}">
-        <img src="${esc(cover)}" alt="${esc(title)}" class="update-thumb" loading="lazy"
+        <img src="${esc(cover)}" alt="${esc(title)}" class="update-thumb" loading="lazy" decoding="async"
              onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
       </a>
       <div class="update-meta">
