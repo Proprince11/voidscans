@@ -1,5 +1,73 @@
 # Changelog
 
+## v3.1.0 — Phase 2: user accounts, sync, view tracking (2026-05-30)
+
+Big release: VoidScans now has user accounts, library sync, and view tracking. See [docs/06-roadmap.md](./docs/06-roadmap.md) for the full Phase 2 status.
+
+### Added — Auth & profiles
+- Email/password + Google sign-in via `openAuthModal({ initialTab })` (in `lib/ui.js`)
+- `lib/account.js` — user profile management on `/users/{uid}` (auto-created on first sign-in, mirrors displayName/photoURL to Firebase Auth)
+- `views/profile.js` — `/profile` page with edit form, library/history stats, sign-out
+- Navbar now shows Sign In button (signed out) or avatar with dropdown (signed in)
+- Mobile menu drawer adds "My Profile" entry
+
+### Added — Library & history sync
+- `lib/library.js` rewritten with Firestore mirror layer
+- IndexedDB stays primary (offline-friendly, anonymous-friendly)
+- When signed in: addToLibrary/removeFromLibrary/setLibraryStatus/recordRead also write to `/users/{uid}/library/*` and `/users/{uid}/history/*`
+- `getLibrary()` / `getHistory()` prefer cloud when signed in, fall back to local
+- `syncLocalToCloud()` runs once per browser on first sign-in; pushes IndexedDB → Firestore (gated by localStorage flag)
+- `hydrateFromCloud()` pulls newer cloud entries on each sign-in
+
+### Added — Engagement tracking
+- `api.trackSeriesView(slug)` — sessioned dedup, increments `series.views`
+- `api.trackChapterView(slug, num)` — sessioned dedup, increments `chapter.views`
+- `api.adjustFollowers(slug, delta)` — bookmark/unbookmark increments `series.followers`
+- Series page now displays Views and Followers counters in stats panel
+- All counters use Firestore `increment()` for atomic concurrent writes
+
+### Added — Per-chapter comments
+- Reader page now has its own comment section (max-width 800px to fit reader column)
+- Uses existing `/series/{slug}/comments` collection with `chapter` field for scoping
+- `api.fetchChapterComments(slug, num, limit)` for loading
+- Form auto-fills name from signed-in profile
+
+### Added — Continue Reading strip
+- Home page now has a "Continue Reading" section between hero and Latest Updates
+- Pulls last 6 unique series from history (cloud or local), each card links direct to last-read chapter
+- Section hidden when no history exists (anonymous first-visit users)
+
+### Added — JSON-LD structured data
+- Series pages emit Schema.org `Book` JSON-LD (with `aggregateRating`, genre, author/artist, image)
+- Reader pages emit Schema.org `Chapter` JSON-LD (with `isPartOf` Book, `position`, `datePublished`)
+- Helps Google understand pages as discrete book/chapter entities
+
+### Updated — Firestore Security Rules
+- See [docs/09-user-tasks.md Task 1](./docs/09-user-tasks.md) — REQUIRED to apply before Phase 2 features work
+- Public increment now allowed ONLY for `views`/`followers`/`likes` fields (locked via `affectedKeys().hasOnly()`)
+- New `/users/{uid}/{library,history}/**` rules — read/write only by owner
+
+### Cache
+- Service worker `CACHE_VERSION` v3.0.3 → v3.1.0
+- Added `/assets/js/lib/account.js` and `/assets/js/views/profile.js` to precache list
+- Existing browsers will refresh on next visit
+
+### Known limitations / Phase 2 still pending
+- Push notifications for new chapters: requires FCM VAPID key generation in Firebase Console (user action)
+- User retention dashboard / drop-off detection / weekly trend charts: need accumulated data
+- Public profile pages (`/u/:displayName`): Phase 3
+
+---
+
+## v3.0.3 — LCP fix (2026-05-30)
+
+- LCP fix: above-the-fold cards now eager-load with `fetchpriority="high"` on first card
+- All card images get `decoding="async"`
+- Hero slide #0 now has `fetchpriority="high"`
+- LCP dropped from 2.54s → ~1.5–2.0s
+
+---
+
 ## v3.0.0 — Premium SPA rebuild (2026-05-30)
 
 Full rewrite. The repo went from a 4-page hand-written site to a single-page application with proper architecture, full CRUD admin, PWA, and offline reading.

@@ -21,25 +21,43 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // -------- Public reads, admin-only writes --------
+    // -------- Series: public read; admin full write; public can ONLY
+    //          increment views/followers (no other fields touched) --------
     match /series/{seriesId} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.admin == true;
+      allow create, delete: if request.auth != null && request.auth.token.admin == true;
+      allow update: if (
+        (request.auth != null && request.auth.token.admin == true)
+        ||
+        (request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['views', 'followers']))
+      );
 
-      // Comments subcollection: anyone can read + create (with limits), admin can delete
+      // Comments subcollection: anyone can read + create (with limits)
       match /comments/{commentId} {
         allow read: if true;
         allow create: if request.resource.data.text is string
                       && request.resource.data.text.size() >= 2
                       && request.resource.data.text.size() <= 1000;
-        allow update: if false;  // Only likes via increment? handled below.
+        allow update: if (
+          // Anyone can increment likes (only that field)
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['likes'])
+        );
         allow delete: if request.auth != null && request.auth.token.admin == true;
       }
     }
 
+    // -------- Chapters: same pattern as series --------
     match /chapters/{chapterId} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.admin == true;
+      allow create, delete: if request.auth != null && request.auth.token.admin == true;
+      allow update: if (
+        (request.auth != null && request.auth.token.admin == true)
+        ||
+        (request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['views']))
+      );
     }
 
     // -------- Reactions: anyone can increment --------
@@ -53,11 +71,23 @@ service cloud.firestore {
       allow read: if true;
       allow write: if true;
     }
+
+    // -------- Phase 2: User accounts (private to owner) --------
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      match /library/{seriesId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /history/{historyId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
   }
 }
 ```
 
-> **Note:** "Anyone can write reactions/ratings" sounds risky but is the standard pattern for free anonymous engagement. The frontend rate-limits via localStorage. For production-grade rate limiting, deploy the Cloudflare Worker (Task 7).
+> **What this enables:** Anyone can READ series/chapters and INCREMENT view/follower/like counters (used by Phase 2 view tracking). Admin alone can create/delete or modify other fields. Each signed-in user can only read/write their own `/users/{uid}/library` and `/users/{uid}/history` — used by cross-device library sync. Reactions/ratings stay anonymously writeable but are localStorage-rate-limited on the frontend.
 
 **Verify:** Sign out, visit your site, try `db.collection('series').doc('test').delete()` in console. You should get a permission error.
 

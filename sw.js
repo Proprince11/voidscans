@@ -10,7 +10,7 @@
 // Bumping CACHE_VERSION invalidates the old caches.
 // =====================================================
 
-const CACHE_VERSION = 'v3.0.3';
+const CACHE_VERSION = 'v3.1.0';
 const SHELL_CACHE   = `shell-${CACHE_VERSION}`;
 const ASSET_CACHE   = `asset-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `images-${CACHE_VERSION}`;
@@ -29,6 +29,7 @@ const SHELL_URLS = [
   '/assets/js/lib/firebase.js',
   '/assets/js/lib/api.js',
   '/assets/js/lib/auth.js',
+  '/assets/js/lib/account.js',
   '/assets/js/lib/router.js',
   '/assets/js/lib/library.js',
   '/assets/js/lib/ui.js',
@@ -41,6 +42,7 @@ const SHELL_URLS = [
   '/assets/js/views/series.js',
   '/assets/js/views/reader.js',
   '/assets/js/views/library.js',
+  '/assets/js/views/profile.js',
   '/assets/js/views/notFound.js',
   '/assets/images/favicon.svg',
   '/assets/images/logo.svg',
