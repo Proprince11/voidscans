@@ -59,7 +59,7 @@ export async function home(_params, ctx) {
           <div class="hero-bg" style="background-image: url('${esc(s.cover)}');"></div>
           <div class="hero-content">
             <div class="hero-cover">
-              <img src="${esc(s.cover)}" alt="${esc(s.title)}" loading="${i === 0 ? 'eager' : 'lazy'}">
+              <img src="${esc(s.cover)}" alt="${esc(s.title)}" loading="${i === 0 ? 'eager' : 'lazy'}" decoding="async"${i === 0 ? ' fetchpriority="high"' : ''}>
             </div>
             <div class="hero-meta">
               <div class="badges">
@@ -127,7 +127,7 @@ export async function home(_params, ctx) {
         </div>
         ${popular.length === 0
           ? emptyState({ icon: '⭐', title: 'No series yet', cta: '<a href="/admin" class="btn btn-primary">Open Admin</a>' })
-          : `<div class="card-grid">${popular.map(s => seriesCard(s, { animate: true })).join('')}</div>`}
+          : `<div class="card-grid">${popular.map((s, i) => seriesCard(s, { eager: i < 6, priority: i === 0 })).join('')}</div>`}
       </div>
     </section>
 
@@ -138,7 +138,7 @@ export async function home(_params, ctx) {
           <h2 class="section-title">New Arrivals</h2>
           <a href="/browse?sort=new" class="section-link">View all →</a>
         </div>
-        <div class="card-grid">${newlyAdded.slice(0, 12).map(s => seriesCard(s)).join('')}</div>
+        <div class="card-grid">${newlyAdded.slice(0, 12).map((s, i) => seriesCard(s, { eager: i < 6 })).join('')}</div>
       </div>
     </section>
     ` : ''}

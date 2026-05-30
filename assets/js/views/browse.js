@@ -142,7 +142,7 @@ export async function browse(_params, ctx) {
     const slice = filtered.slice(0, visible);
     grid.innerHTML = slice.length === 0
       ? emptyState({ icon: '🔍', title: 'No results', subtitle: 'Try clearing filters.' })
-      : `<div class="card-grid">${slice.map(s => seriesCard(s)).join('')}</div>`;
+      : `<div class="card-grid">${slice.map((s, i) => seriesCard(s, { eager: i < 6, priority: i === 0 })).join('')}</div>`;
     $('rcount').innerHTML = `<strong>${filtered.length}</strong> result${filtered.length === 1 ? '' : 's'}`;
     $('loadMore').style.display = visible < filtered.length ? '' : 'none';
   }
