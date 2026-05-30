@@ -10,7 +10,7 @@
 // Bumping CACHE_VERSION invalidates the old caches.
 // =====================================================
 
-const CACHE_VERSION = 'v3.0.1';
+const CACHE_VERSION = 'v3.0.2';
 const SHELL_CACHE   = `shell-${CACHE_VERSION}`;
 const ASSET_CACHE   = `asset-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `images-${CACHE_VERSION}`;
