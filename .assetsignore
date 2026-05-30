@@ -1,0 +1,26 @@
+# Files in the repo that should NOT be served as static assets.
+# Cloudflare Workers Static Assets respects this file.
+# See: https://developers.cloudflare.com/workers/static-assets/binding/
+
+# Source-only directories
+scripts/
+workers/cache-api/
+docs/
+
+# Top-level non-asset files
+*.md
+LICENSE
+package.json
+package-lock.json
+yarn.lock
+.dev.vars*
+.env*
+service-account.json
+backups/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+node_modules/
