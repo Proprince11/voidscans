@@ -2,117 +2,112 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VoidScans — Free Manhwa Translations</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0c">
+  <meta name="color-scheme" content="dark">
 
-<nav class="navbar glass">
-      <div class="nav-inner">
-      <div class="nav-logo">VOID<span>SCANS</span></div>
-      <div class="nav-links">
-        <a href="#" class="nav-link active">Home</a>
-        <a href="#" class="nav-link">Browse</a>
+  <title>VoidScans — Read Manhwa, Manga & Manhua Online</title>
+  <meta name="description" content="Free manhwa, manga, and manhua reader. Premium reading experience with bookmarks, library, and offline support.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="VoidScans — Read Manhwa Online Free">
+  <meta property="og:description" content="Premium reading experience. Free forever.">
+  <meta property="og:image" content="/assets/images/og-default.png">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="VoidScans">
+  <meta name="twitter:description" content="Read manhwa, manga & manhua online.">
+
+  <!-- Icons & PWA -->
+  <link rel="icon" type="image/svg+xml" href="/assets/images/favicon.svg">
+  <link rel="apple-touch-icon" href="/assets/images/icon-192.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+
+  <!-- Font preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/reset.css">
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="stylesheet" href="/assets/css/components.css">
+  <link rel="stylesheet" href="/assets/css/pages.css">
+</head>
+<body class="has-bottom-nav">
+
+  <!-- =================== NAVBAR (top, sticky) =================== -->
+  <header class="navbar" id="topnav" role="banner">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo" aria-label="VoidScans home">
+        <span class="logo-mark">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true">
+            <defs><linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f0b941"/><stop offset="100%" stop-color="#e84545"/></linearGradient></defs>
+            <path d="M4 6 L16 28 L28 6 L24 6 L16 22 L8 6 Z" fill="url(#lg1)"/>
+          </svg>
+        </span>
+        VOID<span>SCANS</span>
+      </a>
+
+      <nav class="nav-links" id="navLinks" aria-label="Main navigation">
+        <a href="/" class="nav-link" data-route="/">Home</a>
+        <a href="/browse" class="nav-link" data-route="/browse">Browse</a>
+        <a href="/library" class="nav-link" data-route="/library">Library</a>
+      </nav>
+
+      <span class="nav-spacer"></span>
+
+      <div class="nav-actions">
+        <a href="/search" class="icon-btn" aria-label="Search" id="navSearch">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </a>
+        <button class="icon-btn mobile-only" id="navMenuBtn" aria-label="Menu" aria-expanded="false">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
       </div>
     </div>
+  </header>
+
+  <!-- =================== ROUTE OUTLET =================== -->
+  <main id="app" role="main">
+    <!-- Initial loader (shown while JS boots) -->
+    <div class="container section">
+      <div class="center" style="min-height: 40dvh;"><div class="spinner"></div></div>
+    </div>
+  </main>
+
+  <!-- =================== BOTTOM NAV (mobile) =================== -->
+  <nav class="bottom-nav" id="bottomnav" aria-label="Primary navigation">
+    <a href="/" class="bottom-nav-item" data-route="/">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1z"/></svg>
+      <span>Home</span>
+    </a>
+    <a href="/browse" class="bottom-nav-item" data-route="/browse">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      <span>Browse</span>
+    </a>
+    <a href="/search" class="bottom-nav-item" data-route="/search">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span>Search</span>
+    </a>
+    <a href="/library" class="bottom-nav-item" data-route="/library">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      <span>Library</span>
+    </a>
   </nav>
 
-  <section class="section" id="latest">
-    <div class="container">
-      <div class="section-header">
-        <h2 class="section-title">Latest Updates</h2>
-      </div>
-      <div class="update-list" id="dynamic-updates-list">
-        <p style="color: var(--text-muted);">Loading latest chapters from the void...</p>
-      </div>
-    </div>
-  </section>
+  <!-- =================== APP BOOT =================== -->
+  <script type="module" src="/assets/js/app.js"></script>
 
-<section class="section" id="popular">
-    <div class="container">
-      <div class="section-header">
-        <h2 class="section-title">Popular Series</h2>
-      </div>
-      <div class="card-grid" id="dynamic-series-grid">
-      </div>
-    </div>
-  </section>
-  <script type="module">
-    import { db } from './firebase.js';
-    import { collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    // XSS SECURITY GATE: This strips executable code out of database strings
-    const escapeHTML = (str) => {
-      if (str === null || str === undefined) return '';
-      return String(str).replace(/[&<>'"]/g, tag => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        "'": '&#39;',
-        '"': '&quot;'
-      }[tag] || tag));
-    };
-
-    async function loadSiteData() {
-      const grid = document.getElementById('dynamic-series-grid');
-      const updateList = document.getElementById('dynamic-updates-list');
-      grid.innerHTML = ''; 
-      updateList.innerHTML = '';
-
-      try {
-        const q = query(collection(db, "series"), orderBy("createdAt", "desc"));
-        const querySnapshot = await getDocs(q);
-
-        querySnapshot.forEach((doc) => {
-          const series = doc.data();
-          
-          // 1. Sanitize all incoming data
-          const safeTitle = escapeHTML(series.title);
-          const safeCover = escapeHTML(series.cover);
-          const safeStatus = escapeHTML(series.status);
-          const safeType = escapeHTML(series.type);
-          const safeSlug = escapeHTML(series.slug);
-          const safeChapter = escapeHTML(series.latestChapter);
-
-          // 2. Build Grid Cards (ADDED: glass-panel class to the card)
-          const cardHTML = `
-<div class="card glass" onclick="window.location.href='./series.html?slug=${safeSlug}'">              <div class="card-img-wrap">
-                <img src="${safeCover}" class="card-img" alt="${safeTitle}">
-                <div class="card-badge badge-ongoing">${safeStatus}</div>
-                <div class="card-chapter">Ch. ${safeChapter}</div>
-              </div>
-              <div class="card-info">
-                <div class="card-title">${safeTitle}</div>
-                <div class="card-type">${safeType}</div>
-              </div>
-            </div>
-          `;
-          grid.innerHTML += cardHTML;
-
-          // 3. Build Latest Updates (ADDED: glass-panel class to the item)
-          if(series.latestChapter > 0) {
-            const updateHTML = `
-              <div class="update-item glass-panel" style="margin-bottom: 8px;" onclick="window.location.href='./reader.html?series=${safeSlug}&ch=${safeChapter}'">
-                <img class="update-thumb" src="${safeCover}" alt="${safeTitle}">
-                <div class="update-meta">
-                  <div class="update-title">${safeTitle}</div>
-                  <div class="update-chapters">
-                    <span class="update-ch-link">Ch. ${safeChapter}</span>
-                  </div>
-                </div>
-              </div>
-            `;
-            updateList.innerHTML += updateHTML;
-          }
-        });
-      } catch (error) {
-        console.error("Database Error:", error);
-        grid.innerHTML = '<p>Failed to connect to database.</p>';
-      }
+  <!-- Service worker registration (PWA) -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
     }
-
-    document.addEventListener('DOMContentLoaded', loadSiteData);
   </script>
 </body>
 </html>

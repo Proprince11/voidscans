@@ -1,0 +1,180 @@
+// =====================================================
+// app.js — Boot the SPA: register routes, mount chrome,
+// activate router. The chrome (nav, bottom nav, footer)
+// lives outside the outlet so it doesn't repaint per route.
+// =====================================================
+
+import * as router from './lib/router.js';
+import { mountBackToTop } from './lib/ui.js';
+
+// Lazy-import views: code-split so a slow chapter image
+// doesn't prevent the home page from rendering.
+import { home }     from './views/home.js';
+import { browse }   from './views/browse.js';
+import { search }   from './views/search.js';
+import { genre }    from './views/genre.js';
+import { series }   from './views/series.js';
+import { reader }   from './views/reader.js';
+import { library }  from './views/library.js';
+import { notFound } from './views/notFound.js';
+
+// =====================================================
+// Mount route outlet
+// =====================================================
+const outlet = document.getElementById('app');
+router.setOutlet(outlet);
+
+// =====================================================
+// Register routes
+// =====================================================
+router.register('/',                       home);
+router.register('/browse',                 browse);
+router.register('/search',                 search);
+router.register('/genre/:slug',            genre);
+router.register('/series/:slug',           series);
+router.register('/read/:slug/:chapter',    reader);
+router.register('/library',                library);
+router.register('*',                       notFound);
+
+// =====================================================
+// Active state for navbar + bottom nav
+// =====================================================
+function updateActiveNav(path) {
+  const top = document.querySelectorAll('#navLinks .nav-link');
+  const bot = document.querySelectorAll('#bottomnav .bottom-nav-item');
+  const all = [...top, ...bot];
+  for (const a of all) {
+    const route = a.dataset.route;
+    let active = false;
+    if (route === '/') active = (path === '/');
+    else if (route) active = path.startsWith(route);
+    a.classList.toggle('active', active);
+  }
+}
+router.onAfterNavigate(updateActiveNav);
+
+// =====================================================
+// Hide chrome on reader route (full-bleed reading)
+// =====================================================
+function toggleReaderMode(path) {
+  const isReader = path.startsWith('/read/');
+  document.body.classList.toggle('reader-mode', isReader);
+  document.getElementById('topnav')?.classList.toggle('hidden', isReader);
+  document.getElementById('bottomnav')?.classList.toggle('hidden', isReader);
+  document.body.classList.toggle('has-bottom-nav', !isReader);
+}
+router.onAfterNavigate(toggleReaderMode);
+
+// =====================================================
+// Sticky navbar shadow on scroll
+// =====================================================
+let scrollRaf = null;
+function onScroll() {
+  if (scrollRaf) return;
+  scrollRaf = requestAnimationFrame(() => {
+    document.getElementById('topnav')?.classList.toggle('scrolled', window.scrollY > 8);
+    scrollRaf = null;
+  });
+}
+window.addEventListener('scroll', onScroll, { passive: true });
+
+// =====================================================
+// Mobile menu drawer
+// =====================================================
+const menuBtn = document.getElementById('navMenuBtn');
+let menuDrawer = null;
+menuBtn?.addEventListener('click', () => {
+  if (menuDrawer) { menuDrawer.remove(); menuDrawer = null; return; }
+  menuDrawer = document.createElement('div');
+  menuDrawer.className = 'menu-drawer open';
+  menuDrawer.innerHTML = `
+    <div class="menu-drawer-content">
+      <div class="between" style="margin-bottom: var(--s-6);">
+        <div class="nav-logo">VOID<span style="color:var(--accent);">SCANS</span></div>
+        <button class="icon-btn" data-close aria-label="Close menu">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <nav class="stack gap-2" aria-label="Mobile menu">
+        <a href="/"        class="nav-link" style="padding:var(--s-3); font-size:var(--fs-base);">Home</a>
+        <a href="/browse"  class="nav-link" style="padding:var(--s-3); font-size:var(--fs-base);">Browse</a>
+        <a href="/search"  class="nav-link" style="padding:var(--s-3); font-size:var(--fs-base);">Search</a>
+        <a href="/library" class="nav-link" style="padding:var(--s-3); font-size:var(--fs-base);">My Library</a>
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: var(--s-3) 0;">
+        <a href="/admin"   class="nav-link" target="_blank" style="padding:var(--s-3); font-size:var(--fs-sm); color:var(--text-muted);">Admin</a>
+      </nav>
+    </div>
+  `;
+  document.body.appendChild(menuDrawer);
+  menuDrawer.addEventListener('click', (e) => {
+    if (e.target === menuDrawer || e.target.closest('[data-close]') || e.target.closest('a')) {
+      menuDrawer?.remove();
+      menuDrawer = null;
+    }
+  });
+});
+
+// =====================================================
+// Back-to-top FAB (mounted globally, hides on reader)
+// =====================================================
+mountBackToTop();
+router.onAfterNavigate((p) => {
+  const fab = document.querySelector('.fab.back-to-top');
+  if (!fab) return;
+  fab.style.display = p.startsWith('/read/') ? 'none' : '';
+});
+
+// =====================================================
+// Boot router
+// =====================================================
+router.start({ outlet });
+
+// =====================================================
+// Footer (lazy mount once, after first navigation)
+// =====================================================
+function mountFooter() {
+  if (document.querySelector('.footer')) return;
+  const f = document.createElement('footer');
+  f.className = 'footer';
+  f.innerHTML = `
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="nav-logo" style="margin-bottom: var(--s-3);">VOID<span style="color:var(--accent);">SCANS</span></div>
+          <p style="font-size: var(--fs-sm); color: var(--text-muted); max-width: 36ch;">
+            Premium reading experience for manhwa, manga, and manhua. Free forever.
+          </p>
+        </div>
+        <div>
+          <h4>Browse</h4>
+          <ul>
+            <li><a href="/browse">All Series</a></li>
+            <li><a href="/genre/action">Action</a></li>
+            <li><a href="/genre/romance">Romance</a></li>
+            <li><a href="/genre/fantasy">Fantasy</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Account</h4>
+          <ul>
+            <li><a href="/library">My Library</a></li>
+            <li><a href="/search">Search</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Info</h4>
+          <ul>
+            <li><a href="/dmca">DMCA</a></li>
+            <li><a href="https://github.com/Proprince11/voidscans" target="_blank" rel="noopener">GitHub</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        © ${new Date().getFullYear()} VoidScans · Built with care.
+      </div>
+    </div>
+  `;
+  document.body.appendChild(f);
+}
+// Mount footer after first paint (don't block routing)
+requestIdleCallback ? requestIdleCallback(mountFooter) : setTimeout(mountFooter, 200);
