@@ -129,7 +129,46 @@ export async function chaptersAdmin({ outlet }) {
           <textarea class="textarea" id="ch-pages" rows="8" placeholder="https://files.catbox.moe/abc.jpg
 https://i.ibb.co/xyz/page2.jpg
 https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
-          <span class="field-hint">Paste image URLs. Order matters (top = first page).</span>
+          <span class="field-hint">Paste image URLs. Order matters (top = first page). Or use the helpers below to auto-fill.</span>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- PAGE UPLOAD HELPERS — bulk file upload + webpage scraper      -->
+        <!-- ============================================================ -->
+        <div class="admin-card" id="uploadHelpers" style="margin-bottom: var(--s-4); border-color: var(--accent-soft); background: linear-gradient(135deg, var(--surface-1), var(--surface-2));">
+          <div class="row gap-3" style="align-items: baseline; margin-bottom: var(--s-3); flex-wrap: wrap;">
+            <h3 style="margin: 0;">Page Upload Helpers</h3>
+            <span class="text-muted" style="font-size: var(--fs-xs);">Skip the manual Catbox dance</span>
+          </div>
+          <div class="row gap-2" style="margin-bottom: var(--s-3); flex-wrap: wrap;">
+            <button type="button" class="tag-pill active" data-helper="bulk">📁 Bulk Upload Files</button>
+            <button type="button" class="tag-pill" data-helper="scrape">🔗 Scrape from Webpage</button>
+          </div>
+
+          <!-- Bulk upload panel -->
+          <div data-helper-panel="bulk">
+            <label class="file-drop" id="bulkDrop">
+              <input type="file" id="bulkFiles" multiple accept="image/*">
+              <div>
+                <strong>Drag &amp; drop chapter pages here</strong><br>
+                <span class="field-hint">Or click to select multiple files. Files like <code>01.jpg, 02.jpg</code> are sorted naturally.</span>
+              </div>
+            </label>
+            <div id="bulkProgress" style="margin-top: var(--s-3); display: none;">
+              <progress id="bulkProgressBar" max="100" value="0" style="width: 100%; height: 8px;"></progress>
+              <p class="text-muted" id="bulkProgressText" style="margin-top: var(--s-2); font-size: var(--fs-xs);"></p>
+            </div>
+          </div>
+
+          <!-- Scrape panel -->
+          <div data-helper-panel="scrape" hidden>
+            <div class="row gap-2" style="flex-wrap: wrap; margin-bottom: var(--s-3);">
+              <input class="input" id="scrapeUrl" placeholder="Paste a chapter page URL (e.g. https://...)" style="flex: 1; min-width: 240px;">
+              <button type="button" class="btn btn-primary" id="scrapeBtn">Scan</button>
+            </div>
+            <p class="field-hint" id="scrapeHint" style="margin-bottom: var(--s-3);">Enter a public URL with the chapter's images. We'll grab them server-side, then re-host to your storage.</p>
+            <div id="scrapeResults" hidden></div>
+          </div>
         </div>
 
         <div class="field">
@@ -201,6 +240,216 @@ https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
 
     ta.addEventListener('input', paintPreview);
     paintPreview();
+
+    // ============================================================
+    // PAGE UPLOAD HELPERS — bulk upload + webpage scraper
+    // ============================================================
+    function appendUrls(urls) {
+      const cur = getPages();
+      const merged = [...cur, ...urls.filter(Boolean)];
+      setPages(merged);
+    }
+
+    // Helper-tab toggle
+    outlet.querySelectorAll('[data-helper]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        outlet.querySelectorAll('[data-helper]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const which = btn.dataset.helper;
+        outlet.querySelectorAll('[data-helper-panel]').forEach(p => {
+          p.hidden = (p.dataset.helperPanel !== which);
+        });
+      });
+    });
+
+    // -------- Bulk upload --------
+    const bulkInput = $f('#bulkFiles');
+    const bulkDrop = $f('#bulkDrop');
+    const progEl = $f('#bulkProgress');
+    const progBar = $f('#bulkProgressBar');
+    const progText = $f('#bulkProgressText');
+
+    function naturalSort(a, b) {
+      // Natural sort so "10.jpg" comes after "9.jpg"
+      return String(a.name).localeCompare(String(b.name), undefined, { numeric: true, sensitivity: 'base' });
+    }
+
+    async function uploadFiles(fileList) {
+      const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+      if (!files.length) { toast('No image files', 'error'); return; }
+      files.sort(naturalSort);
+
+      progEl.style.display = 'block';
+      progBar.value = 0;
+      progBar.max = files.length;
+      progText.textContent = `0 of ${files.length} uploaded`;
+
+      const newUrls = [];
+      let i = 0;
+      for (const file of files) {
+        i++;
+        try {
+          const fd = new FormData();
+          fd.append('file', file, file.name);
+          fd.append('series', selectedSlug);
+          fd.append('chapter', String($f('#ch-num').value || ''));
+          const res = await fetch('/api/upload', { method: 'POST', body: fd });
+          const json = await res.json();
+          if (!json.ok) throw new Error(json.error || 'upload failed');
+          newUrls.push(json.url);
+          progBar.value = i;
+          progText.textContent = `${i} of ${files.length} uploaded · last: ${file.name}`;
+        } catch (err) {
+          progText.textContent = `${i} of ${files.length} — failed on ${file.name}: ${err.message}`;
+        }
+      }
+
+      if (newUrls.length) {
+        appendUrls(newUrls);
+        toast(`Uploaded ${newUrls.length} of ${files.length}`, newUrls.length === files.length ? 'success' : 'info');
+      }
+      if (newUrls.length < files.length) {
+        progText.textContent += ` · ${files.length - newUrls.length} failed`;
+      }
+      // reset input for next batch
+      bulkInput.value = '';
+    }
+
+    bulkInput?.addEventListener('change', (e) => uploadFiles(e.target.files));
+    if (bulkDrop) {
+      ['dragenter', 'dragover'].forEach(evt =>
+        bulkDrop.addEventListener(evt, (e) => {
+          e.preventDefault(); e.stopPropagation();
+          bulkDrop.classList.add('dragover');
+        }));
+      ['dragleave', 'drop'].forEach(evt =>
+        bulkDrop.addEventListener(evt, (e) => {
+          e.preventDefault(); e.stopPropagation();
+          bulkDrop.classList.remove('dragover');
+        }));
+      bulkDrop.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        if (dt?.files?.length) uploadFiles(dt.files);
+      });
+    }
+
+    // -------- Webpage scraper --------
+    const scrapeUrlInput = $f('#scrapeUrl');
+    const scrapeBtn = $f('#scrapeBtn');
+    const scrapeHint = $f('#scrapeHint');
+    const scrapeResults = $f('#scrapeResults');
+
+    let scrapedImages = [];
+
+    async function runScrape() {
+      const url = scrapeUrlInput.value.trim();
+      if (!url) { scrapeHint.style.color = 'var(--danger)'; scrapeHint.textContent = 'Paste a URL first.'; return; }
+      scrapeBtn.disabled = true;
+      scrapeBtn.textContent = 'Scanning…';
+      scrapeHint.style.color = '';
+      scrapeHint.textContent = 'Fetching page server-side…';
+      try {
+        const res = await fetch(`/api/scrape?url=${encodeURIComponent(url)}`);
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || 'scrape failed');
+        scrapedImages = json.images || [];
+        if (!scrapedImages.length) {
+          scrapeResults.hidden = true;
+          scrapeHint.style.color = 'var(--warning)';
+          scrapeHint.textContent = `Found 0 images on that page. Page title: ${json.title || '—'}`;
+          return;
+        }
+        scrapeHint.style.color = 'var(--success)';
+        scrapeHint.innerHTML = `Found <strong>${json.imageCount}</strong> images${json.title ? ` on "${esc(json.title)}"` : ''}. Review below, then "Use Selected".`;
+        renderScrapeResults();
+        scrapeResults.hidden = false;
+      } catch (err) {
+        scrapeResults.hidden = true;
+        scrapeHint.style.color = 'var(--danger)';
+        scrapeHint.textContent = `✗ ${err.message}`;
+      } finally {
+        scrapeBtn.disabled = false;
+        scrapeBtn.textContent = 'Scan';
+      }
+    }
+
+    function renderScrapeResults() {
+      scrapeResults.innerHTML = `
+        <div class="row gap-2" style="margin-bottom: var(--s-3); flex-wrap: wrap;">
+          <button type="button" class="btn btn-ghost btn-sm" data-scrape-act="all">Select all</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-scrape-act="none">Select none</button>
+          <span class="nav-spacer"></span>
+          <button type="button" class="btn btn-primary" id="useSelectedBtn">Use Selected → Re-host & Append</button>
+        </div>
+        <div class="image-preview-grid" id="scrapeGrid">
+          ${scrapedImages.map((u, i) => `
+            <label class="image-preview-item" style="cursor: pointer; outline: 2px solid var(--accent);">
+              <input type="checkbox" data-scrape-idx="${i}" checked style="position: absolute; top: 6px; right: 6px; z-index: 2; width: 18px; height: 18px;">
+              <span class="index">${i + 1}</span>
+              <img src="${esc(u)}" alt="Page ${i + 1}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
+            </label>
+          `).join('')}
+        </div>
+      `;
+      scrapeResults.querySelectorAll('[data-scrape-act]').forEach(b => b.addEventListener('click', () => {
+        const want = b.dataset.scrapeAct === 'all';
+        scrapeResults.querySelectorAll('[data-scrape-idx]').forEach(cb => cb.checked = want);
+        scrapeResults.querySelectorAll('.image-preview-item').forEach(it => {
+          it.style.outline = want ? '2px solid var(--accent)' : 'none';
+        });
+      }));
+      scrapeResults.querySelectorAll('[data-scrape-idx]').forEach(cb => {
+        cb.addEventListener('change', () => {
+          cb.closest('.image-preview-item').style.outline = cb.checked ? '2px solid var(--accent)' : 'none';
+        });
+      });
+      scrapeResults.querySelector('#useSelectedBtn').addEventListener('click', useSelected);
+    }
+
+    async function useSelected() {
+      const selected = [...scrapeResults.querySelectorAll('[data-scrape-idx]')]
+        .filter(cb => cb.checked)
+        .map(cb => scrapedImages[Number(cb.dataset.scrapeIdx)])
+        .filter(Boolean);
+      if (!selected.length) { toast('Select at least one image', 'error'); return; }
+
+      const useBtn = scrapeResults.querySelector('#useSelectedBtn');
+      useBtn.disabled = true;
+      useBtn.textContent = `Re-hosting 0 / ${selected.length}…`;
+      scrapeHint.style.color = '';
+      scrapeHint.textContent = `Re-hosting ${selected.length} images via Worker → Catbox/R2…`;
+
+      try {
+        const res = await fetch('/api/scrape-rehost', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            urls: selected,
+            series: selectedSlug,
+            chapter: String($f('#ch-num').value || '')
+          })
+        });
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || 'rehost failed');
+        const okUrls = json.results.filter(r => r.ok).map(r => r.url);
+        const failed = json.results.filter(r => !r.ok).length;
+        if (okUrls.length) appendUrls(okUrls);
+        scrapeHint.style.color = failed ? 'var(--warning)' : 'var(--success)';
+        scrapeHint.textContent = `✓ Re-hosted ${okUrls.length} of ${selected.length}${failed ? ` · ${failed} failed` : ''}. Pages added to the textarea above.`;
+        toast(`Added ${okUrls.length} pages`, 'success');
+      } catch (err) {
+        scrapeHint.style.color = 'var(--danger)';
+        scrapeHint.textContent = `✗ ${err.message}`;
+      } finally {
+        useBtn.disabled = false;
+        useBtn.textContent = 'Use Selected → Re-host & Append';
+      }
+    }
+
+    scrapeBtn?.addEventListener('click', runScrape);
+    scrapeUrlInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); runScrape(); }
+    });
 
     $f('#backBtn').addEventListener('click', () => render());
     $f('#cancelBtn').addEventListener('click', () => render());

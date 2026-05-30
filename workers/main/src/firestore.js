@@ -1,0 +1,81 @@
+// =====================================================
+// firestore.js — Read-only Firestore REST helpers for the Worker.
+// Used by RSS + sitemap. No auth — relies on Firestore rules
+// allowing public read on series/chapters.
+// =====================================================
+
+const BASE = (projectId) =>
+  `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
+
+function unwrapValue(v) {
+  if (v == null) return null;
+  if ('stringValue'    in v) return v.stringValue;
+  if ('integerValue'   in v) return Number(v.integerValue);
+  if ('doubleValue'    in v) return Number(v.doubleValue);
+  if ('booleanValue'   in v) return !!v.booleanValue;
+  if ('timestampValue' in v) return v.timestampValue;
+  if ('nullValue'      in v) return null;
+  if ('arrayValue'     in v) return (v.arrayValue.values || []).map(unwrapValue);
+  if ('mapValue'       in v) {
+    const f = v.mapValue.fields || {};
+    const o = {};
+    for (const k of Object.keys(f)) o[k] = unwrapValue(f[k]);
+    return o;
+  }
+  return null;
+}
+
+function unwrap(doc) {
+  if (!doc) return null;
+  const id = doc.name?.split('/').pop();
+  const out = { _id: id };
+  const fields = doc.fields || {};
+  for (const k of Object.keys(fields)) out[k] = unwrapValue(fields[k]);
+  return out;
+}
+
+export async function listDocs(projectId, collection, { pageSize = 200 } = {}) {
+  const url = `${BASE(projectId)}/${collection}?pageSize=${pageSize}`;
+  const res = await fetch(url, { cf: { cacheTtl: 120 } });
+  if (!res.ok) throw new Error(`Firestore list ${collection}: ${res.status}`);
+  const data = await res.json();
+  return (data.documents || []).map(unwrap);
+}
+
+export async function queryDocs(projectId, collection, filters = [], orderBy = null, limit = 100) {
+  const where = filters.length === 1
+    ? { fieldFilter: { field: { fieldPath: filters[0].field }, op: filters[0].op, value: filters[0].value } }
+    : (filters.length > 1
+        ? { compositeFilter: { op: 'AND', filters: filters.map(f => ({
+            fieldFilter: { field: { fieldPath: f.field }, op: f.op, value: f.value }
+          })) } }
+        : undefined);
+
+  const body = {
+    structuredQuery: {
+      from: [{ collectionId: collection }],
+      ...(where ? { where } : {}),
+      ...(orderBy ? { orderBy: [{ field: { fieldPath: orderBy.field }, direction: orderBy.direction }] } : {}),
+      limit
+    }
+  };
+
+  const res = await fetch(`${BASE(projectId)}:runQuery`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    cf: { cacheTtl: 120 }
+  });
+  if (!res.ok) throw new Error(`Firestore query ${collection}: ${res.status}`);
+  const arr = await res.json();
+  return (Array.isArray(arr) ? arr : [])
+    .filter(r => r.document)
+    .map(r => unwrap(r.document));
+}
+
+export function tsToDate(t) {
+  if (!t) return null;
+  if (typeof t === 'string') return new Date(t);
+  if (t.seconds) return new Date(t.seconds * 1000);
+  return new Date(t);
+}

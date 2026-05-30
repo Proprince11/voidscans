@@ -34,12 +34,15 @@ function parseMangaDexId(input) {
   return m ? m[0].toLowerCase() : null;
 }
 
-/** Fetch + normalize MangaDex manga metadata. Returns series form fields. */
+/** Fetch + normalize MangaDex manga metadata. Returns series form fields.
+ *  Routes through our same-origin Worker proxy because MangaDex doesn't
+ *  enable CORS for browser requests. */
 export async function importFromMangaDex(input) {
   const id = parseMangaDexId(input);
   if (!id) throw new Error('Could not find a MangaDex ID. Paste the title URL or its UUID.');
 
-  const url = `${MANGADEX_API_BASE}/manga/${id}?includes[]=author&includes[]=artist&includes[]=cover_art`;
+  // Use Worker proxy at /api/mangadex/manga/:uuid (same origin = no CORS issue)
+  const url = `/api/mangadex/manga/${id}`;
   const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
   if (!res.ok) throw new Error(`MangaDex returned ${res.status}. The ID may be invalid.`);
   const json = await res.json();

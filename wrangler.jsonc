@@ -1,8 +1,14 @@
 {
   "name": "voidscans",
+  "main": "workers/main/src/index.js",
   "compatibility_date": "2026-05-29",
+  "vars": {
+    "FIREBASE_PROJECT_ID": "voidscans-6c66b",
+    "PUBLIC_BASE_URL": "https://voidscans.isthe.workers.dev"
+  },
   "assets": {
     "directory": "./",
+    "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "single-page-application"
   }
