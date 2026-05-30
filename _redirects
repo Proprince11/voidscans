@@ -1,14 +1,15 @@
-# Cloudflare Pages SPA routing
-# Admin routes go to admin shell
-/admin           /admin.html   200
-/admin/*         /admin.html   200
+# Workers Static Assets routing.
+#
+# SPA fallback (any unmatched URL → index.html) is handled by
+# wrangler.jsonc → assets.not_found_handling = "single-page-application".
+# Don't add a catch-all (/*) here — Cloudflare's linter flags it as an
+# infinite loop and the deploy fails (error code 100324).
+#
+# Only declare rewrites that the SPA mode can't handle on its own.
 
-# Static special files (let CF Pages serve directly)
-/sw.js           /sw.js        200
-/manifest.webmanifest /manifest.webmanifest 200
-/robots.txt      /robots.txt   200
-/sitemap.xml     /sitemap.xml  200
-/favicon.ico     /assets/images/favicon.ico 200
+# Admin SPA shell
+/admin           /admin.html                       200
+/admin/*         /admin.html                       200
 
-# Everything else falls through to the main SPA shell
-/*               /index.html   200
+# Favicon legacy path → SVG
+/favicon.ico     /assets/images/favicon.svg        200
