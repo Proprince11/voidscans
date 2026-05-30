@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a0a0c">
+  <title>Offline · VoidScans</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/images/favicon.svg">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/reset.css">
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="stylesheet" href="/assets/css/components.css">
+  <link rel="stylesheet" href="/assets/css/pages.css">
+</head>
+<body>
+  <div class="container notfound">
+    <div>
+      <div style="font-size: 64px; margin-bottom: var(--s-3);">📡</div>
+      <h1 style="font-size: clamp(2rem, 6vw, 3.5rem); margin-bottom: var(--s-3);">You're Offline</h1>
+      <p>Looks like your connection dropped. Cached chapters are still readable — head to your library to keep reading.</p>
+      <div class="row gap-3" style="justify-content: center; margin-top: var(--s-5);">
+        <a href="/library" class="btn btn-primary">Open Library</a>
+        <a href="/" class="btn btn-outline" onclick="location.reload();return false;">Retry</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Auto-retry when back online
+    window.addEventListener('online', () => location.reload());
+  </script>
+</body>
+</html>

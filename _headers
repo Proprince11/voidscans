@@ -1,0 +1,26 @@
+# Cloudflare Pages headers for security and caching
+
+/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  X-XSS-Protection: 1; mode=block
+
+# Long cache for hashed assets
+/assets/*
+  Cache-Control: public, max-age=604800, must-revalidate
+
+# Service worker must not be cached
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+  Service-Worker-Allowed: /
+
+# Manifest
+/manifest.webmanifest
+  Content-Type: application/manifest+json
+  Cache-Control: public, max-age=3600
+
+# HTML shells - short cache
+/*.html
+  Cache-Control: public, max-age=300, must-revalidate

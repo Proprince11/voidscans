@@ -1,0 +1,45 @@
+{
+  "name": "VoidScans",
+  "short_name": "VoidScans",
+  "description": "Read manhwa, manga, and manhua. Premium reader, free forever.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a0c",
+  "theme_color": "#0a0a0c",
+  "lang": "en",
+  "categories": ["entertainment", "books", "comics"],
+  "icons": [
+    {
+      "src": "/assets/images/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/images/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/images/icon-monochrome.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "monochrome"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Browse Series",
+      "url": "/browse",
+      "icons": [{ "src": "/assets/images/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "My Library",
+      "url": "/library",
+      "icons": [{ "src": "/assets/images/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ]
+}
