@@ -1,0 +1,316 @@
+// =====================================================
+// View: Reader — premium reader with zoom, fit modes,
+// progress bar, settings drawer, keyboard nav, swipe.
+// =====================================================
+
+import { fetchChapter, fetchChapters, fetchSeriesBySlug } from '../lib/api.js';
+import {
+  recordRead, saveProgress, getProgress,
+  getReaderPrefs, setReaderPrefs
+} from '../lib/library.js';
+import { esc, html, throttle, isMobile, isTouch } from '../lib/utils.js';
+import { spinner, toast, drawer, share } from '../lib/ui.js';
+
+export async function reader(params, ctx) {
+  const slug = params.slug;
+  const num  = Number(params.chapter);
+
+  ctx.outlet.innerHTML = spinner();
+
+  let s, ch, allChapters;
+  try {
+    [s, ch, allChapters] = await Promise.all([
+      fetchSeriesBySlug(slug),
+      fetchChapter(slug, num),
+      fetchChapters(slug)
+    ]);
+  } catch (e) {
+    ctx.outlet.innerHTML = `<div class="container section"><h2>Failed to load</h2></div>`;
+    return { title: 'Reader · VoidScans' };
+  }
+
+  if (!s || !ch) {
+    ctx.outlet.innerHTML = html`
+      <div class="container section">
+        <div class="empty-state">
+          <div class="icon">📖</div>
+          <h3>Chapter not found</h3>
+          <p>This chapter doesn't exist or hasn't been published yet.</p>
+          <a href="/series/${esc(slug)}" class="btn btn-primary">Back to series</a>
+        </div>
+      </div>
+    `;
+    return { title: 'Not found · VoidScans' };
+  }
+
+  // Sort chapters ascending for nav purposes
+  const sorted = [...allChapters].sort((a, b) => a.number - b.number);
+  const idx = sorted.findIndex(c => c.number === num);
+  const prev = idx > 0 ? sorted[idx - 1] : null;
+  const next = idx < sorted.length - 1 ? sorted[idx + 1] : null;
+
+  // Read prefs
+  const prefs = getReaderPrefs();
+
+  // Build view
+  ctx.outlet.innerHTML = renderReader(s, ch, prev, next, sorted, prefs);
+
+  // Wire up
+  const cleanup = wireUp(s, ch, prev, next, sorted, prefs);
+
+  // Mark as read on entry (persistent)
+  recordRead(slug, ch.number, ch.pages.length, 0);
+
+  // Precache this chapter's images for offline reading
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({
+      type: 'PRECACHE_IMAGES',
+      urls: ch.pages
+    });
+  }
+
+  // Restore progress
+  getProgress(slug, ch.number).then(p => {
+    if (p && p.page > 0 && p.page < ch.pages.length - 1) {
+      const target = document.querySelectorAll('.manga-page')[p.page];
+      target?.scrollIntoView({ behavior: 'instant', block: 'start' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  });
+
+  return {
+    title: `Ch.${num} · ${s.title} · VoidScans`,
+    cleanup
+  };
+}
+
+// =====================================================
+// RENDER
+// =====================================================
+function renderReader(s, ch, prev, next, all, prefs) {
+  const fitClass = prefs.fit === 'height' ? 'fit-height' : (prefs.zoom !== 100 ? `zoom-${prefs.zoom}` : 'fit-width');
+  const gapClass = `gap-${prefs.gap}`;
+  return html`
+    <div class="reader-topbar" id="rTop">
+      <div class="reader-topbar-inner">
+        <a href="/series/${esc(s.slug)}" class="icon-btn" aria-label="Back to series">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        </a>
+        <div class="reader-info">
+          <a href="/series/${esc(s.slug)}" class="reader-info-title">${esc(s.title)}</a>
+          <div class="reader-info-chapter">
+            Chapter ${esc(ch.number)} ${ch.title ? `· ${esc(ch.title)}` : ''}
+          </div>
+        </div>
+        <div class="row gap-1">
+          <button class="icon-btn" id="rShare" aria-label="Share">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          </button>
+          <button class="icon-btn" id="rSettings" aria-label="Reader settings">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="progress-bar" id="rProgress" style="width: 0%;"></div>
+
+    <div class="reader-canvas ${fitClass} ${gapClass}" id="rCanvas">
+      ${ch.pages.map((url, i) => `
+        <img class="manga-page" src="${esc(url)}" alt="Page ${i + 1}"
+             loading="${i < 3 ? 'eager' : 'lazy'}" decoding="async"
+             data-page="${i}"
+             onerror="this.onerror=null;this.style.background='var(--surface-3)';this.alt='Image failed to load';">
+      `).join('')}
+    </div>
+
+    <div class="reader-bottombar">
+      ${prev
+        ? `<a href="/read/${esc(s.slug)}/${prev.number}" class="btn btn-outline">← Ch.${prev.number}</a>`
+        : `<button class="btn btn-outline" disabled>← Prev</button>`}
+      <select class="reader-chapter-select" id="rChapterSelect" aria-label="Jump to chapter">
+        ${[...all].reverse().map(c => `<option value="${c.number}" ${c.number === ch.number ? 'selected' : ''}>Ch. ${c.number}${c.title ? ` — ${esc(c.title)}` : ''}</option>`).join('')}
+      </select>
+      ${next
+        ? `<a href="/read/${esc(s.slug)}/${next.number}" class="btn btn-primary">Ch.${next.number} →</a>`
+        : `<a href="/series/${esc(s.slug)}" class="btn btn-primary">All Done · Series</a>`}
+    </div>
+  `;
+}
+
+// =====================================================
+// WIRE-UP
+// =====================================================
+function wireUp(s, ch, prev, next, all, prefs) {
+  const cleanups = [];
+
+  // Progress bar (scroll)
+  const progress = document.getElementById('rProgress');
+  let raf = null;
+  function onScroll() {
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      const h = document.documentElement;
+      const pct = Math.min(100, (h.scrollTop / Math.max(1, h.scrollHeight - h.clientHeight)) * 100);
+      progress.style.width = pct + '%';
+      raf = null;
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  cleanups.push(() => window.removeEventListener('scroll', onScroll));
+
+  // Auto-hide topbar on scroll down, show on scroll up
+  const top = document.getElementById('rTop');
+  let lastY = window.scrollY;
+  function onScrollHide() {
+    const y = window.scrollY;
+    if (y < 100) { top.classList.remove('hidden'); }
+    else if (y > lastY + 8) top.classList.add('hidden');
+    else if (y < lastY - 8) top.classList.remove('hidden');
+    lastY = y;
+  }
+  const onScrollHideT = throttle(onScrollHide, 80);
+  window.addEventListener('scroll', onScrollHideT, { passive: true });
+  cleanups.push(() => window.removeEventListener('scroll', onScrollHideT));
+
+  // Save reading position (debounced via throttle)
+  let lastVisibleIdx = 0;
+  const observer = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (e.isIntersecting) {
+        const i = Number(e.target.dataset.page);
+        if (i > lastVisibleIdx) lastVisibleIdx = i;
+      }
+    }
+    saveProgress(s.slug, ch.number, lastVisibleIdx, ch.pages.length);
+  }, { threshold: 0.5 });
+  document.querySelectorAll('.manga-page').forEach(img => observer.observe(img));
+  cleanups.push(() => observer.disconnect());
+
+  // Tap top half / bottom half to scroll on mobile (optional UX)
+  // We rely on natural scroll, no tap-zones to avoid surprise.
+
+  // Keyboard nav
+  function onKey(e) {
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+    if (e.key === 'ArrowLeft' || e.key === 'a') {
+      if (prev) location.assign(`/read/${encodeURIComponent(s.slug)}/${prev.number}`);
+    } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === ' ') {
+      if (next) { e.preventDefault(); location.assign(`/read/${encodeURIComponent(s.slug)}/${next.number}`); }
+    } else if (e.key === 'Home') { window.scrollTo({ top: 0 }); }
+    else if (e.key === 'End') { window.scrollTo({ top: document.body.scrollHeight }); }
+  }
+  document.addEventListener('keydown', onKey);
+  cleanups.push(() => document.removeEventListener('keydown', onKey));
+
+  // Touch swipe (left = next, right = prev) — only swipe horizontal, ignore vertical
+  if (isTouch()) {
+    let sx = 0, sy = 0, swiping = false;
+    function ts(e) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; swiping = true; }
+    function te(e) {
+      if (!swiping) return; swiping = false;
+      const dx = e.changedTouches[0].clientX - sx;
+      const dy = e.changedTouches[0].clientY - sy;
+      if (Math.abs(dx) > 80 && Math.abs(dy) < 60) {
+        if (dx < 0 && next) location.assign(`/read/${encodeURIComponent(s.slug)}/${next.number}`);
+        if (dx > 0 && prev) location.assign(`/read/${encodeURIComponent(s.slug)}/${prev.number}`);
+      }
+    }
+    document.addEventListener('touchstart', ts, { passive: true });
+    document.addEventListener('touchend', te, { passive: true });
+    cleanups.push(() => {
+      document.removeEventListener('touchstart', ts);
+      document.removeEventListener('touchend', te);
+    });
+  }
+
+  // Chapter dropdown
+  document.getElementById('rChapterSelect')?.addEventListener('change', (e) => {
+    location.assign(`/read/${encodeURIComponent(s.slug)}/${e.target.value}`);
+  });
+
+  // Share
+  document.getElementById('rShare')?.addEventListener('click', () => {
+    share({
+      title: `${s.title} — Ch.${ch.number}`,
+      text: `Reading ${s.title} chapter ${ch.number} on VoidScans`,
+      url: location.href
+    });
+  });
+
+  // Settings drawer
+  document.getElementById('rSettings')?.addEventListener('click', () => openSettingsDrawer(prefs));
+
+  return () => cleanups.forEach(fn => { try { fn(); } catch {} });
+}
+
+// =====================================================
+// SETTINGS DRAWER
+// =====================================================
+function openSettingsDrawer(prefs) {
+  const dw = drawer(html`
+    <h3 style="margin-bottom: var(--s-3);">Reader Settings</h3>
+
+    <div class="field">
+      <label class="field-label">Image Fit</label>
+      <div class="row gap-2" id="rFit">
+        ${['width', 'height'].map(v => `<button class="tag-pill ${prefs.fit === v ? 'active' : ''}" data-v="${v}">${v === 'width' ? 'Fit width' : 'Fit height'}</button>`).join('')}
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Zoom</label>
+      <div class="row gap-2" id="rZoom">
+        ${[75, 100, 125, 150].map(v => `<button class="tag-pill ${prefs.zoom === v ? 'active' : ''}" data-v="${v}">${v}%</button>`).join('')}
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Page Gap</label>
+      <div class="row gap-2" id="rGap">
+        ${['small', 'medium', 'large'].map(v => `<button class="tag-pill ${prefs.gap === v ? 'active' : ''}" data-v="${v}">${v[0].toUpperCase() + v.slice(1)}</button>`).join('')}
+      </div>
+    </div>
+
+    <div class="field-hint" style="margin-top: var(--s-3);">
+      Tip: ←/→ keys to switch chapters. Tap and hold to swipe on mobile.
+    </div>
+
+    <button class="btn btn-primary btn-block" data-drawer-close style="margin-top: var(--s-4);">Done</button>
+  `);
+
+  function applyClasses() {
+    const cur = getReaderPrefs();
+    const canvas = document.getElementById('rCanvas');
+    canvas.className = `reader-canvas ${cur.fit === 'height' ? 'fit-height' : (cur.zoom !== 100 ? `zoom-${cur.zoom}` : 'fit-width')} gap-${cur.gap}`;
+  }
+
+  dw.el.querySelector('#rFit').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-v]');
+    if (!b) return;
+    setReaderPrefs({ fit: b.dataset.v });
+    dw.el.querySelectorAll('#rFit .tag-pill').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    applyClasses();
+  });
+  dw.el.querySelector('#rZoom').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-v]');
+    if (!b) return;
+    setReaderPrefs({ zoom: Number(b.dataset.v), fit: 'width' });
+    dw.el.querySelectorAll('#rZoom .tag-pill').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    // Reset fit highlights
+    dw.el.querySelectorAll('#rFit .tag-pill').forEach(x => x.classList.remove('active'));
+    dw.el.querySelector(`#rFit [data-v="width"]`)?.classList.add('active');
+    applyClasses();
+  });
+  dw.el.querySelector('#rGap').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-v]');
+    if (!b) return;
+    setReaderPrefs({ gap: b.dataset.v });
+    dw.el.querySelectorAll('#rGap .tag-pill').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    applyClasses();
+  });
+}
