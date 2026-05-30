@@ -113,7 +113,7 @@
 | File / folder | Layer |
 |---|---|
 | `index.html` | Public SPA shell |
-| `admin.html` | Admin SPA shell |
+| `admin/index.html` | Admin SPA shell |
 | `assets/css/*` | Design system |
 | `assets/js/lib/*` | Cross-cutting libraries |
 | `assets/js/views/*` | One per public route |

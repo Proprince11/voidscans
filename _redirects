@@ -5,11 +5,8 @@
 # Don't add a catch-all (/*) here — Cloudflare's linter flags it as an
 # infinite loop and the deploy fails (error code 100324).
 #
-# Only declare rewrites that the SPA mode can't handle on its own.
-
-# Admin SPA shell
-/admin           /admin.html                       200
-/admin/*         /admin.html                       200
+# Admin routing: /admin → /admin/index.html happens automatically via
+# html_handling: "auto-trailing-slash" (the default). No rewrite needed.
 
 # Favicon legacy path → SVG
 /favicon.ico     /assets/images/favicon.svg        200

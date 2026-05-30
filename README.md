@@ -60,7 +60,7 @@ node grant-admin.mjs you@example.com
 ```
 voidscans/
 ├── index.html               ← SPA shell (the entire site)
-├── admin.html               ← Admin SPA shell
+├── admin/index.html         ← Admin SPA shell
 ├── manifest.webmanifest
 ├── sw.js                    ← Service worker (PWA, offline)
 ├── offline.html             ← Offline fallback page
