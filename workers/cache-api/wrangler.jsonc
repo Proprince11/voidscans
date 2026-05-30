@@ -1,0 +1,9 @@
+{
+  "name": "voidscans-cache",
+  "main": "src/index.js",
+  "compatibility_date": "2026-05-29",
+  "vars": {
+    "FIREBASE_PROJECT_ID": "voidscans-6c66b",
+    "ALLOW_ORIGIN": "*"
+  }
+}

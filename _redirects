@@ -1,0 +1,14 @@
+# Cloudflare Pages SPA routing
+# Admin routes go to admin shell
+/admin           /admin.html   200
+/admin/*         /admin.html   200
+
+# Static special files (let CF Pages serve directly)
+/sw.js           /sw.js        200
+/manifest.webmanifest /manifest.webmanifest 200
+/robots.txt      /robots.txt   200
+/sitemap.xml     /sitemap.xml  200
+/favicon.ico     /assets/images/favicon.ico 200
+
+# Everything else falls through to the main SPA shell
+/*               /index.html   200
