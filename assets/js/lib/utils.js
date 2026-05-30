@@ -179,3 +179,25 @@ export function icon(name, size = 20) {
   };
   return map[name] || '';
 }
+
+
+/** Wrap a cover/asset URL with the same-origin /api/proxy-image proxy
+ *  if it's a hotlink-protected host (e.g. MangaDex CDN). The Worker
+ *  fetches it server-side with the right Referer header so the actual
+ *  image is served instead of a "Read on …" placeholder. */
+const HOTLINK_HOSTS = ['mangadex.org', 'cdn.statically.io'];
+export function proxyImage(url) {
+  if (!url || typeof url !== 'string') return url;
+  if (url.startsWith('/api/')) return url;       // already proxied
+  if (url.startsWith('data:'))  return url;
+  try {
+    const u = new URL(url);
+    const h = u.hostname.toLowerCase();
+    for (const protected_ of HOTLINK_HOSTS) {
+      if (h === protected_ || h.endsWith('.' + protected_)) {
+        return `/api/proxy-image?url=${encodeURIComponent(url)}`;
+      }
+    }
+  } catch { /* invalid URL — return as-is */ }
+  return url;
+}

@@ -3,7 +3,7 @@ import {
   fetchAllSeries, fetchChapters, fetchChapter,
   createChapter, updateChapter, deleteChapter
 } from '../lib/api.js';
-import { esc, html, timeAgo } from '../lib/utils.js';
+import { esc, html, timeAgo, proxyImage } from '../lib/utils.js';
 import { toast, confirmModal, spinner } from '../lib/ui.js';
 
 export async function chaptersAdmin({ outlet }) {
@@ -135,12 +135,12 @@ https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
         <!-- ============================================================ -->
         <!-- PAGE UPLOAD HELPERS — bulk file upload + webpage scraper      -->
         <!-- ============================================================ -->
-        <div class="admin-card" id="uploadHelpers" style="margin-bottom: var(--s-4); border-color: var(--accent-soft); background: linear-gradient(135deg, var(--surface-1), var(--surface-2));">
+        <div class="upload-helpers" id="uploadHelpers">
           <div class="row gap-3" style="align-items: baseline; margin-bottom: var(--s-3); flex-wrap: wrap;">
-            <h3 style="margin: 0;">Page Upload Helpers</h3>
-            <span class="text-muted" style="font-size: var(--fs-xs);">Skip the manual Catbox dance</span>
+            <h4 style="margin: 0;">Page Upload Helpers</h4>
+            <span class="text-muted" style="font-size: var(--fs-xs);">Auto-fill the URLs above</span>
           </div>
-          <div class="row gap-2" style="margin-bottom: var(--s-3); flex-wrap: wrap;">
+          <div class="row gap-2" style="margin-bottom: var(--s-4); flex-wrap: wrap;">
             <button type="button" class="tag-pill active" data-helper="bulk">📁 Bulk Upload Files</button>
             <button type="button" class="tag-pill" data-helper="scrape">🔗 Scrape from Webpage</button>
           </div>
@@ -154,8 +154,8 @@ https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
                 <span class="field-hint">Or click to select multiple files. Files like <code>01.jpg, 02.jpg</code> are sorted naturally.</span>
               </div>
             </label>
-            <div id="bulkProgress" style="margin-top: var(--s-3); display: none;">
-              <progress id="bulkProgressBar" max="100" value="0" style="width: 100%; height: 8px;"></progress>
+            <div id="bulkProgress" style="margin-top: var(--s-4); display: none;">
+              <div class="upload-bar"><div class="upload-bar-fill" id="bulkBarFill"></div></div>
               <p class="text-muted" id="bulkProgressText" style="margin-top: var(--s-2); font-size: var(--fs-xs);"></p>
             </div>
           </div>
@@ -199,7 +199,7 @@ https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
       grid.innerHTML = pages.map((url, i) => `
         <div class="image-preview-item" draggable="true" data-idx="${i}">
           <span class="index">${i + 1}</span>
-          <img src="${esc(url)}" alt="Page ${i + 1}" loading="lazy" onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
+          <img src="${esc(proxyImage(url))}" alt="Page ${i + 1}" loading="lazy" onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
           <button type="button" class="remove" data-remove="${i}" aria-label="Remove">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -266,7 +266,7 @@ https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
     const bulkInput = $f('#bulkFiles');
     const bulkDrop = $f('#bulkDrop');
     const progEl = $f('#bulkProgress');
-    const progBar = $f('#bulkProgressBar');
+    const progFill = $f('#bulkBarFill');
     const progText = $f('#bulkProgressText');
 
     function naturalSort(a, b) {
@@ -280,8 +280,7 @@ https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
       files.sort(naturalSort);
 
       progEl.style.display = 'block';
-      progBar.value = 0;
-      progBar.max = files.length;
+      progFill.style.width = '0%';
       progText.textContent = `0 of ${files.length} uploaded`;
 
       const newUrls = [];
@@ -297,9 +296,10 @@ https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
           const json = await res.json();
           if (!json.ok) throw new Error(json.error || 'upload failed');
           newUrls.push(json.url);
-          progBar.value = i;
+          progFill.style.width = `${Math.round((i / files.length) * 100)}%`;
           progText.textContent = `${i} of ${files.length} uploaded · last: ${file.name}`;
         } catch (err) {
+          progFill.style.width = `${Math.round((i / files.length) * 100)}%`;
           progText.textContent = `${i} of ${files.length} — failed on ${file.name}: ${err.message}`;
         }
       }
@@ -386,7 +386,7 @@ https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
             <label class="image-preview-item" style="cursor: pointer; outline: 2px solid var(--accent);">
               <input type="checkbox" data-scrape-idx="${i}" checked style="position: absolute; top: 6px; right: 6px; z-index: 2; width: 18px; height: 18px;">
               <span class="index">${i + 1}</span>
-              <img src="${esc(u)}" alt="Page ${i + 1}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
+              <img src="${esc(proxyImage(u))}" alt="Page ${i + 1}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
             </label>
           `).join('')}
         </div>

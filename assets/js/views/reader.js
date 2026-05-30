@@ -13,7 +13,7 @@ import {
   hasLikedComment, markCommentLiked
 } from '../lib/library.js';
 import { getProfile } from '../lib/account.js';
-import { esc, html, throttle, timeAgo, avatarLetter, isMobile, isTouch } from '../lib/utils.js';
+import { esc, html, throttle, timeAgo, avatarLetter, isMobile, isTouch, proxyImage } from '../lib/utils.js';
 import { spinner, toast, drawer, share } from '../lib/ui.js';
 
 export async function reader(params, ctx) {
@@ -132,7 +132,7 @@ function renderReader(s, ch, prev, next, all, prefs) {
 
     <div class="reader-canvas ${fitClass} ${gapClass}" id="rCanvas">
       ${ch.pages.map((url, i) => `
-        <img class="manga-page" src="${esc(url)}" alt="Page ${i + 1}"
+        <img class="manga-page" src="${esc(proxyImage(url))}" alt="Page ${i + 1}"
              loading="${i < 3 ? 'eager' : 'lazy'}" decoding="async"
              data-page="${i}"
              onerror="this.onerror=null;this.style.background='var(--surface-3)';this.alt='Image failed to load';">
