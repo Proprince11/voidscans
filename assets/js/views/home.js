@@ -4,7 +4,7 @@
 
 import { fetchHomeSections } from '../lib/api.js';
 import { getHistory } from '../lib/library.js';
-import { esc, html } from '../lib/utils.js';
+import { esc, html, proxyImage } from '../lib/utils.js';
 import { skeletonGrid } from '../lib/ui.js';
 import { seriesCard, updateRow, genreStrip, emptyState, statusBadge } from './_components.js';
 
@@ -78,10 +78,10 @@ export async function home(_params, ctx) {
     <section class="hero" id="hero">
       ${heroItems.map((s, i) => `
         <div class="hero-slide ${i === 0 ? 'active' : ''}" data-idx="${i}">
-          <div class="hero-bg" style="background-image: url('${esc(s.cover)}');"></div>
+          <div class="hero-bg" style="background-image: url('${esc(proxyImage(s.cover))}');"></div>
           <div class="hero-content">
             <div class="hero-cover">
-              <img src="${esc(s.cover)}" alt="${esc(s.title)}" loading="${i === 0 ? 'eager' : 'lazy'}" decoding="async"${i === 0 ? ' fetchpriority="high"' : ''}>
+              <img src="${esc(proxyImage(s.cover))}" alt="${esc(s.title)}" loading="${i === 0 ? 'eager' : 'lazy'}" decoding="async"${i === 0 ? ' fetchpriority="high"' : ''}>
             </div>
             <div class="hero-meta">
               <div class="badges">
@@ -131,7 +131,7 @@ export async function home(_params, ctx) {
           ${continueReading.map(s => `
             <a href="/read/${esc(s.slug)}/${esc(s.lastReadChapter)}" class="card" aria-label="Continue ${esc(s.title)}">
               <div class="card-img-wrap">
-                <img src="${esc(s.cover || '/assets/images/placeholder.png')}" alt="${esc(s.title)}" class="card-img" loading="lazy" decoding="async"
+                <img src="${esc(proxyImage(s.cover) || '/assets/images/placeholder.png')}" alt="${esc(s.title)}" class="card-img" loading="lazy" decoding="async"
                      onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
                 <div class="card-chapter">Continue · Ch. ${esc(s.lastReadChapter)}</div>
               </div>

@@ -2,7 +2,7 @@
 import {
   fetchAllSeries, createSeries, updateSeries, deleteSeries, fetchSeriesBySlug
 } from '../lib/api.js';
-import { esc, html, slugify, timeAgo } from '../lib/utils.js';
+import { esc, html, slugify, timeAgo, proxyImage } from '../lib/utils.js';
 import { toast, confirmModal, spinner } from '../lib/ui.js';
 import { GENRES } from '../views/_components.js';
 import { importFromMangaDex, importFromAniList } from './import.js';
@@ -40,7 +40,7 @@ export async function seriesAdmin({ outlet }) {
             <tbody>
               ${filtered.map(s => `
                 <tr>
-                  <td><img class="admin-row-thumb" src="${esc(s.cover)}" alt="" loading="lazy"></td>
+                  <td><img class="admin-row-thumb" src="${esc(proxyImage(s.cover))}" alt="" loading="lazy"></td>
                   <td><strong>${esc(s.title)}</strong><br><small class="text-muted">/${esc(s.slug)}</small></td>
                   <td>${esc(s.type)}</td>
                   <td><span class="badge badge-${esc(s.status)}">${esc(s.status)}</span></td>
@@ -139,7 +139,7 @@ export async function seriesAdmin({ outlet }) {
           <label class="field-label" for="f-cover">Cover Image URL *</label>
           <input class="input" id="f-cover" type="url" required value="${esc(s?.cover || '')}" placeholder="https://r2.../cover.jpg">
         </div>
-        <img id="f-cover-preview" src="${esc(s?.cover || '')}" alt="" style="max-width: 160px; aspect-ratio: 2/3; object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--border); display: ${s?.cover ? 'block' : 'none'}; margin-bottom: var(--s-4);" onerror="this.style.display='none';">
+        <img id="f-cover-preview" src="${esc(proxyImage(s?.cover) || '')}" alt="" style="max-width: 160px; aspect-ratio: 2/3; object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--border); display: ${s?.cover ? 'block' : 'none'}; margin-bottom: var(--s-4);" onerror="this.style.display='none';">
 
         <div class="field-row">
           <div class="field">
@@ -317,7 +317,7 @@ export async function seriesAdmin({ outlet }) {
     $f('#f-cover').addEventListener('input', () => {
       const url = $f('#f-cover').value.trim();
       const img = $f('#f-cover-preview');
-      img.src = url;
+      img.src = proxyImage(url);
       img.style.display = url ? 'block' : 'none';
     });
 

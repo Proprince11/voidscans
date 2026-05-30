@@ -5,7 +5,7 @@
 
 import { getLibrary, getHistory, removeFromLibrary, setLibraryStatus } from '../lib/library.js';
 import { fetchAllSeries } from '../lib/api.js';
-import { esc, html, timeAgo, qs as getQS } from '../lib/utils.js';
+import { esc, html, timeAgo, qs as getQS, proxyImage } from '../lib/utils.js';
 import { seriesCard, emptyState } from './_components.js';
 import { toast, confirmModal } from '../lib/ui.js';
 
@@ -86,7 +86,7 @@ export async function library(_params, ctx) {
         ${items.map(item => `
           <div class="card" style="position: relative;">
             <a href="/series/${esc(item.seriesId)}" class="card-img-wrap">
-              <img src="${esc(item.cover)}" class="card-img" alt="${esc(item.title)}" loading="lazy">
+              <img src="${esc(proxyImage(item.cover))}" class="card-img" alt="${esc(item.title)}" loading="lazy">
               ${item.currentChapter > 0 ? `<div class="card-chapter">Last: Ch. ${esc(item.currentChapter)}</div>` : ''}
             </a>
             <div class="card-info">

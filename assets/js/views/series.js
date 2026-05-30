@@ -16,7 +16,7 @@ import {
   hasLikedComment, markCommentLiked, getReadChapters
 } from '../lib/library.js';
 import { getProfile } from '../lib/account.js';
-import { esc, html, timeAgo, avatarLetter, compactNum } from '../lib/utils.js';
+import { esc, html, timeAgo, avatarLetter, compactNum, proxyImage } from '../lib/utils.js';
 import { spinner, toast, share, confirmModal } from '../lib/ui.js';
 import { seriesCard, statusBadge, emptyState } from './_components.js';
 
@@ -82,7 +82,7 @@ export async function series(params, ctx) {
 // SHELL
 // =====================================================
 function renderShell(s) {
-  const cover = esc(s.cover);
+  const cover = esc(proxyImage(s.cover));
   const altTitles = (s.altTitles || []).filter(Boolean).join(', ');
   return html`
     <div class="series-hero">

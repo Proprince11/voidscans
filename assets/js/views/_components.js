@@ -3,7 +3,7 @@
 // Returns HTML strings (used with innerHTML).
 // =====================================================
 
-import { esc, timeAgo, normStatus } from '../lib/utils.js';
+import { esc, timeAgo, normStatus, proxyImage } from '../lib/utils.js';
 
 export function statusBadge(status) {
   const s = normStatus(status);
@@ -19,7 +19,7 @@ export function seriesCard(series, opts = {}) {
   const { eager = false, priority = false } = opts;
   const { slug, title, cover, type, status, latestChapter, hot, new: isNew } = series;
   const href = `/series/${encodeURIComponent(slug)}`;
-  const cover_ = esc(cover || '/assets/images/placeholder.png');
+  const cover_ = esc(proxyImage(cover) || '/assets/images/placeholder.png');
   const loadingAttr = eager ? 'eager' : 'lazy';
   const priorityAttr = priority ? ' fetchpriority="high"' : '';
   return `
@@ -54,7 +54,7 @@ export function updateRow(series) {
   return `
     <div class="update-item">
       <a href="${seriesHref}" aria-label="${esc(title)}">
-        <img src="${esc(cover)}" alt="${esc(title)}" class="update-thumb" loading="lazy" decoding="async"
+        <img src="${esc(proxyImage(cover))}" alt="${esc(title)}" class="update-thumb" loading="lazy" decoding="async"
              onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
       </a>
       <div class="update-meta">
