@@ -1,9 +1,11 @@
 {
-  "name": "voidscans-cache",
+  "name": "jayascans-cache",
   "main": "src/index.js",
   "compatibility_date": "2026-05-29",
   "vars": {
+    // Firebase project ID is immutable — keep the original even after the brand rename.
     "FIREBASE_PROJECT_ID": "voidscans-6c66b",
-    "ALLOW_ORIGIN": "*"
+    // Restrict CORS to your own domain. Change to "*" during dev if needed.
+    "ALLOW_ORIGIN": "https://jayascans.online"
   }
 }

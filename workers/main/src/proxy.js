@@ -37,7 +37,34 @@ const HOTLINK_REFERERS = {
 /** GET /api/proxy-image?url=X
  *  Server-side fetches an image with the right Referer header so
  *  hotlink-protected hosts (e.g. MangaDex CDN) serve the actual image
- *  instead of a "Read on …" placeholder. Streams response back. */
+ *  instead of a "Read on …" placeholder. Streams response back.
+ *
+ *  SECURITY: Only allowed hosts can be proxied (prevents SSRF/open-proxy abuse). */
+
+// Allowlist of domains that may be proxied. Add new image hosts here as needed.
+const PROXY_ALLOWED_HOSTS = [
+  'mangadex.org',
+  'uploads.mangadex.org',
+  'cmdxd98sb0x3yprd.mangadex.network',
+  'cdn.statically.io',
+  'files.catbox.moe',
+  'i.ibb.co',
+  'i.imgur.com',
+  'pub-' // R2 public URLs (https://pub-XXXXX.r2.dev/...)
+];
+
+function isHostAllowed(hostname) {
+  const h = hostname.toLowerCase();
+  for (const allowed of PROXY_ALLOWED_HOSTS) {
+    if (h === allowed || h.endsWith('.' + allowed)) return true;
+    // Special prefix match for R2 public URLs
+    if (allowed === 'pub-' && h.startsWith('pub-') && h.endsWith('.r2.dev')) return true;
+    // Allow any mangadex.network subdomain (CDN nodes change)
+    if (h.endsWith('.mangadex.network')) return true;
+  }
+  return false;
+}
+
 export async function handleProxyImage(request) {
   const url = new URL(request.url).searchParams.get('url');
   if (!url) return new Response('url query param required', { status: 400 });
@@ -47,6 +74,11 @@ export async function handleProxyImage(request) {
   catch { return new Response('Invalid URL', { status: 400 }); }
   if (target.protocol !== 'https:' && target.protocol !== 'http:') {
     return new Response('Only http/https URLs', { status: 400 });
+  }
+
+  // SECURITY: Only allow known image hosts
+  if (!isHostAllowed(target.hostname)) {
+    return new Response('Host not in allowlist', { status: 403 });
   }
 
   // Pick a Referer for hotlink-protected hosts; fallback to source origin
