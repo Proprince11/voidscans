@@ -4,6 +4,7 @@
 
 import { esc, html } from '../lib/utils.js';
 import { toast } from '../lib/ui.js';
+import { adminFetch } from '../lib/auth.js';
 
 export async function toolsAdmin({ outlet }) {
   outlet.innerHTML = html`
@@ -104,7 +105,7 @@ export async function toolsAdmin({ outlet }) {
     scanBtn.disabled = true; scanBtn.textContent = 'Scanning…';
     hint.style.color = ''; hint.textContent = 'Fetching page server-side…';
     try {
-      const res = await fetch(`/api/scrape?url=${encodeURIComponent(url)}`);
+      const res = await adminFetch(`/api/scrape?url=${encodeURIComponent(url)}`);
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || 'scrape failed');
       images = json.images || [];
@@ -184,7 +185,7 @@ export async function toolsAdmin({ outlet }) {
     hint.style.color = '';
     hint.textContent = `Bundling ${images.length} images server-side…`;
     try {
-      const res = await fetch('/api/zip-urls', {
+      const res = await adminFetch('/api/zip-urls', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ urls: images, name: $('#zipName').value.trim() || 'images' })

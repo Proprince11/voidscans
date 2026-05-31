@@ -9,11 +9,11 @@
 //
 // Bumping CACHE_VERSION invalidates the old caches.
 // =====================================================
-// Bumped from v3.3.2 → v3.4.2 for the JayaScans rebrand so existing browsers
-// replace the cached "VoidScans" shell, plus perf optimisations: install
-// handler now precaches only CRITICAL_URLS (was 30+ files) so first-visit
-// service-worker install no longer competes with the main thread for the
-// click-interaction window. Cuts INP by ~300-500ms on cold loads.
+// Bumped from v3.4.1 → v3.4.2 for perf optimisations: install handler now
+// precaches only CRITICAL_URLS (was 30+ files) so first-visit service-worker
+// install no longer competes with the main thread during the click-interaction
+// window. Cuts INP by ~300-500ms on cold loads. v3.4.1 introduced the admin
+// auth-header rollout (kept active in this version too).
 const CACHE_VERSION = 'v3.4.2';
 const SHELL_CACHE   = `shell-${CACHE_VERSION}`;
 const ASSET_CACHE   = `asset-${CACHE_VERSION}`;

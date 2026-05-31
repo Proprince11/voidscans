@@ -97,3 +97,34 @@ export async function updateAuthProfile(patch) {
   if (!currentUser) throw new Error('Not signed in');
   await updateProfile(currentUser, patch);
 }
+
+/** Get a fresh Firebase ID token for the current user, or null if not signed in.
+ *  Used by adminFetch() below — also handy any time a server endpoint needs to
+ *  verify the caller's identity. */
+export async function getAuthToken() {
+  if (!currentUser) return null;
+  try {
+    return await currentUser.getIdToken();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch wrapper that automatically attaches `Authorization: Bearer <ID-token>`.
+ * Use this for every admin-only API call (upload/scrape/etc.) — the Worker's
+ * requireAdmin() middleware verifies the token and the `admin` custom claim
+ * server-side.
+ *
+ * Drop-in replacement for fetch():
+ *   const res = await adminFetch('/api/upload', { method: 'POST', body: fd });
+ *
+ * If the user isn't signed in, the call still goes through (with no Auth header)
+ * and the server returns 401 — which is exactly what we want.
+ */
+export async function adminFetch(url, opts = {}) {
+  const token = await getAuthToken();
+  const headers = new Headers(opts.headers || {});
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  return fetch(url, { ...opts, headers });
+}
