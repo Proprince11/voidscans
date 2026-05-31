@@ -10,7 +10,7 @@
 // Bumping CACHE_VERSION invalidates the old caches.
 // =====================================================
 
-const CACHE_VERSION = 'v3.3.1';
+const CACHE_VERSION = 'v3.3.2';
 const SHELL_CACHE   = `shell-${CACHE_VERSION}`;
 const ASSET_CACHE   = `asset-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `images-${CACHE_VERSION}`;
@@ -30,6 +30,7 @@ const SHELL_URLS = [
   '/assets/js/lib/api.js',
   '/assets/js/lib/auth.js',
   '/assets/js/lib/account.js',
+  '/assets/js/lib/site.config.js',
   '/assets/js/lib/router.js',
   '/assets/js/lib/library.js',
   '/assets/js/lib/ui.js',

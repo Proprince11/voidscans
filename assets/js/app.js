@@ -9,6 +9,7 @@ import { mountBackToTop, openAuthModal } from './lib/ui.js';
 import { onAuthChange, signOut, getUser } from './lib/auth.js';
 import { onProfileChange, getProfile } from './lib/account.js';
 import { avatarLetter, esc } from './lib/utils.js';
+import { SITE } from './lib/site.config.js';
 
 // Lazy-import views: code-split so a slow chapter image
 // doesn't prevent the home page from rendering.
@@ -196,7 +197,7 @@ menuBtn?.addEventListener('click', () => {
   menuDrawer.innerHTML = `
     <div class="menu-drawer-content">
       <div class="between" style="margin-bottom: var(--s-6);">
-        <div class="nav-logo">VOID<span style="color:var(--accent);">SCANS</span></div>
+        <div class="nav-logo">${esc(SITE.logoLead)}<span style="color:var(--accent);">${esc(SITE.logoAccent)}</span></div>
         <button class="icon-btn" data-close aria-label="Close menu">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
@@ -247,9 +248,9 @@ function mountFooter() {
     <div class="container">
       <div class="footer-grid">
         <div>
-          <div class="nav-logo" style="margin-bottom: var(--s-3);">VOID<span style="color:var(--accent);">SCANS</span></div>
+          <div class="nav-logo" style="margin-bottom: var(--s-3);">${esc(SITE.logoLead)}<span style="color:var(--accent);">${esc(SITE.logoAccent)}</span></div>
           <p style="font-size: var(--fs-sm); color: var(--text-muted); max-width: 36ch;">
-            Premium reading experience for manhwa, manga, and manhua. Free forever.
+            ${esc(SITE.tagline)}
           </p>
         </div>
         <div>
@@ -276,7 +277,7 @@ function mountFooter() {
         </div>
       </div>
       <div class="footer-bottom">
-        © ${new Date().getFullYear()} VoidScans · Built with care.
+        © ${new Date().getFullYear()} ${esc(SITE.name)} · Built with care.
       </div>
     </div>
   `;
