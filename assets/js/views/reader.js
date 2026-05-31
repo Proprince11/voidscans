@@ -188,12 +188,22 @@ function renderReader(s, ch, prev, next, all, prefs) {
       `).join('')}
     </div>
 
-    <!-- Ko-fi / support widget (toggled in admin Settings → Monetization) -->
-    <div id="rSupport" class="kofi-widget" style="display: none;">
-      <p class="kofi-widget-text" id="rSupportText"></p>
-      <a id="rSupportLink" class="kofi-widget-btn" target="_blank" rel="noopener">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M5 7h12a4 4 0 0 1 4 4v1a4 4 0 0 1-4 4h-1.5a3.5 3.5 0 0 1-3.5 3.5h-4A3.5 3.5 0 0 1 4.5 16V8a1 1 0 0 1 .5-1zm12 2v5a2 2 0 0 0 2-2v-1a2 2 0 0 0-2-2z"/></svg>
-        Support us
+    <!-- Ko-fi / support bar (toggled in admin Settings → Monetization)
+         Horizontal pill: [logo] [text line] [Support →] -->
+    <div id="rSupport" class="kofi-bar" style="display: none;">
+      <span class="kofi-bar-logo" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+          <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+          <line x1="6" y1="1" x2="6" y2="4"/>
+          <line x1="10" y1="1" x2="10" y2="4"/>
+          <line x1="14" y1="1" x2="14" y2="4"/>
+        </svg>
+      </span>
+      <p class="kofi-bar-text" id="rSupportText"></p>
+      <a id="rSupportLink" class="kofi-bar-btn" target="_blank" rel="noopener">
+        Support
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       </a>
     </div>
 

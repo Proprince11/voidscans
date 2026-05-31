@@ -9,11 +9,9 @@
 //
 // Bumping CACHE_VERSION invalidates the old caches.
 // =====================================================
-// Bumped to v3.5.0 for the admin Settings + Ko-fi + ads + theme + reports +
-// Discord rollout, plus the expanded CSP that fixes the imgsrv4 / anilist /
-// cloudflareinsights / Firebase source-map blocks reported on prod. Inherits
-// the v3.4.2 perf wins (slim install — see CRITICAL_URLS / WARM_URLS below).
-const CACHE_VERSION = 'v3.5.0';
+// Bumped to v3.5.1 to push the redesigned Ko-fi support bar (horizontal pill
+// with logo + line + Support button — was a vertical card).
+const CACHE_VERSION = 'v3.5.1';
 const SHELL_CACHE   = `shell-${CACHE_VERSION}`;
 const ASSET_CACHE   = `asset-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `images-${CACHE_VERSION}`;

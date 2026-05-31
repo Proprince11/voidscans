@@ -213,7 +213,73 @@
 [data-ad-slot="sidebar"] { margin: var(--s-4) 0; max-width: 100%; }
 
 /* =====================================================
-   KO-FI / SUPPORT WIDGET (reader page footer)
+   KO-FI / SUPPORT BAR — horizontal pill on chapter page footer.
+   Layout: [logo] [text line] [Support →] all in one row.
+   Wraps to two rows on narrow phones.
+   ===================================================== */
+.kofi-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin: var(--s-8) auto var(--s-4);
+  padding: var(--s-3) var(--s-3) var(--s-3) var(--s-2);
+  border-radius: var(--r-pill);
+  background: linear-gradient(135deg, var(--surface-1), var(--surface-2));
+  border: 1px solid var(--border);
+  max-width: 640px;
+  flex-wrap: nowrap;
+}
+@media (max-width: 540px) {
+  .kofi-bar {
+    flex-wrap: wrap;
+    border-radius: var(--r-lg);
+    padding: var(--s-3) var(--s-4);
+  }
+}
+.kofi-bar-logo {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  background: #FF5F5F;
+  border-radius: var(--r-full);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(255, 95, 95, 0.35);
+}
+.kofi-bar-text {
+  flex: 1 1 auto;
+  font-size: var(--fs-sm);
+  color: var(--text);
+  margin: 0;
+  line-height: var(--lh-snug);
+  min-width: 0;
+}
+@media (max-width: 540px) {
+  .kofi-bar-text { flex-basis: 100%; order: 3; margin-top: var(--s-2); }
+  .kofi-bar-logo { order: 1; }
+  .kofi-bar-btn  { order: 2; margin-left: auto; }
+}
+.kofi-bar-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  padding: var(--s-2) var(--s-4);
+  border-radius: var(--r-pill);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #15151a;
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 14px var(--accent-glow);
+}
+.kofi-bar-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px var(--accent-glow); }
+.kofi-bar-btn:active { transform: translateY(0); }
+
+/* =====================================================
+   KO-FI WIDGET (legacy class, kept so old cached pages don't break)
    ===================================================== */
 .kofi-widget {
   margin: var(--s-8) auto var(--s-4);
