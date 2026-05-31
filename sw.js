@@ -9,9 +9,12 @@
 //
 // Bumping CACHE_VERSION invalidates the old caches.
 // =====================================================
-// Bumped to v3.5.2 to push the new "You might also like" + "Latest Updates"
-// recommendation strip on the series page.
-const CACHE_VERSION = 'v3.5.2';
+// Bumped to v3.5.4 to push:
+// - Reader-page recommendation strips (You might like + Latest Updates) at
+//   the bottom of every chapter, after comments — keeps readers in the
+//   catalog after they finish a chapter.
+// - Shared buildRecommendations / buildLatestUpdates helpers in _components.
+const CACHE_VERSION = 'v3.5.4';
 const SHELL_CACHE   = `shell-${CACHE_VERSION}`;
 const ASSET_CACHE   = `asset-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `images-${CACHE_VERSION}`;

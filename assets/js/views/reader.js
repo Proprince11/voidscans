@@ -3,9 +3,9 @@
 // progress bar, settings drawer, keyboard nav, swipe.
 // =====================================================
 
-import {
-  fetchChapter, fetchChapters, fetchSeriesBySlug,
-  trackChapterView, fetchChapterComments, postComment, likeComment
+import { fetchChapter, fetchChapters, fetchSeriesBySlug, fetchAllSeries,
+  trackChapterView, fetchChapterComments, postComment, likeComment,
+  submitReport
 } from '../lib/api.js';
 import {
   recordRead, saveProgress, getProgress,
@@ -18,8 +18,8 @@ import { spinner, toast, drawer, share } from '../lib/ui.js';
 import { SITE, pageTitle } from '../lib/site.config.js';
 import { getSettings } from '../lib/settings.js';
 import { applyBranding } from '../lib/branding.js';
-import { submitReport } from '../lib/api.js';
 import { onAuthChange } from '../lib/auth.js';
+import { buildRecommendations, buildLatestUpdates } from './_components.js';
 
 export async function reader(params, ctx) {
   const slug = params.slug;
@@ -92,6 +92,10 @@ export async function reader(params, ctx) {
 
   // Lazy-load chapter comments (don't block reader)
   loadChapterComments(s, ch);
+
+  // Lazy-load recommendation strips at the bottom — keeps readers in
+  // the catalog after they finish the chapter.
+  loadReaderRecommendations(s);
 
   // Precache this chapter's images for offline reading
   if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
@@ -246,6 +250,24 @@ function renderReader(s, ch, prev, next, all, prefs) {
         </div>
       </div>
       <div class="comments-list" id="chCommentList" style="margin-top: var(--s-5);">${spinner('sm')}</div>
+    </section>
+
+    <!-- Discovery strips at the end of the chapter — keeps readers in
+         the catalog instead of bouncing after the last page. -->
+    <section class="container section cv-deferred" style="max-width: 1200px;" id="readerRecsSection" hidden>
+      <div class="section-header">
+        <h2 class="section-title" id="readerRecsTitle">You might also like</h2>
+        <a href="/series/${esc(s.slug)}" class="section-link">All chapters →</a>
+      </div>
+      <div class="card-grid" id="readerRecsGrid"></div>
+    </section>
+
+    <section class="container section cv-deferred" style="max-width: 1200px;" id="readerLatestSection" hidden>
+      <div class="section-header">
+        <h2 class="section-title">Latest Updates</h2>
+        <a href="/browse?sort=updated" class="section-link">View all →</a>
+      </div>
+      <div class="update-list" id="readerLatestList"></div>
     </section>
   `;
 }
@@ -659,4 +681,46 @@ function openReportDialog(s, ch) {
       btn.textContent = 'Submit Report';
     }
   });
+}
+
+
+
+// =====================================================
+// READER RECOMMENDATIONS — "You might also like" + "Latest Updates"
+// rendered after comments. Best-effort: failures fail silently so they
+// never block the reader experience.
+// =====================================================
+async function loadReaderRecommendations(currentSeries) {
+  let allSeries = [];
+  try {
+    allSeries = await fetchAllSeries({ limitTo: 200 });
+  } catch (e) {
+    console.debug('loadReaderRecommendations: fetchAllSeries failed', e?.message);
+    return;
+  }
+  if (!allSeries.length) return;
+
+  // 1) "You might also like" / "More {Type}" / "Popular Series"
+  const recs = buildRecommendations(currentSeries, allSeries, { limit: 6 });
+  if (recs.cards.length) {
+    const sec = document.getElementById('readerRecsSection');
+    const titleEl = document.getElementById('readerRecsTitle');
+    const grid = document.getElementById('readerRecsGrid');
+    if (sec && grid) {
+      if (titleEl) titleEl.textContent = recs.titleText;
+      grid.innerHTML = recs.cards.join('');
+      sec.hidden = false;
+    }
+  }
+
+  // 2) "Latest Updates" — global discovery
+  const updates = buildLatestUpdates(currentSeries.slug, allSeries, { limit: 6 });
+  if (updates.length) {
+    const sec = document.getElementById('readerLatestSection');
+    const list = document.getElementById('readerLatestList');
+    if (sec && list) {
+      list.innerHTML = updates.join('');
+      sec.hidden = false;
+    }
+  }
 }
