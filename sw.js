@@ -9,9 +9,9 @@
 //
 // Bumping CACHE_VERSION invalidates the old caches.
 // =====================================================
-// Bumped to v3.5.1 to push the redesigned Ko-fi support bar (horizontal pill
-// with logo + line + Support button — was a vertical card).
-const CACHE_VERSION = 'v3.5.1';
+// Bumped to v3.5.2 to push the new "You might also like" + "Latest Updates"
+// recommendation strip on the series page.
+const CACHE_VERSION = 'v3.5.2';
 const SHELL_CACHE   = `shell-${CACHE_VERSION}`;
 const ASSET_CACHE   = `asset-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `images-${CACHE_VERSION}`;
