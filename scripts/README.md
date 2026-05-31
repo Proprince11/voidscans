@@ -1,4 +1,4 @@
-# VoidScans Scripts
+# JayaScans Scripts
 
 Node.js maintenance scripts. All require a Firebase service account JSON.
 
@@ -15,6 +15,8 @@ Then download a service account key:
 2. Click **Generate new private key**
 3. Save the downloaded file as `scripts/service-account.json`
 4. **Never commit this file.** It's already in `.gitignore`.
+
+> ℹ The Firebase project ID `voidscans-6c66b` is intentionally kept after the rebrand — Firebase project IDs are immutable. See [`docs/14-rename-history.md`](../docs/14-rename-history.md).
 
 ## Available scripts
 

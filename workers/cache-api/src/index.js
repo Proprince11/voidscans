@@ -1,5 +1,5 @@
 // =====================================================
-// VoidScans Cache Worker
+// JayaScans Cache Worker
 //
 // Sits between the browser and Firestore. Caches read
 // responses at Cloudflare's edge so we don't blow through

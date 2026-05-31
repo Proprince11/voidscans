@@ -13,8 +13,9 @@ import {
   hasLikedComment, markCommentLiked
 } from '../lib/library.js';
 import { getProfile } from '../lib/account.js';
-import { esc, html, throttle, timeAgo, avatarLetter, isMobile, isTouch, proxyImage } from '../lib/utils.js';
+import { esc, html, throttle, timeAgo, avatarLetter, isMobile, isTouch, proxyImage, setMeta, truncate } from '../lib/utils.js';
 import { spinner, toast, drawer, share } from '../lib/ui.js';
+import { SITE, pageTitle } from '../lib/site.config.js';
 
 export async function reader(params, ctx) {
   const slug = params.slug;
@@ -31,7 +32,7 @@ export async function reader(params, ctx) {
     ]);
   } catch (e) {
     ctx.outlet.innerHTML = `<div class="container section"><h2>Failed to load</h2></div>`;
-    return { title: 'Reader · VoidScans' };
+    return { title: pageTitle('Reader') };
   }
 
   if (!s || !ch) {
@@ -45,7 +46,7 @@ export async function reader(params, ctx) {
         </div>
       </div>
     `;
-    return { title: 'Not found · VoidScans' };
+    return { title: pageTitle('Not found') };
   }
 
   // Sort chapters ascending for nav purposes
@@ -62,6 +63,19 @@ export async function reader(params, ctx) {
 
   // Inject JSON-LD chapter schema for SEO
   injectChapterJsonLd(s, ch);
+
+  // Per-route SEO meta — chapter pages are the long-tail money pages.
+  setMeta({
+    title: `${s.title} Chapter ${ch.number} English | ${SITE.name}`,
+    description: truncate(
+      `Read ${s.title} chapter ${ch.number}${ch.title ? ` (${ch.title})` : ''} in English on ${SITE.name}. ` +
+      `Free, no ads on the reader, mobile-friendly with offline support.`,
+      180
+    ),
+    image: proxyImage(ch.pages?.[0] || s.cover),
+    url: location.href,
+    type: 'article'
+  });
 
   // Track chapter view (sessioned, fail-silent if rules reject)
   trackChapterView(slug, ch.number).catch(() => {});
@@ -94,7 +108,7 @@ export async function reader(params, ctx) {
   });
 
   return {
-    title: `Ch.${num} · ${s.title} · VoidScans`,
+    title: `${s.title} Chapter ${num} English | ${SITE.name}`,
     cleanup
   };
 }
@@ -270,7 +284,7 @@ function wireUp(s, ch, prev, next, all, prefs) {
   document.getElementById('rShare')?.addEventListener('click', () => {
     share({
       title: `${s.title} — Ch.${ch.number}`,
-      text: `Reading ${s.title} chapter ${ch.number} on VoidScans`,
+      text: `Reading ${s.title} chapter ${ch.number} on ${SITE.name}`,
       url: location.href
     });
   });

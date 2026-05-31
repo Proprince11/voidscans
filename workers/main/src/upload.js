@@ -183,7 +183,7 @@ export async function handleBulkUpload(request, env) {
 export async function rehostFromUrl(env, sourceUrl, suggestedKey) {
   const dl = await fetch(sourceUrl, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; VoidScans/1.0)',
+      'User-Agent': 'Mozilla/5.0 (compatible; JayaScans/1.0)',
       'Referer': new URL(sourceUrl).origin
     }
   });

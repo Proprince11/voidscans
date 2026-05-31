@@ -1,7 +1,7 @@
 {
-  "name": "voidscans-scripts",
+  "name": "jayascans-scripts",
   "version": "1.0.0",
-  "description": "Maintenance scripts for VoidScans (admin claim, backup, migration, seed).",
+  "description": "Maintenance scripts for JayaScans (admin claim, backup, migration, seed).",
   "private": true,
   "type": "module",
   "scripts": {

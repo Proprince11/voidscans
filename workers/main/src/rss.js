@@ -70,9 +70,9 @@ export async function handleGlobalRss(request, env) {
   }).filter(Boolean);
 
   const xml = rssWrap({
-    title: 'VoidScans — Latest Chapters',
+    title: 'JayaScans — Latest Chapters',
     link: baseUrl,
-    description: 'Latest manhwa, manga, and manhua updates from VoidScans.',
+    description: 'Latest manhwa, manga, and manhua updates from JayaScans.',
     selfHref: `${baseUrl}/rss`,
     items
   });
@@ -114,7 +114,7 @@ export async function handleSeriesRss(request, env, slug) {
   }));
 
   const xml = rssWrap({
-    title: `${s.title} — VoidScans`,
+    title: `${s.title} — JayaScans`,
     link: `${baseUrl}/series/${slug}`,
     description: s.description || `Latest chapters of ${s.title}.`,
     selfHref: `${baseUrl}/rss/series/${slug}`,

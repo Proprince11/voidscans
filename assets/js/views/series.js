@@ -16,9 +16,10 @@ import {
   hasLikedComment, markCommentLiked, getReadChapters
 } from '../lib/library.js';
 import { getProfile } from '../lib/account.js';
-import { esc, html, timeAgo, avatarLetter, compactNum, proxyImage } from '../lib/utils.js';
+import { esc, html, timeAgo, avatarLetter, compactNum, proxyImage, setMeta, truncate } from '../lib/utils.js';
 import { spinner, toast, share, confirmModal } from '../lib/ui.js';
 import { seriesCard, statusBadge, emptyState } from './_components.js';
+import { SITE, pageTitle } from '../lib/site.config.js';
 
 const REACTIONS = [
   { key: 'fire',  emoji: '🔥', label: 'Fire' },
@@ -37,11 +38,11 @@ export async function series(params, ctx) {
     s = await fetchSeriesBySlug(slug);
   } catch (e) {
     ctx.outlet.innerHTML = `<div class="container section">${emptyState({ icon: '⚠', title: 'Could not load series' })}</div>`;
-    return { title: 'Error · VoidScans' };
+    return { title: pageTitle('Error') };
   }
   if (!s) {
     ctx.outlet.innerHTML = `<div class="container section">${emptyState({ icon: '∅', title: 'Series not found', cta: '<a href="/browse" class="btn btn-primary">Browse all</a>' })}</div>`;
-    return { title: 'Not found · VoidScans' };
+    return { title: pageTitle('Not found') };
   }
 
   // Render shell first (instant), then enrich progressively
@@ -49,6 +50,22 @@ export async function series(params, ctx) {
 
   // Inject JSON-LD structured data for SEO
   injectJsonLd(s);
+
+  // Update per-route SEO meta (description, OG, Twitter, canonical)
+  const seriesType = s.type ? s.type.charAt(0).toUpperCase() + s.type.slice(1) : 'Manhwa';
+  const seriesDesc = truncate(
+    `Read ${s.title} (${seriesType}) in English on ${SITE.name}. ` +
+    ((s.genres || []).length ? `Genres: ${s.genres.slice(0, 4).join(', ')}. ` : '') +
+    (s.description || ''),
+    180
+  );
+  setMeta({
+    title: `${s.title} - Read ${seriesType} English Free | ${SITE.name}`,
+    description: seriesDesc,
+    image: proxyImage(s.cover),
+    url: location.href,
+    type: 'book'
+  });
 
   // Track view (sessioned, fail-silent if rules reject)
   trackSeriesView(slug).catch(() => {});
@@ -73,7 +90,7 @@ export async function series(params, ctx) {
   });
 
   return {
-    title: `${s.title} · VoidScans`,
+    title: `${s.title} - Read ${s.type ? s.type.charAt(0).toUpperCase() + s.type.slice(1) : 'Manhwa'} English Free | ${SITE.name}`,
     cleanup
   };
 }
@@ -253,7 +270,7 @@ function wireUpShell(s) {
   document.getElementById('shareBtn')?.addEventListener('click', async () => {
     await share({
       title: s.title,
-      text: `Read ${s.title} on VoidScans`,
+      text: `Read ${s.title} on ${SITE.name}`,
       url: location.href
     });
   });

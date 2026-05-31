@@ -1,4 +1,4 @@
-# VoidScans Cache Worker
+# JayaScans Cache Worker
 
 A Cloudflare Worker that caches Firestore reads at the edge.
 
@@ -32,7 +32,7 @@ cd workers/cache-api
 wrangler deploy
 ```
 
-Wrangler will give you a URL like `https://voidscans-cache.YOUR-USERNAME.workers.dev`.
+Wrangler will give you a URL like `https://jayascans-cache.YOUR-USERNAME.workers.dev`.
 
 ## Wire it into the site
 
@@ -40,9 +40,9 @@ Once deployed, edit `assets/js/lib/api.js` and switch the data layer to call the
 
 ## Custom domain
 
-To serve from `api.voidscans.example`:
+To serve from `api.jayascans.online`:
 
-1. Cloudflare → Workers & Pages → voidscans-cache → Triggers → Custom Domains → Add Custom Domain.
+1. Cloudflare → Workers & Pages → `jayascans-cache` → Triggers → Custom Domains → Add Custom Domain.
 2. Update `ALLOW_ORIGIN` in `wrangler.jsonc` if you want to lock it down (default `*`).
 
 ## Notes

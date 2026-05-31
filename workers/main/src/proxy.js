@@ -15,7 +15,7 @@ export async function handleMangaDexProxy(request, idOrPath) {
   const url = `${MANGADEX_API}/manga/${cleaned}?includes[]=author&includes[]=artist&includes[]=cover_art`;
   try {
     const res = await fetch(url, {
-      headers: { 'Accept': 'application/json', 'User-Agent': 'VoidScans/1.0 (admin)' },
+      headers: { 'Accept': 'application/json', 'User-Agent': 'JayaScans/1.0 (admin)' },
       cf: { cacheTtl: 300 }
     });
     if (!res.ok) {
@@ -61,7 +61,7 @@ export async function handleProxyImage(request) {
   try {
     const res = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; VoidScans/1.0)',
+        'User-Agent': 'Mozilla/5.0 (compatible; JayaScans/1.0)',
         'Accept': 'image/*,*/*;q=0.8',
         'Referer': referer
       },

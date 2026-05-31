@@ -12,7 +12,7 @@ The repo is already on GitHub. After this rebuild, you'll have a `rebuild/premiu
 
 1. **[Cloudflare Dashboard](https://dash.cloudflare.com)** → Workers & Pages → **Create application** → **Pages** → **Connect to Git**.
 2. Authorize Cloudflare on your GitHub account.
-3. Select the `voidscans` repo.
+3. Select the `voidscans` repo (rename to `jayascans` first if you've done that on GitHub).
 4. Production branch: `main`.
 
 ### 3. Build settings (no build step required)
@@ -29,7 +29,7 @@ Click **Save and Deploy**. First deploy takes ~30 seconds.
 
 ### 4. Verify the deploy
 
-- URL: `https://voidscans.isthe.workers.dev`
+- URL: `https://jayascans.online` (custom domain) or the auto-generated `*.workers.dev` preview URL.
 - Open DevTools → Network tab → check that:
   - Service worker registers (look in Application → Service Workers).
   - Manifest loads (`/manifest.webmanifest` returns 200).
@@ -38,7 +38,7 @@ Click **Save and Deploy**. First deploy takes ~30 seconds.
 
 ### 5. Auto-deploy on push
 
-Once configured, every push to `main` deploys in ~30 seconds. Branch pushes get preview URLs (`https://abc123.voidscans.isthe.workers.dev`).
+Once configured, every push to `main` deploys in ~30 seconds. Branch pushes get preview URLs (`https://abc123.jayascans.pages.dev` or whatever Cloudflare assigns).
 
 ---
 
@@ -62,8 +62,8 @@ wrangler deploy
 
 You'll see:
 ```
-Published voidscans-cache (1.23 sec)
-  https://voidscans-cache.YOUR-USERNAME.workers.dev
+Published jayascans-cache (1.23 sec)
+  https://jayascans-cache.YOUR-USERNAME.workers.dev
 ```
 
 ### 3. Wire it into the site
@@ -81,7 +81,7 @@ export async function fetchAllSeries({ limitTo = 200 } = {}) {
 }
 
 // After
-const API_BASE = 'https://voidscans-cache.YOUR-USERNAME.workers.dev';
+const API_BASE = 'https://jayascans-cache.YOUR-USERNAME.workers.dev';
 
 export async function fetchAllSeries({ limitTo = 200 } = {}) {
   return memoFetch(`series:all:${limitTo}`, TTL.series, async () => {
@@ -97,23 +97,24 @@ Apply the same pattern to `fetchSeriesBySlug`, `fetchChapters`, `fetchChapter`. 
 
 ### 4. Custom domain for the Worker (optional)
 
-1. Cloudflare Dashboard → Workers & Pages → `voidscans-cache` → Triggers → Custom Domains.
-2. Add `api.voidscans.isthe.workers.dev` (or your real domain).
+1. Cloudflare Dashboard → Workers & Pages → `jayascans-cache` → Triggers → Custom Domains.
+2. Add `api.jayascans.online` (or your real domain).
 3. Update `API_BASE` in `api.js`.
 
 ---
 
 ## Custom domain for the main site
 
-### Free options
-- `voidscans.isthe.workers.dev` — instant, no setup, free forever.
-- `voidscans.is-a.dev` — submit GitHub PR, takes 1–3 days.
-- `voidscans.eu.org` — apply at nic.eu.org, 2–6 weeks.
+You already own **jayascans.online** — point it at the Pages project:
 
-### Paid (~$1–10/year)
-1. Buy at [Porkbun](https://porkbun.com) (cheapest, .xyz starts at $1/year).
-2. Cloudflare Dashboard → Pages project → Custom Domains → Add.
-3. Cloudflare guides you through DNS setup. Use the option to **import the domain** to Cloudflare DNS — full DDoS + SSL handled automatically.
+1. Cloudflare Dashboard → Pages project → Custom Domains → **Add custom domain** → enter `jayascans.online`.
+2. Cloudflare auto-creates the DNS records and provisions SSL (~1–15 min).
+3. Add `www.jayascans.online` too if you want www → root redirect.
+
+### Free fallback options (if jayascans.online ever lapses)
+- The auto-generated `*.workers.dev` URL — instant, no setup, free forever.
+- `*.is-a.dev` — submit GitHub PR, takes 1–3 days.
+- `*.eu.org` — apply at nic.eu.org, 2–6 weeks.
 
 ---
 

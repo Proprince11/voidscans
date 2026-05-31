@@ -6,19 +6,24 @@
   <meta name="theme-color" content="#0a0a0c">
   <meta name="color-scheme" content="dark">
 
-  <title>VoidScans — Read Manhwa, Manga & Manhua Online</title>
-  <meta name="description" content="Free manhwa, manga, and manhua reader. Premium reading experience with bookmarks, library, and offline support.">
+  <title>JayaScans — Read Manhwa, Manga & Manhua Online Free</title>
+  <meta name="description" content="Read manhwa, manga and manhua online for free on JayaScans. Premium reader with bookmarks, library, offline reading, and the latest chapters in English.">
+  <link rel="canonical" href="https://jayascans.online/">
 
   <!-- Open Graph -->
+  <meta property="og:site_name" content="JayaScans">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="VoidScans — Read Manhwa Online Free">
-  <meta property="og:description" content="Premium reading experience. Free forever.">
+  <meta property="og:title" content="JayaScans — Read Manhwa, Manga & Manhua Online Free">
+  <meta property="og:description" content="Premium reading experience for manhwa, manga and manhua. Free forever, with offline support.">
+  <meta property="og:url" content="https://jayascans.online/">
   <meta property="og:image" content="/assets/images/og-default.png">
+  <meta property="og:locale" content="en_US">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="VoidScans">
-  <meta name="twitter:description" content="Read manhwa, manga & manhua online.">
+  <meta name="twitter:title" content="JayaScans — Read Manhwa, Manga & Manhua">
+  <meta name="twitter:description" content="Read manhwa, manga & manhua online. Free forever.">
+  <meta name="twitter:image" content="/assets/images/og-default.png">
 
   <!-- Icons & PWA -->
   <link rel="icon" type="image/svg+xml" href="/assets/images/favicon.svg">
@@ -35,20 +40,52 @@
   <link rel="stylesheet" href="/assets/css/base.css">
   <link rel="stylesheet" href="/assets/css/components.css">
   <link rel="stylesheet" href="/assets/css/pages.css">
+
+  <!-- Site-wide structured data: WebSite (with sitelinks search box) + Organization -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://jayascans.online/#website",
+        "url": "https://jayascans.online/",
+        "name": "JayaScans",
+        "description": "Read manhwa, manga and manhua online for free.",
+        "inLanguage": "en",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://jayascans.online/search?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://jayascans.online/#org",
+        "name": "JayaScans",
+        "url": "https://jayascans.online/",
+        "logo": "https://jayascans.online/assets/images/logo.svg"
+      }
+    ]
+  }
+  </script>
 </head>
 <body class="has-bottom-nav">
 
   <!-- =================== NAVBAR (top, sticky) =================== -->
   <header class="navbar" id="topnav" role="banner">
     <div class="nav-inner">
-      <a href="/" class="nav-logo" aria-label="VoidScans home">
+      <a href="/" class="nav-logo" aria-label="JayaScans home">
         <span class="logo-mark">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true">
             <defs><linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f0b941"/><stop offset="100%" stop-color="#e84545"/></linearGradient></defs>
             <path d="M4 6 L16 28 L28 6 L24 6 L16 22 L8 6 Z" fill="url(#lg1)"/>
           </svg>
         </span>
-        VOID<span>SCANS</span>
+        JAYA<span>SCANS</span>
       </a>
 
       <nav class="nav-links" id="navLinks" aria-label="Main navigation">

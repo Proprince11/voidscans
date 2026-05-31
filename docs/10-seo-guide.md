@@ -2,6 +2,8 @@
 
 A practical, step-by-step SEO plan for a scanlation SPA on Cloudflare Workers. Ordered by impact-per-effort. Do the 🔴 ones first.
 
+> **Status (2026-05-31):** The 🔴 in-code items below were implemented as part of the JayaScans rebrand (see [docs/14-rename-history.md](./14-rename-history.md) and [CHANGELOG.md](../CHANGELOG.md) v3.4.0). What's left for **you** to do is the off-platform actions: Search Console submission, custom domain DNS, branded `og-default.png`, and community-building.
+
 > Reality check: scanlation sites rank mostly on **long-tail title queries** ("[series] chapter [n] english") and **brand queries** once you have a following. You won't out-rank MangaDex on generic terms — you win by being the fast, clean result for specific series people already searched a name for.
 
 ---
@@ -13,60 +15,49 @@ This is a **client-rendered SPA** — the HTML shell is near-empty and JS fills 
 | Mitigation | Status |
 |---|---|
 | JSON-LD structured data (Book + Chapter) injected per page | ✅ done |
+| `WebSite` + `Organization` JSON-LD in shell HTML (sitelinks search box) | ✅ done (v3.4.0) |
 | `/sitemap.xml` auto-generated from Firestore | ✅ done (Worker) |
-| Per-route `<title>` updates | ✅ done |
-| **Dynamic `<meta description>` + `og:` per route** | 🔴 add (below) |
+| Per-route `<title>` updates with the recommended title formula | ✅ done (v3.4.0) |
+| Dynamic `<meta description>` + `og:` per route + canonical | ✅ done (v3.4.0 — `setMeta()` in `utils.js`) |
 | **Prerendering for bots** (optional, bigger lift) | 🟡 later |
 
 ---
 
-## 🔴 1. Submit to Google Search Console (15 min)
+## 🔴 1. Submit to Google Search Console (15 min) — DO THIS NOW
 
-1. [search.google.com/search-console](https://search.google.com/search-console) → Add property → **Domain** (once you have the custom domain) or **URL prefix** (for the workers.dev URL now).
+1. [search.google.com/search-console](https://search.google.com/search-console) → Add property → **Domain** → enter `jayascans.online`.
 2. Verify (Cloudflare DNS = 1-click TXT, or the HTML-tag method — add the tag to `index.html` `<head>`).
-3. **Sitemaps** → submit `https://YOURDOMAIN/sitemap.xml`.
+3. **Sitemaps** → submit `https://jayascans.online/sitemap.xml`.
 4. Repeat for [Bing Webmaster Tools](https://www.bing.com/webmasters) (Bing powers DuckDuckGo + others; easy extra reach).
 
-## 🔴 2. Per-page meta description + Open Graph (dynamic)
+## ✅ 2. Per-page meta description + Open Graph (dynamic) — DONE
 
-Right now only `<title>` changes per route. Add dynamic `description` + `og:`/`twitter:` so series pages get rich previews in search + social shares.
+Implemented in v3.4.0. The helper lives in `assets/js/lib/utils.js`:
 
-Add a tiny helper (in `assets/js/lib/utils.js`):
 ```js
-export function setMeta({ description, image, url }) {
-  const set = (sel, attr, val) => {
-    if (!val) return;
-    let el = document.head.querySelector(sel);
-    if (!el) { el = document.createElement('meta'); document.head.appendChild(el); }
-    el.setAttribute(attr.k, attr.v); el.setAttribute('content', val);
-  };
-  if (description) {
-    set('meta[name="description"]', { k:'name', v:'description' }, description);
-    set('meta[property="og:description"]', { k:'property', v:'og:description' }, description);
-  }
-  if (image) set('meta[property="og:image"]', { k:'property', v:'og:image' }, image);
-  if (url)   set('meta[property="og:url"]', { k:'property', v:'og:url' }, url);
-}
-```
-Call it in the series view after load:
-```js
+import { setMeta, truncate } from '../lib/utils.js';
+
 setMeta({
-  description: `Read ${s.title} (${s.type}) in English. ${s.genres.join(', ')}. ${s.description.slice(0,140)}`,
-  image: s.cover, url: location.href
+  title:       'Solo Raven - Read Manhwa English Free | JayaScans',
+  description: truncate(`Read Solo Raven (Manhwa) in English on JayaScans. Genres: Action, Fantasy. ${s.description}`, 180),
+  image:       s.cover,
+  url:         location.href,
+  type:        'book'           // 'website' | 'article' | 'book'
 });
 ```
-(Ping Kiro to wire this across views — it's ~20 lines.)
 
-## 🔴 3. Title formula that ranks
+Wired into: home, browse, genre, series, reader. Adding it to a new view = one import + one call.
 
-Match what people actually type. Set per-route titles to:
+## ✅ 3. Title formula that ranks — DONE
+
+Applied in v3.4.0:
 
 | Page | Title pattern |
 |---|---|
-| Series | `{Title} - Read {Type} English Free \| {Brand}` |
-| Chapter | `{Title} Chapter {N} English \| {Brand}` |
-| Genre | `{Genre} {Type} - Read Free English \| {Brand}` |
-| Home | `{Brand} - Read Manhwa, Manga & Manhua Online Free` |
+| Series | `{Title} - Read {Type} English Free \| JayaScans` |
+| Chapter | `{Title} Chapter {N} English \| JayaScans` |
+| Genre | `{Genre} - Read Free Manhwa & Manga \| JayaScans` |
+| Home | `JayaScans — Read Manhwa, Manga & Manhua Online Free` |
 
 The chapter pattern is the money-maker — it matches "[series] chapter [n] english" searches exactly.
 
@@ -117,12 +108,26 @@ This is the single biggest SEO upgrade available but it's ~a day of work. Ping K
 ## Checklist
 
 ```
-🔴 Search Console + Bing + submit sitemap
-🔴 Dynamic meta description + og per route
-🔴 Title formula (chapter = "[series] chapter N english")
-🟡 canonical link per route, breadcrumbs JSON-LD
-🟡 chapter-page internal links (related + genres)
-🟡 unique descriptions + alt titles + genres filled
-🟢 community (Discord/Telegram) for brand signals
-🟢 bot prerender (when traffic justifies)
+✅ DONE in code (v3.4.0):
+  ✓ WebSite + Organization JSON-LD in index.html (sitelinks search box)
+  ✓ Book / Chapter JSON-LD per route
+  ✓ setMeta() wired to home/browse/genre/series/reader
+  ✓ Title formula applied (chapter pattern matches the money queries)
+  ✓ canonical link via setMeta()
+  ✓ /sitemap.xml auto-generated from Firestore
+  ✓ /rss feeds (global + per-series)
+
+🔴 DO NOW (off-platform):
+  [ ] Search Console + Bing + submit sitemap
+  [ ] Replace placeholder /assets/images/og-default.png with a real 1200×630 brand image
+
+🟡 NICE TO ADD:
+  [ ] Breadcrumbs JSON-LD (Home > Genre > Series > Chapter)
+  [ ] Chapter-page internal links (related + genres)
+  [ ] Unique 2–3 sentence descriptions per series (don't paste MangaDex)
+  [ ] Fill alt titles + genres for every series
+
+🟢 LONG GAME:
+  [ ] Community (Discord/Telegram) for brand signals
+  [ ] Bot prerender (when traffic justifies)
 ```

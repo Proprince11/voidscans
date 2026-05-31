@@ -43,7 +43,7 @@ export function extractImageUrls(html, pageUrl) {
 async function fetchPageHtml(target) {
   const res = await fetch(target, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; VoidScans-Scraper/1.0)',
+      'User-Agent': 'Mozilla/5.0 (compatible; JayaScans-Scraper/1.0)',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
     },
     cf: { cacheTtl: 600 }
@@ -143,7 +143,7 @@ export async function handleZipUrls(request) {
         : new URL(imgUrl).origin + '/';
       const res = await fetch(imgUrl, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; VoidScans/1.0)',
+          'User-Agent': 'Mozilla/5.0 (compatible; JayaScans/1.0)',
           'Accept': 'image/*,*/*;q=0.8',
           'Referer': referer
         }
@@ -213,7 +213,7 @@ export async function handleScrapeZip(request) {
         : new URL(imgUrl).origin + '/';
       const res = await fetch(imgUrl, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; VoidScans/1.0)',
+          'User-Agent': 'Mozilla/5.0 (compatible; JayaScans/1.0)',
           'Accept': 'image/*,*/*;q=0.8',
           'Referer': referer
         }

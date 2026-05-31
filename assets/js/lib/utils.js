@@ -201,3 +201,72 @@ export function proxyImage(url) {
   } catch { /* invalid URL — return as-is */ }
   return url;
 }
+
+// =====================================================
+// setMeta — per-route SEO helper.
+//
+// Updates <title>, <meta description>, OG (og:*), Twitter (twitter:*),
+// and <link rel="canonical"> in one call. Missing fields are skipped
+// (the previous value for that tag, if any, stays put — except og:type
+// which always resets to 'website' if not provided).
+//
+// Usage (typically at the end of a view, after data is loaded):
+//   import { setMeta } from '../lib/utils.js';
+//   setMeta({
+//     title: 'Solo Raven Chapter 14 English | JayaScans',
+//     description: 'Read chapter 14 of Solo Raven in English…',
+//     image: 'https://…/cover.jpg',
+//     url: location.href,
+//     type: 'article'   // 'website' | 'article' | 'book'
+//   });
+// =====================================================
+export function setMeta({ title, description, image, url, type } = {}) {
+  if (title) document.title = title;
+
+  if (url) setLinkHref('canonical', url);
+
+  if (description) setMetaTag('name', 'description', description);
+
+  // Open Graph
+  if (title)       setMetaTag('property', 'og:title', title);
+  if (description) setMetaTag('property', 'og:description', description);
+  if (image)       setMetaTag('property', 'og:image', image);
+  if (url)         setMetaTag('property', 'og:url', url);
+  // Always set og:type so it doesn't leak across routes (default 'website')
+  setMetaTag('property', 'og:type', type || 'website');
+
+  // Twitter
+  if (title)       setMetaTag('name', 'twitter:title', title);
+  if (description) setMetaTag('name', 'twitter:description', description);
+  if (image)       setMetaTag('name', 'twitter:image', image);
+}
+
+function setMetaTag(attr, key, value) {
+  if (!value) return;
+  let el = document.head.querySelector(`meta[${attr}="${key}"]`);
+  if (!el) {
+    el = document.createElement('meta');
+    el.setAttribute(attr, key);
+    document.head.appendChild(el);
+  }
+  el.setAttribute('content', String(value));
+}
+
+function setLinkHref(rel, href) {
+  let el = document.head.querySelector(`link[rel="${rel}"]`);
+  if (!el) {
+    el = document.createElement('link');
+    el.setAttribute('rel', rel);
+    document.head.appendChild(el);
+  }
+  el.setAttribute('href', String(href));
+}
+
+/** Truncate a string to N chars on a word boundary, with ellipsis if cut. */
+export function truncate(str, max = 160) {
+  const s = String(str || '').replace(/\s+/g, ' ').trim();
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut) + '…';
+}

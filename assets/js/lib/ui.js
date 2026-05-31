@@ -219,7 +219,7 @@ export function openAuthModal({ initialTab = 'signin' } = {}) {
           ${icon('close')}
         </button>
 
-        <h3 class="modal-title" style="margin-bottom: var(--s-4);">Welcome to VoidScans</h3>
+        <h3 class="modal-title" style="margin-bottom: var(--s-4);">Welcome to JayaScans</h3>
 
         <div style="display:flex; gap:var(--s-1); border-bottom:1px solid var(--border); margin-bottom:var(--s-5);">
           <button class="tab ${initialTab === 'signin' ? 'active' : ''}" data-tab="signin" style="flex:1;">Sign In</button>

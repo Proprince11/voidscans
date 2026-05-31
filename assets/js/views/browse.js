@@ -3,9 +3,10 @@
 // =====================================================
 
 import { fetchAllSeries } from '../lib/api.js';
-import { esc, html, qs as getQS, debounce } from '../lib/utils.js';
+import { esc, html, qs as getQS, debounce, setMeta } from '../lib/utils.js';
 import { seriesCard, genreStrip, emptyState, GENRES } from './_components.js';
 import { skeletonGrid } from '../lib/ui.js';
+import { SITE, pageTitle } from '../lib/site.config.js';
 
 const PAGE_SIZE = 24;
 
@@ -25,7 +26,7 @@ export async function browse(_params, ctx) {
   } catch (e) {
     console.error(e);
     ctx.outlet.innerHTML = `<div class="container section">${emptyState({ icon: '⚠', title: 'Failed to load' })}</div>`;
-    return { title: 'Browse · VoidScans' };
+    return { title: pageTitle('Browse') };
   }
 
   const initialGenre  = getQS('genre') || '';
@@ -154,7 +155,14 @@ export async function browse(_params, ctx) {
 
   applyFilter();
 
-  return { title: 'Browse · VoidScans' };
+  setMeta({
+    title: pageTitle('Browse Series'),
+    description: `Browse the full catalogue of manhwa, manga and manhua on ${SITE.name}. Filter by genre, type, status, and sort by popular, new or recently updated.`,
+    url: SITE.baseUrl + '/browse',
+    type: 'website'
+  });
+
+  return { title: pageTitle('Browse') };
 }
 
 function toMs(t) {

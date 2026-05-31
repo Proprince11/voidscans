@@ -6,6 +6,7 @@ import { fetchAllSeries, searchSeries } from '../lib/api.js';
 import { esc, html, qs as getQS, debounce } from '../lib/utils.js';
 import { seriesCard, emptyState, GENRES } from './_components.js';
 import { skeletonGrid } from '../lib/ui.js';
+import { pageTitle } from '../lib/site.config.js';
 
 const SUGGESTIONS = ['Action', 'Romance', 'Fantasy', 'Isekai', 'Martial Arts', 'Solo', 'Regression', 'Murim'];
 
@@ -35,7 +36,7 @@ export async function search(_params, ctx) {
     allSeries = await fetchAllSeries({ limitTo: 500 });
   } catch (e) {
     $r.innerHTML = emptyState({ icon: '⚠', title: 'Could not load' });
-    return { title: 'Search · VoidScans' };
+    return { title: pageTitle('Search') };
   }
 
   function renderDefault() {
@@ -85,5 +86,5 @@ export async function search(_params, ctx) {
   if (initialQ) renderResults(initialQ);
   else renderDefault();
 
-  return { title: initialQ ? `Search: ${initialQ} · VoidScans` : 'Search · VoidScans' };
+  return { title: initialQ ? pageTitle(`Search: ${initialQ}`) : pageTitle('Search') };
 }

@@ -108,7 +108,7 @@ service cloud.firestore {
 
 1. Open **[Service Accounts](https://console.firebase.google.com/project/voidscans-6c66b/settings/serviceaccounts/adminsdk)**
 2. Click **Generate new private key** → **Generate key**
-3. A JSON file downloads. Move it to your computer's `voidscans/scripts/service-account.json`
+3. A JSON file downloads. Move it to your computer's `scripts/service-account.json` (inside this repo).
 
 > ⚠️ **NEVER commit this file.** It's already in `.gitignore`. If you accidentally push it, regenerate immediately.
 
@@ -167,46 +167,24 @@ Next step: Sign out and sign back in at /admin
    - **Root directory:** *(leave empty)*
 6. Click **Save and Deploy**
 
-In ~30 seconds you'll have a URL like `https://voidscans.isthe.workers.dev`. The site is live.
+In ~30 seconds you'll have a Pages preview URL. Add `jayascans.online` as a Custom Domain (Cloudflare Dashboard → your Pages project → Custom Domains → Add). The site is live.
 
 **Subsequent deploys:** Every push to `main` auto-deploys.
 
 ---
 
-### Task 5 — Get a free domain (Optional, 15 min)
+### Task 5 — Connect your custom domain (~5 min)
 
-You have several options. Pick one:
+You've already registered **jayascans.online**. Wire it to Cloudflare Pages:
 
-#### Option A — `voidscans.isthe.workers.dev` (instant, looks "less premium")
-Already done by Task 4. No action needed.
+1. Cloudflare Dashboard → your Pages project → **Custom Domains** → **Set up a custom domain**
+2. Enter `jayascans.online`
+3. Cloudflare auto-creates the DNS records and provisions SSL (~1–15 min)
+4. Optionally repeat for `www.jayascans.online`
 
-#### Option B — `voidscans.is-a.dev` (1–3 days, looks clean)
+Then update `assets/js/lib/site.config.js` (`baseUrl`) and `wrangler.jsonc` (`PUBLIC_BASE_URL`) if you change the domain in the future. Both are already set to `https://jayascans.online`.
 
-1. Fork **https://github.com/is-a-dev/register**
-2. Add a file: `domains/voidscans.json` with:
-   ```json
-   {
-     "owner": {
-       "username": "Proprince11",
-       "email": "your@email.com"
-     },
-     "record": {
-       "CNAME": "voidscans.isthe.workers.dev"
-     }
-   }
-   ```
-3. Open a PR on the upstream repo. Wait 1–3 days for review.
-4. Once merged, add `voidscans.is-a.dev` as a Custom Domain in Cloudflare Pages → Settings → Custom Domains.
-
-#### Option C — `voidscans.eu.org` (free, slow, very stable)
-
-Apply at **[nic.eu.org](https://nic.eu.org)**. Approval takes 2–6 weeks. Same CNAME pointer as Option B.
-
-#### Option D — Real `.com`/.xyz` (when you have money — `~$1–$10/year`)
-
-Buy at **[Porkbun](https://porkbun.com)**, then add as Custom Domain in Cloudflare Pages.
-
-> **My recommendation:** Use Option A immediately, then submit Option B. Switch to Option D when you start earning.
+> The auto-generated `*.workers.dev` URL keeps working too — useful as a backup or for staging.
 
 ---
 
@@ -217,8 +195,8 @@ Buy at **[Porkbun](https://porkbun.com)**, then add as Custom Domain in Cloudfla
 **Why:** Anonymous comments will get spam-bombed within days. Turnstile is a free, invisible CAPTCHA from Cloudflare.
 
 1. Cloudflare Dashboard → **Turnstile** → **Add site**
-2. Name: `voidscans`
-3. Domain: `voidscans.isthe.workers.dev` (and `voidscans.is-a.dev` if applicable)
+2. Name: `jayascans`
+3. Domain: `jayascans.online` (and the `*.workers.dev` preview if you want extra coverage)
 4. Widget mode: **Managed**
 5. You get a **Site Key** and a **Secret Key**
 
@@ -237,17 +215,17 @@ wrangler login             # opens browser to authenticate
 wrangler deploy
 ```
 
-Wrangler prints a URL like `https://voidscans-cache.YOUR-USERNAME.workers.dev`.
+Wrangler prints a URL like `https://jayascans-cache.YOUR-USERNAME.workers.dev`.
 
 **Wire it into the site:**
 Edit `assets/js/lib/api.js`. Replace the `fetchAllSeries` body with:
 
 ```javascript
-const res = await fetch('https://voidscans-cache.YOUR-USERNAME.workers.dev/api/series');
+const res = await fetch('https://jayascans-cache.YOUR-USERNAME.workers.dev/api/series');
 return res.json();
 ```
 
-(Same pattern for `fetchSeriesBySlug`, `fetchChapters`, `fetchChapter`.) Or use a custom domain like `api.voidscans.isthe.workers.dev`.
+(Same pattern for `fetchSeriesBySlug`, `fetchChapters`, `fetchChapter`.) Or use a custom domain like `api.jayascans.online`.
 
 ---
 
@@ -324,7 +302,7 @@ See **[docs/05-troubleshooting.md](./05-troubleshooting.md)** for common issues:
 
 🟡 STRONGLY RECOMMENDED (this week):
   [ ] Task 3 — Cloudflare R2 bucket
-  [ ] Task 5 — Free domain (is-a.dev or .pages.dev)
+  [ ] Task 5 — Connect jayascans.online custom domain
 
 🟢 WHEN YOU GROW:
   [ ] Task 7 — Cache Worker (~3K daily views)
