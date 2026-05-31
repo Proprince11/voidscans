@@ -119,8 +119,8 @@ export async function chaptersAdmin({ outlet }) {
             <input class="input" id="ch-num" type="number" required min="0" step="1" value="${esc(ch?.number ?? nextNum)}">
           </div>
           <div class="field">
-            <label class="field-label" for="ch-title">Chapter Title</label>
-            <input class="input" id="ch-title" value="${esc(ch?.title || '')}" placeholder="The Raven Rises">
+            <label class="field-label" for="ch-title">Chapter Name</label>
+            <input class="input" id="ch-title" value="${esc(ch?.title || '')}" placeholder="e.g. The Raven Rises (saved with the chapter)">
           </div>
         </div>
 
@@ -387,10 +387,19 @@ https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
               <input type="checkbox" data-scrape-idx="${i}" checked style="position: absolute; top: 6px; right: 6px; z-index: 2; width: 18px; height: 18px;">
               <span class="index">${i + 1}</span>
               <img src="${esc(proxyImage(u))}" alt="Page ${i + 1}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
+              <button type="button" class="remove" data-scrape-remove="${i}" aria-label="Remove image" title="Remove" style="bottom: 4px; top: auto;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
             </label>
           `).join('')}
         </div>
       `;
+      scrapeResults.querySelectorAll('[data-scrape-remove]').forEach(b => b.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        scrapedImages.splice(Number(b.dataset.scrapeRemove), 1);
+        if (scrapedImages.length) { renderScrapeResults(); }
+        else { scrapeResults.hidden = true; scrapeHint.textContent = 'All images removed.'; }
+      }));
       scrapeResults.querySelectorAll('[data-scrape-act]').forEach(b => b.addEventListener('click', () => {
         const want = b.dataset.scrapeAct === 'all';
         scrapeResults.querySelectorAll('[data-scrape-idx]').forEach(cb => cb.checked = want);

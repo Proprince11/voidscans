@@ -266,12 +266,12 @@ body.reader-mode {
   .reader-canvas { padding-top: var(--nav-h); }
 }
 
-.reader-canvas.fit-width .manga-page { width: 100%; max-width: 1000px; }
-.reader-canvas.fit-height .manga-page { height: 100dvh; width: auto; }
-.reader-canvas.zoom-75 .manga-page { width: 75%; max-width: 750px; }
-.reader-canvas.zoom-100 .manga-page { width: 100%; max-width: 800px; }
-.reader-canvas.zoom-125 .manga-page { width: 100%; max-width: 1000px; }
-.reader-canvas.zoom-150 .manga-page { width: 100%; max-width: 1200px; }
+.reader-canvas.fit-width .manga-page {
+  width: calc(var(--mp-zoom, 1) * 100%);
+  max-width: calc(var(--mp-zoom, 1) * 900px);
+  margin-inline: auto;
+}
+.reader-canvas.fit-height .manga-page { height: 100dvh; width: auto; max-width: none; }
 
 .reader-canvas.gap-small .manga-page { margin-bottom: 2px; }
 .reader-canvas.gap-medium .manga-page { margin-bottom: var(--s-2); }

@@ -19,7 +19,7 @@
 // =====================================================
 
 import { handleUpload, handleBulkUpload, handleStorageInfo } from './upload.js';
-import { handleScrape, handleScrapeRehost, handleScrapeZip } from './scrape.js';
+import { handleScrape, handleScrapeRehost, handleScrapeZip, handleZipUrls } from './scrape.js';
 import { handleMangaDexProxy, handleProxyImage } from './proxy.js';
 import { handleGlobalRss, handleSeriesRss } from './rss.js';
 import { handleSitemap } from './sitemap.js';
@@ -68,6 +68,9 @@ export default {
       if (url.pathname === '/api/scrape-zip') {
         // No CORS wrapper — this is a direct download response
         return await handleScrapeZip(request);
+      }
+      if (url.pathname === '/api/zip-urls') {
+        return await handleZipUrls(request);
       }
       if (url.pathname === '/api/proxy-image') {
         return await handleProxyImage(request);

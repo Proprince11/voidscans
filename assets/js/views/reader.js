@@ -103,8 +103,9 @@ export async function reader(params, ctx) {
 // RENDER
 // =====================================================
 function renderReader(s, ch, prev, next, all, prefs) {
-  const fitClass = prefs.fit === 'height' ? 'fit-height' : (prefs.zoom !== 100 ? `zoom-${prefs.zoom}` : 'fit-width');
+  const fitClass = prefs.fit === 'height' ? 'fit-height' : 'fit-width';
   const gapClass = `gap-${prefs.gap}`;
+  const zoomFactor = (Number(prefs.zoom) || 100) / 100;
   return html`
     <div class="reader-topbar" id="rTop">
       <div class="reader-topbar-inner">
@@ -130,7 +131,7 @@ function renderReader(s, ch, prev, next, all, prefs) {
 
     <div class="progress-bar" id="rProgress" style="width: 0%;"></div>
 
-    <div class="reader-canvas ${fitClass} ${gapClass}" id="rCanvas">
+    <div class="reader-canvas ${fitClass} ${gapClass}" id="rCanvas" style="--mp-zoom: ${zoomFactor};">
       ${ch.pages.map((url, i) => `
         <img class="manga-page" src="${esc(proxyImage(url))}" alt="Page ${i + 1}"
              loading="${i < 3 ? 'eager' : 'lazy'}" decoding="async"
@@ -284,70 +285,100 @@ function wireUp(s, ch, prev, next, all, prefs) {
 // SETTINGS DRAWER
 // =====================================================
 function openSettingsDrawer(prefs) {
+  const cur = getReaderPrefs();
   const dw = drawer(html`
     <h3 style="margin-bottom: var(--s-3);">Reader Settings</h3>
 
     <div class="field">
       <label class="field-label">Image Fit</label>
       <div class="row gap-2" id="rFit">
-        ${['width', 'height'].map(v => `<button class="tag-pill ${prefs.fit === v ? 'active' : ''}" data-v="${v}">${v === 'width' ? 'Fit width' : 'Fit height'}</button>`).join('')}
+        ${['width', 'height'].map(v => `<button class="tag-pill ${cur.fit === v ? 'active' : ''}" data-v="${v}">${v === 'width' ? 'Fit width' : 'Fit height'}</button>`).join('')}
       </div>
     </div>
 
-    <div class="field">
-      <label class="field-label">Zoom</label>
-      <div class="row gap-2" id="rZoom">
-        ${[75, 100, 125, 150].map(v => `<button class="tag-pill ${prefs.zoom === v ? 'active' : ''}" data-v="${v}">${v}%</button>`).join('')}
+    <div class="field" id="zoomField">
+      <label class="field-label">Zoom · <span id="zoomVal">${cur.zoom || 100}%</span></label>
+      <div class="row gap-2" style="align-items: center;">
+        <button class="btn btn-outline btn-icon" id="zoomOut" aria-label="Zoom out" type="button">−</button>
+        <input type="range" id="zoomRange" min="40" max="200" step="10" value="${cur.zoom || 100}" style="flex: 1; accent-color: var(--accent);">
+        <button class="btn btn-outline btn-icon" id="zoomIn" aria-label="Zoom in" type="button">+</button>
       </div>
+      <div class="row gap-2" style="margin-top: var(--s-2); flex-wrap: wrap;">
+        ${[50, 75, 100, 125, 150].map(v => `<button class="tag-pill" data-zoom="${v}">${v}%</button>`).join('')}
+        <button class="tag-pill" data-zoom="100" id="zoomResetPill">Reset</button>
+      </div>
+      <span class="field-hint" style="margin-top: var(--s-2);">Works both ways — drag left to zoom out, right to zoom in. Only applies in Fit width.</span>
     </div>
 
     <div class="field">
       <label class="field-label">Page Gap</label>
       <div class="row gap-2" id="rGap">
-        ${['small', 'medium', 'large'].map(v => `<button class="tag-pill ${prefs.gap === v ? 'active' : ''}" data-v="${v}">${v[0].toUpperCase() + v.slice(1)}</button>`).join('')}
+        ${['small', 'medium', 'large'].map(v => `<button class="tag-pill ${cur.gap === v ? 'active' : ''}" data-v="${v}">${v[0].toUpperCase() + v.slice(1)}</button>`).join('')}
       </div>
     </div>
 
     <div class="field-hint" style="margin-top: var(--s-3);">
-      Tip: ←/→ keys to switch chapters. Tap and hold to swipe on mobile.
+      Tip: ←/→ keys to switch chapters. Swipe horizontally on mobile.
     </div>
 
     <button class="btn btn-primary btn-block" data-drawer-close style="margin-top: var(--s-4);">Done</button>
   `);
 
-  function applyClasses() {
-    const cur = getReaderPrefs();
-    const canvas = document.getElementById('rCanvas');
-    canvas.className = `reader-canvas ${cur.fit === 'height' ? 'fit-height' : (cur.zoom !== 100 ? `zoom-${cur.zoom}` : 'fit-width')} gap-${cur.gap}`;
+  const canvas = () => document.getElementById('rCanvas');
+  const range = dw.el.querySelector('#zoomRange');
+  const zoomVal = dw.el.querySelector('#zoomVal');
+  const zoomField = dw.el.querySelector('#zoomField');
+
+  function setFit(fit) {
+    setReaderPrefs({ fit });
+    const c = canvas();
+    c.classList.toggle('fit-height', fit === 'height');
+    c.classList.toggle('fit-width', fit !== 'height');
+    dw.el.querySelectorAll('#rFit .tag-pill').forEach(x => x.classList.toggle('active', x.dataset.v === fit));
+    // Zoom only matters in fit-width
+    zoomField.style.opacity = fit === 'height' ? '0.4' : '1';
+    zoomField.style.pointerEvents = fit === 'height' ? 'none' : '';
   }
 
+  function applyZoom(z) {
+    z = Math.max(40, Math.min(200, Math.round(z / 10) * 10));
+    setReaderPrefs({ zoom: z, fit: 'width' });
+    const c = canvas();
+    c.classList.remove('fit-height');
+    c.classList.add('fit-width');
+    c.style.setProperty('--mp-zoom', z / 100);
+    range.value = z;
+    zoomVal.textContent = z + '%';
+    dw.el.querySelectorAll('#rFit .tag-pill').forEach(x => x.classList.toggle('active', x.dataset.v === 'width'));
+    zoomField.style.opacity = '1';
+    zoomField.style.pointerEvents = '';
+  }
+
+  // Fit
   dw.el.querySelector('#rFit').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-v]');
-    if (!b) return;
-    setReaderPrefs({ fit: b.dataset.v });
-    dw.el.querySelectorAll('#rFit .tag-pill').forEach(x => x.classList.remove('active'));
-    b.classList.add('active');
-    applyClasses();
+    const b = e.target.closest('[data-v]'); if (!b) return;
+    setFit(b.dataset.v);
   });
-  dw.el.querySelector('#rZoom').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-v]');
-    if (!b) return;
-    setReaderPrefs({ zoom: Number(b.dataset.v), fit: 'width' });
-    dw.el.querySelectorAll('#rZoom .tag-pill').forEach(x => x.classList.remove('active'));
-    b.classList.add('active');
-    // Reset fit highlights
-    dw.el.querySelectorAll('#rFit .tag-pill').forEach(x => x.classList.remove('active'));
-    dw.el.querySelector(`#rFit [data-v="width"]`)?.classList.add('active');
-    applyClasses();
-  });
+
+  // Zoom: slider, steppers, presets
+  range.addEventListener('input', () => applyZoom(Number(range.value)));
+  dw.el.querySelector('#zoomOut').addEventListener('click', () => applyZoom(Number(range.value) - 10));
+  dw.el.querySelector('#zoomIn').addEventListener('click', () => applyZoom(Number(range.value) + 10));
+  dw.el.querySelectorAll('[data-zoom]').forEach(b =>
+    b.addEventListener('click', () => applyZoom(Number(b.dataset.zoom))));
+
+  // Gap
   dw.el.querySelector('#rGap').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-v]');
-    if (!b) return;
+    const b = e.target.closest('[data-v]'); if (!b) return;
     setReaderPrefs({ gap: b.dataset.v });
-    dw.el.querySelectorAll('#rGap .tag-pill').forEach(x => x.classList.remove('active'));
-    b.classList.add('active');
-    applyClasses();
+    const c = canvas();
+    c.classList.remove('gap-small', 'gap-medium', 'gap-large');
+    c.classList.add(`gap-${b.dataset.v}`);
+    dw.el.querySelectorAll('#rGap .tag-pill').forEach(x => x.classList.toggle('active', x.dataset.v === b.dataset.v));
   });
+
+  // Init disabled state if fit-height
+  if (cur.fit === 'height') { zoomField.style.opacity = '0.4'; zoomField.style.pointerEvents = 'none'; }
 }
 
 

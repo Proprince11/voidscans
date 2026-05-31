@@ -119,6 +119,59 @@ export async function handleScrapeRehost(request, env) {
   return Response.json({ ok: true, results });
 }
 
+/** POST /api/zip-urls   body: { urls: [...], name?: "chapter-14" }
+ *  Zips ONLY the given image URLs (the curated set after the user has
+ *  removed/edited images in the preview). Downloads as one .zip. */
+export async function handleZipUrls(request) {
+  if (request.method !== 'POST') return new Response('POST only', { status: 405 });
+  let body;
+  try { body = await request.json(); }
+  catch { return new Response('Invalid JSON body', { status: 400 }); }
+
+  let images = Array.isArray(body?.urls) ? body.urls.filter(Boolean) : [];
+  if (!images.length) return new Response('"urls" array required', { status: 400 });
+  if (images.length > 100) images = images.slice(0, 100);
+
+  const files = [];
+  let i = 0;
+  for (const imgUrl of images) {
+    i++;
+    try {
+      const imgHost = new URL(imgUrl).hostname;
+      const referer = imgHost.endsWith('mangadex.org')
+        ? 'https://mangadex.org/'
+        : new URL(imgUrl).origin + '/';
+      const res = await fetch(imgUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; VoidScans/1.0)',
+          'Accept': 'image/*,*/*;q=0.8',
+          'Referer': referer
+        }
+      });
+      if (!res.ok) continue;
+      const ct = res.headers.get('content-type') || 'image/jpeg';
+      if (!ct.startsWith('image/')) continue;
+      const buf = new Uint8Array(await res.arrayBuffer());
+      const padded = String(i).padStart(3, '0');
+      const ext = (imgUrl.match(/\.(jpe?g|png|webp|gif|avif)(?:\?|$|#)/i)?.[1]
+        || ct.split('/')[1] || 'jpg').toLowerCase();
+      files.push({ name: `${padded}.${ext}`, data: buf });
+    } catch { /* skip */ }
+  }
+  if (!files.length) return new Response('All image downloads failed', { status: 502 });
+
+  const zip = makeZip(files);
+  const safeName = String(body.name || 'images').replace(/[^a-z0-9-_]/gi, '_').slice(0, 60) || 'images';
+  return new Response(zip, {
+    headers: {
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="${safeName}.zip"`,
+      'Content-Length': String(zip.length),
+      'X-Image-Count': String(files.length)
+    }
+  });
+}
+
 /** GET /api/scrape-zip?url=X
  *  Fetches the page, downloads every image, and streams a ZIP back as
  *  a downloadable file. The user gets one zip-per-webpage saved locally. */
