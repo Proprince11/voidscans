@@ -5,6 +5,7 @@ import {
 } from '../lib/api.js';
 import { esc, html, timeAgo, proxyImage } from '../lib/utils.js';
 import { toast, confirmModal, spinner } from '../lib/ui.js';
+import { adminFetch } from '../lib/auth.js';
 
 export async function chaptersAdmin({ outlet }) {
   let allSeries;
@@ -292,7 +293,7 @@ https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
           fd.append('file', file, file.name);
           fd.append('series', selectedSlug);
           fd.append('chapter', String($f('#ch-num').value || ''));
-          const res = await fetch('/api/upload', { method: 'POST', body: fd });
+          const res = await adminFetch('/api/upload', { method: 'POST', body: fd });
           const json = await res.json();
           if (!json.ok) throw new Error(json.error || 'upload failed');
           newUrls.push(json.url);
@@ -349,7 +350,7 @@ https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
       scrapeHint.style.color = '';
       scrapeHint.textContent = 'Fetching page server-side…';
       try {
-        const res = await fetch(`/api/scrape?url=${encodeURIComponent(url)}`);
+        const res = await adminFetch(`/api/scrape?url=${encodeURIComponent(url)}`);
         const json = await res.json();
         if (!json.ok) throw new Error(json.error || 'scrape failed');
         scrapedImages = json.images || [];
@@ -429,7 +430,7 @@ https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
       scrapeHint.textContent = `Re-hosting ${selected.length} images via Worker → Catbox/R2…`;
 
       try {
-        const res = await fetch('/api/scrape-rehost', {
+        const res = await adminFetch('/api/scrape-rehost', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
