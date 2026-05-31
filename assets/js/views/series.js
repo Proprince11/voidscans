@@ -230,11 +230,21 @@ function renderShell(s) {
         <div class="comments-list" id="commentList" style="margin-top: var(--s-5);">${spinner('sm')}</div>
       </section>
 
-      <section style="margin-bottom: var(--s-8);" id="relatedSection" hidden>
+      <!-- Recommendations / discovery footer — always renders something -->
+      <section class="cv-deferred" style="margin-bottom: var(--s-6);" id="relatedSection" hidden>
         <div class="section-header">
-          <h2 class="section-title">You might also like</h2>
+          <h2 class="section-title" id="relatedTitle">You might also like</h2>
+          <span class="section-link" id="relatedSubtitle"></span>
         </div>
         <div class="card-grid" id="relatedGrid"></div>
+      </section>
+
+      <section class="cv-deferred" style="margin-bottom: var(--s-8);" id="latestSection" hidden>
+        <div class="section-header">
+          <h2 class="section-title">Latest Updates</h2>
+          <a href="/browse?sort=updated" class="section-link">View all →</a>
+        </div>
+        <div class="update-list" id="latestList"></div>
       </section>
     </div>
   `;
@@ -541,24 +551,108 @@ function injectJsonLd(s) {
 }
 
 // =====================================================
-// RELATED
+// RELATED + LATEST UPDATES (discovery strip at bottom of series page)
 // =====================================================
 function renderRelated(s, allSeries) {
   if (!allSeries.length) return;
   const myGenres = new Set((s.genres || []).map(g => g.toLowerCase()));
-  const candidates = allSeries
-    .filter(x => x.slug !== s.slug)
-    .map(x => {
-      const overlap = (x.genres || []).filter(g => myGenres.has(g.toLowerCase())).length;
-      return { x, overlap };
-    })
+  const others = allSeries.filter(x => x.slug !== s.slug);
+
+  // 1) Best matches: shared genres, ranked by overlap (then by views/followers)
+  let candidates = others
+    .map(x => ({
+      x,
+      overlap: (x.genres || []).filter(g => myGenres.has(g.toLowerCase())).length
+    }))
     .filter(r => r.overlap > 0)
-    .sort((a, b) => b.overlap - a.overlap)
-    .slice(0, 6)
+    .sort((a, b) => {
+      if (b.overlap !== a.overlap) return b.overlap - a.overlap;
+      return (b.x.views || 0) - (a.x.views || 0);
+    })
     .map(r => r.x);
 
+  let titleText = 'You might also like';
+  let subtitle = '';
+
+  // 2) Same type fallback: when no genre overlap, recommend by type (manhwa/manga/manhua)
+  if (candidates.length === 0 && s.type) {
+    candidates = others
+      .filter(x => x.type === s.type)
+      .sort((a, b) => (b.views || 0) - (a.views || 0))
+      .slice(0, 12);
+    titleText = `More ${s.type.charAt(0).toUpperCase() + s.type.slice(1)}`;
+  }
+
+  // 3) Last-resort fallback: top series by views/popular
+  if (candidates.length === 0) {
+    candidates = others
+      .sort((a, b) => (b.views || 0) - (a.views || 0))
+      .slice(0, 12);
+    titleText = 'Popular Series';
+  }
+
+  // Cap at 6 cards (matches a typical row on desktop)
+  candidates = candidates.slice(0, 6);
   if (candidates.length === 0) return;
+
+  const sec = document.getElementById('relatedSection');
+  const titleEl = document.getElementById('relatedTitle');
+  const subEl = document.getElementById('relatedSubtitle');
   const grid = document.getElementById('relatedGrid');
-  document.getElementById('relatedSection').hidden = false;
+  if (!sec || !grid) return;
+
+  if (titleEl) titleEl.textContent = titleText;
+  if (subEl) subEl.textContent = subtitle;
   grid.innerHTML = candidates.map(s2 => seriesCard(s2)).join('');
+  sec.hidden = false;
+
+  // Also render a "Latest Updates" strip below — global discovery, helpful
+  // for fresh sites with few series and a great way to keep readers in the
+  // catalog after they finish a chapter.
+  renderLatestUpdates(s, allSeries);
+}
+
+function renderLatestUpdates(currentSeries, allSeries) {
+  const sec = document.getElementById('latestSection');
+  const list = document.getElementById('latestList');
+  if (!sec || !list) return;
+
+  // Most-recently-updated series, excluding the current one. Cap at 6.
+  const items = allSeries
+    .filter(x => x.slug !== currentSeries.slug && x.latestChapter > 0)
+    .sort((a, b) => {
+      const at = toMs(a.latestChapterAt);
+      const bt = toMs(b.latestChapterAt);
+      return bt - at;
+    })
+    .slice(0, 6);
+
+  if (items.length === 0) return;
+
+  list.innerHTML = items.map(s2 => updateRowFor(s2)).join('');
+  sec.hidden = false;
+}
+
+function toMs(t) {
+  if (!t) return 0;
+  if (typeof t.toMillis === 'function') return t.toMillis();
+  if (typeof t === 'string' || typeof t === 'number') return new Date(t).getTime() || 0;
+  return 0;
+}
+
+// Compact "update row" — series with its latest chapter prominently shown
+function updateRowFor(s2) {
+  return `
+    <a href="/read/${esc(s2.slug)}/${esc(s2.latestChapter)}" class="update-row" aria-label="${esc(s2.title)} chapter ${esc(s2.latestChapter)}">
+      <div class="update-cover">
+        <img src="${esc(proxyImage(s2.cover) || '')}" alt="${esc(s2.title)}" loading="lazy" decoding="async"
+             onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
+      </div>
+      <div class="update-meta">
+        <div class="update-title">${esc(s2.title)}</div>
+        <div class="update-chapter">Ch. ${esc(s2.latestChapter)}</div>
+      </div>
+      <div class="update-time">${esc(timeAgo(toMs(s2.latestChapterAt)))}</div>
+    </a>
+  `;
 }

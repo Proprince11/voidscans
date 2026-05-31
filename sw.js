@@ -9,13 +9,15 @@
 //
 // Bumping CACHE_VERSION invalidates the old caches.
 // =====================================================
-// Bumped to v3.5.3 to push the polished hero slider:
+// Bumped to v3.5.3 for the polished hero slider:
 // - 5s rotation (was 6s, felt sluggish)
 // - Visible progress fill on the active dot so users SEE the rotation
 // - Ken Burns drift on the active slide bg
 // - Auto-pause on tab switch + keyboard focus
 // - Respects prefers-reduced-motion
+// (v3.5.2 from PR #23 series recommendations is included in this branch via merge)
 const CACHE_VERSION = 'v3.5.3';
+ main
 const SHELL_CACHE   = `shell-${CACHE_VERSION}`;
 const ASSET_CACHE   = `asset-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `images-${CACHE_VERSION}`;
