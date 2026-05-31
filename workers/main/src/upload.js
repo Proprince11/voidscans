@@ -135,6 +135,17 @@ export async function handleUpload(request, env) {
     if (!(file instanceof File) && !(file instanceof Blob)) {
       return Response.json({ ok: false, error: 'No file in form field "file"' }, { status: 400 });
     }
+
+    // SECURITY: Validate file type and size
+    const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15 MB
+    if (file.size > MAX_FILE_SIZE) {
+      return Response.json({ ok: false, error: `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB, max 15MB)` }, { status: 400 });
+    }
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
+    if (file.type && !allowedTypes.includes(file.type.toLowerCase())) {
+      return Response.json({ ok: false, error: `File type not allowed: ${file.type}. Only images (JPEG, PNG, WebP, GIF, AVIF).` }, { status: 400 });
+    }
+
     const safeName = (file.name || 'img').replace(/[^a-z0-9._-]/gi, '_');
     const key = chapterNum
       ? `chapters/${seriesSlug}/${chapterNum}/${safeName}`

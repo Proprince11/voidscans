@@ -10,9 +10,10 @@
 // Bumping CACHE_VERSION invalidates the old caches.
 // =====================================================
 
-// Bumped from v3.3.2 → v3.4.0 for the JayaScans rebrand so existing
-// browsers replace the cached "VoidScans" shell on next visit.
-const CACHE_VERSION = 'v3.4.0';
+// Bumped from v3.3.2 → v3.4.1 for the JayaScans rebrand + admin auth header
+// rollout so existing browsers replace the cached "VoidScans" shell + the old
+// no-Authorization admin scripts on next visit.
+const CACHE_VERSION = 'v3.4.1';
 const SHELL_CACHE   = `shell-${CACHE_VERSION}`;
 const ASSET_CACHE   = `asset-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `images-${CACHE_VERSION}`;
