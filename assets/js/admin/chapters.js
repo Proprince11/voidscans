@@ -6,6 +6,7 @@ import {
 import { esc, html, timeAgo, proxyImage } from '../lib/utils.js';
 import { toast, confirmModal, spinner } from '../lib/ui.js';
 import { adminFetch } from '../lib/auth.js';
+import { announceChapter } from '../lib/discord.js';
 
 export async function chaptersAdmin({ outlet }) {
   let allSeries;
@@ -481,6 +482,19 @@ https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
         } else {
           await createChapter({ seriesSlug: selectedSlug, number, title, pages });
           toast(`Chapter ${number} published`, 'success');
+          // Fire Discord webhook (admin Settings → Integrations → Discord)
+          // Failures are non-blocking — log and move on.
+          const seriesMeta = allSeries.find(s => s.slug === selectedSlug);
+          announceChapter({
+            seriesTitle: seriesMeta?.title || selectedSlug,
+            seriesSlug: selectedSlug,
+            chapterNum: number,
+            chapterTitle: title,
+            coverUrl: seriesMeta?.cover || ''
+          }).then(r => {
+            if (r?.ok) toast('Posted to Discord', 'info', 2500);
+            else if (r?.error) console.warn('Discord webhook:', r.error);
+          });
         }
         await render();
       } catch (err) {

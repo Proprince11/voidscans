@@ -7,7 +7,7 @@
   </defs>
   <g transform="translate(0, 8)">
     <path d="M4 4 L16 28 L28 4 L24 4 L16 20 L8 4 Z" fill="url(#vsGrad)"/>
-    <text x="36" y="24" font-family="'Syne', system-ui, sans-serif" font-size="22" font-weight="800" fill="#e8e8f0" letter-spacing="0.5">VOID</text>
+    <text x="36" y="24" font-family="'Syne', system-ui, sans-serif" font-size="22" font-weight="800" fill="#e8e8f0" letter-spacing="0.5">JAYA</text>
     <text x="100" y="24" font-family="'Syne', system-ui, sans-serif" font-size="22" font-weight="600" fill="url(#vsGrad)" letter-spacing="0.5">SCANS</text>
   </g>
 </svg>

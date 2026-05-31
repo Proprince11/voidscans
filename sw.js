@@ -9,12 +9,9 @@
 //
 // Bumping CACHE_VERSION invalidates the old caches.
 // =====================================================
-// Bumped from v3.4.1 → v3.4.2 for perf optimisations: install handler now
-// precaches only CRITICAL_URLS (was 30+ files) so first-visit service-worker
-// install no longer competes with the main thread during the click-interaction
-// window. Cuts INP by ~300-500ms on cold loads. v3.4.1 introduced the admin
-// auth-header rollout (kept active in this version too).
-const CACHE_VERSION = 'v3.4.2';
+// Bumped to v3.5.1 to push the redesigned Ko-fi support bar (horizontal pill
+// with logo + line + Support button — was a vertical card).
+const CACHE_VERSION = 'v3.5.1';
 const SHELL_CACHE   = `shell-${CACHE_VERSION}`;
 const ASSET_CACHE   = `asset-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `images-${CACHE_VERSION}`;
@@ -51,6 +48,10 @@ const WARM_URLS = [
   '/assets/js/lib/api.js',
   '/assets/js/lib/auth.js',
   '/assets/js/lib/account.js',
+  '/assets/js/lib/settings.js',
+  '/assets/js/lib/branding.js',
+  '/assets/js/lib/theme.js',
+  '/assets/js/lib/discord.js',
   '/assets/js/lib/library.js',
   '/assets/js/lib/ui.js',
   '/assets/js/views/_components.js',
