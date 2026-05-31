@@ -4,9 +4,10 @@
 
 import { fetchHomeSections } from '../lib/api.js';
 import { getHistory } from '../lib/library.js';
-import { esc, html, proxyImage } from '../lib/utils.js';
+import { esc, html, proxyImage, setMeta } from '../lib/utils.js';
 import { skeletonGrid } from '../lib/ui.js';
 import { seriesCard, updateRow, genreStrip, emptyState, statusBadge } from './_components.js';
+import { SITE, pageTitle } from '../lib/site.config.js';
 
 export async function home(_params, ctx) {
   // Initial frame: skeleton
@@ -47,7 +48,7 @@ export async function home(_params, ctx) {
         ${emptyState({ icon: '⚠', title: 'Could not load', subtitle: 'Database connection failed. Try again in a moment.', cta: '<button class="btn btn-primary" onclick="location.reload()">Reload</button>' })}
       </div>
     `;
-    return { title: 'VoidScans' };
+    return { title: pageTitle() };
   }
 
   const { hero: heroItems, popular, newlyAdded, latest, all } = sections;
@@ -195,8 +196,17 @@ export async function home(_params, ctx) {
   // Hero slider behavior
   const cleanup = setupHeroSlider();
 
+  // Per-route SEO meta — home page reset, picks up the WebSite + Organization
+  // JSON-LD already in index.html.
+  setMeta({
+    title: `${SITE.name} — Read Manhwa, Manga & Manhua Online Free`,
+    description: `Read manhwa, manga and manhua online for free on ${SITE.name}. ${SITE.tagline}`,
+    url: SITE.baseUrl + '/',
+    type: 'website'
+  });
+
   return {
-    title: 'VoidScans — Read Manhwa, Manga & Manhua',
+    title: `${SITE.name} — Read Manhwa, Manga & Manhua Online Free`,
     cleanup
   };
 }

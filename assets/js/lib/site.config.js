@@ -1,7 +1,7 @@
 // =====================================================
 // site.config.js — SINGLE SOURCE OF TRUTH for brand + domain.
 //
-// 🔁 To rebrand (e.g. VoidScans → RatnaScans) or change domain LATER,
+// 🔁 To rebrand (e.g. JayaScans → SomethingElse) or change domain LATER,
 //    edit THIS file's values + the one Worker var (PUBLIC_BASE_URL in
 //    wrangler.jsonc). See docs/13-domain-and-rename.md for the full,
 //    short checklist of any remaining static spots.
@@ -12,16 +12,16 @@
 
 export const SITE = {
   // Brand
-  name: 'VoidScans',          // full brand name shown in UI + titles
-  shortName: 'VoidScans',     // PWA short name / compact spots
-  // Split logo styling: "VOID" + accent "SCANS". Keep two parts so the
+  name: 'JayaScans',          // full brand name shown in UI + titles
+  shortName: 'JayaScans',     // PWA short name / compact spots
+  // Split logo styling: "JAYA" + accent "SCANS". Keep two parts so the
   // navbar/footer logo renders the accent half automatically.
-  logoLead: 'VOID',
+  logoLead: 'JAYA',
   logoAccent: 'SCANS',
 
   // Domain — used for absolute links (share, canonical, og). Keep in sync
   // with wrangler.jsonc → vars.PUBLIC_BASE_URL (server side).
-  baseUrl: 'https://voidscans.isthe.workers.dev',
+  baseUrl: 'https://jayascans.online',
 
   tagline: 'Premium reading experience for manhwa, manga, and manhua. Free forever.',
 
@@ -33,7 +33,7 @@ export const SITE = {
   }
 };
 
-/** Append the brand to a page title: pageTitle('Browse') → 'Browse · VoidScans' */
+/** Append the brand to a page title: pageTitle('Browse') → 'Browse · JayaScans' */
 export function pageTitle(part) {
   return part ? `${part} · ${SITE.name}` : SITE.name;
 }

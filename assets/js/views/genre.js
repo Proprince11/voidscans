@@ -3,9 +3,10 @@
 // =====================================================
 
 import { fetchAllSeries } from '../lib/api.js';
-import { esc, html, unslug } from '../lib/utils.js';
+import { esc, html, unslug, setMeta } from '../lib/utils.js';
 import { seriesCard, genreStrip, emptyState } from './_components.js';
 import { skeletonGrid } from '../lib/ui.js';
+import { SITE } from '../lib/site.config.js';
 
 export async function genre(params, ctx) {
   const slug = (params.slug || '').toLowerCase();
@@ -26,7 +27,7 @@ export async function genre(params, ctx) {
     series = all.filter(s => (s.genres || []).map(g => g.toLowerCase().replace(/\s+/g, '-')).includes(slug));
   } catch (e) {
     document.getElementById('grid').innerHTML = emptyState({ icon: '⚠', title: 'Could not load' });
-    return { title: `${niceName} · VoidScans` };
+    return { title: `${niceName} | ${SITE.name}` };
   }
 
   const grid = document.getElementById('grid');
@@ -41,5 +42,12 @@ export async function genre(params, ctx) {
     grid.innerHTML = `<div class="card-grid">${series.map((s, i) => seriesCard(s, { eager: i < 6, priority: i === 0 })).join('')}</div>`;
   }
 
-  return { title: `${niceName} · VoidScans` };
+  setMeta({
+    title: `${niceName} - Read Free Manhwa & Manga | ${SITE.name}`,
+    description: `Browse all ${niceName.toLowerCase()} manhwa, manga and manhua on ${SITE.name}. ${series.length} title${series.length === 1 ? '' : 's'} available, free to read in English.`,
+    url: SITE.baseUrl + `/genre/${slug}`,
+    type: 'website'
+  });
+
+  return { title: `${niceName} - Read Free Manhwa & Manga | ${SITE.name}` };
 }

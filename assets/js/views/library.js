@@ -8,6 +8,7 @@ import { fetchAllSeries } from '../lib/api.js';
 import { esc, html, timeAgo, qs as getQS, proxyImage } from '../lib/utils.js';
 import { seriesCard, emptyState } from './_components.js';
 import { toast, confirmModal } from '../lib/ui.js';
+import { pageTitle } from '../lib/site.config.js';
 
 const TABS = [
   { key: 'reading',   label: 'Reading' },
@@ -130,5 +131,5 @@ export async function library(_params, ctx) {
   tabs.forEach(t => t.addEventListener('click', () => paint(t.dataset.key)));
   paint(initial);
 
-  return { title: 'Library · VoidScans' };
+  return { title: pageTitle('Library') };
 }

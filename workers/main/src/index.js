@@ -1,5 +1,5 @@
 // =====================================================
-// VoidScans — main Worker.
+// JayaScans — main Worker.
 //
 // Handles:
 //   /api/health                  GET    Health probe

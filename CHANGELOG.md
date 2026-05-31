@@ -1,8 +1,45 @@
 # Changelog
 
+## v3.4.0 — Rebrand: VoidScans → JayaScans (2026-05-31)
+
+Rebrand to **JayaScans** at the new owned domain **[jayascans.online](https://jayascans.online)**, plus the SEO improvements queued in `docs/10-seo-guide.md`.
+
+### Brand & domain
+- All user-facing strings: `VoidScans` → `JayaScans`; logo split `VOID/SCANS` → `JAYA/SCANS`.
+- `assets/js/lib/site.config.js` — `name`, `shortName`, `logoLead`, `logoAccent`, `baseUrl` updated.
+- `wrangler.jsonc` — `name: "jayascans"`, `vars.PUBLIC_BASE_URL: "https://jayascans.online"`.
+- `manifest.webmanifest`, `index.html` (title + meta + OG + Twitter + canonical + JSON-LD), `admin/index.html`, `offline.html`, `robots.txt` (sitemap URL) all updated.
+- Service worker bumped `CACHE_VERSION v3.3.2 → v3.4.0` so existing browsers replace the old shell on next visit.
+- Docs (`04-deploy`, `09-user-tasks`, `13-domain-and-rename`), `scripts/package.json`, `scripts/README.md`, `DMCA.md`, top-level `README.md` all updated.
+
+### SEO
+- `index.html` now ships a `WebSite` (with `SearchAction`) + `Organization` JSON-LD graph.
+- `<link rel="canonical">`, `og:url`, `og:site_name`, `og:locale`, `twitter:image` added at the shell level.
+- New `setMeta()` helper in `assets/js/lib/utils.js` updates description / canonical / OG / Twitter per route.
+- Wired into series, reader, home, browse, and genre views.
+- Title formula from the SEO guide applied:
+  - **Series:** `{Title} - Read {Type} English Free | JayaScans`
+  - **Chapter:** `{Title} Chapter {N} English | JayaScans`
+  - **Genre:** `{Genre} - Read Free Manhwa & Manga | JayaScans`
+  - **Home:** `JayaScans — Read Manhwa, Manga & Manhua Online Free`
+- Workers: `rss.js` feed strings, `scrape.js` `User-Agent`, `index.js` header comment renamed.
+
+### Kept (intentionally — see `docs/14-rename-history.md`)
+- Firebase project ID `voidscans-6c66b` (immutable Firebase resource).
+- GitHub repo path `Proprince11/voidscans` (rename on GitHub when ready, then update docs).
+- Cloudflare R2 bucket name suggestion (rename in dashboard if desired — references it in user-tasks doc only).
+
+### Manual follow-ups for the user
+1. Cloudflare Pages → Custom Domains → add `jayascans.online`.
+2. (Optional) Rename the GitHub repo to `jayascans`.
+3. Submit `https://jayascans.online/sitemap.xml` to Google Search Console + Bing Webmaster Tools.
+4. (Optional) Update `<meta property="og:image">` from the placeholder `og-default.png` to a real branded 1200×630 PNG.
+
+---
+
 ## v3.1.0 — Phase 2: user accounts, sync, view tracking (2026-05-30)
 
-Big release: VoidScans now has user accounts, library sync, and view tracking. See [docs/06-roadmap.md](./docs/06-roadmap.md) for the full Phase 2 status.
+Big release: JayaScans now has user accounts, library sync, and view tracking. See [docs/06-roadmap.md](./docs/06-roadmap.md) for the full Phase 2 status.
 
 ### Added — Auth & profiles
 - Email/password + Google sign-in via `openAuthModal({ initialTab })` (in `lib/ui.js`)

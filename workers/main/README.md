@@ -1,6 +1,6 @@
-# VoidScans Main Worker
+# JayaScans Main Worker
 
-This is the main Worker that powers `voidscans.isthe.workers.dev`. It serves both:
+This is the main Worker that powers `jayascans.online` (and the auto-generated `*.workers.dev` preview URL). It serves both:
 
 1. **API routes** (server-side logic — proxies, scrapers, RSS, sitemap)
 2. **Static assets** (the SPA HTML/CSS/JS) via the `ASSETS` binding
@@ -34,11 +34,11 @@ By default uploads go to **Catbox** (anonymous, free, no setup).
 If you bind an R2 bucket later, uploads go to R2 instead. Set up:
 
 ```bash
-# In Cloudflare dashboard → R2 → create bucket "voidscans-images"
+# In Cloudflare dashboard → R2 → create bucket "jayascans-images"
 # Enable public access on it. Get the public URL like https://pub-XXXXX.r2.dev
 
 # Then in wrangler.jsonc, add:
-#   "r2_buckets": [{ "binding": "R2_BUCKET", "bucket_name": "voidscans-images" }]
+#   "r2_buckets": [{ "binding": "R2_BUCKET", "bucket_name": "jayascans-images" }]
 #   "vars": { "R2_PUBLIC_BASE": "https://pub-XXXXX.r2.dev" }
 ```
 

@@ -1,5 +1,5 @@
 // =====================================================
-// Service Worker — VoidScans PWA
+// Service Worker — JayaScans PWA
 //
 // Caching strategy:
 //   - App shell (HTML/CSS/JS): network-first w/ cache fallback (3s timeout)
@@ -10,7 +10,9 @@
 // Bumping CACHE_VERSION invalidates the old caches.
 // =====================================================
 
-const CACHE_VERSION = 'v3.3.2';
+// Bumped from v3.3.2 → v3.4.0 for the JayaScans rebrand so existing
+// browsers replace the cached "VoidScans" shell on next visit.
+const CACHE_VERSION = 'v3.4.0';
 const SHELL_CACHE   = `shell-${CACHE_VERSION}`;
 const ASSET_CACHE   = `asset-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `images-${CACHE_VERSION}`;

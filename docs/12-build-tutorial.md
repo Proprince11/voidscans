@@ -1,6 +1,6 @@
 # 12 — Build This App From Scratch (Zero-Coding Tutorial)
 
-A complete, plain-English script for building VoidScans even if you've **never written code**. No jargon left unexplained. By the end you'll understand how every piece connects and be able to rebuild it yourself.
+A complete, plain-English script for building JayaScans even if you've **never written code**. No jargon left unexplained. By the end you'll understand how every piece connects and be able to rebuild it yourself.
 
 > Read it top to bottom once for the mental model, then again with your editor open to actually build.
 

@@ -1,5 +1,6 @@
 // View: 404
 import { html } from '../lib/utils.js';
+import { pageTitle } from '../lib/site.config.js';
 
 export async function notFound(_params, ctx) {
   ctx.outlet.innerHTML = html`
@@ -14,5 +15,5 @@ export async function notFound(_params, ctx) {
       </div>
     </div>
   `;
-  return { title: 'Not Found · VoidScans' };
+  return { title: pageTitle('Not Found') };
 }

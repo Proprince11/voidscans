@@ -1,10 +1,12 @@
 {
-  "name": "voidscans",
+  "name": "jayascans",
   "main": "workers/main/src/index.js",
   "compatibility_date": "2026-05-29",
   "vars": {
+    // Firebase project ID is immutable — keep the original even after the brand rename.
+    // (See docs/14-rename-history.md for why.)
     "FIREBASE_PROJECT_ID": "voidscans-6c66b",
-    "PUBLIC_BASE_URL": "https://voidscans.isthe.workers.dev"
+    "PUBLIC_BASE_URL": "https://jayascans.online"
   },
   "assets": {
     "directory": "./",

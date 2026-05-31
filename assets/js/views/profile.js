@@ -8,6 +8,7 @@ import { getLibrary, getHistory } from '../lib/library.js';
 import { esc, html, timeAgo, avatarLetter, compactNum } from '../lib/utils.js';
 import { spinner, toast, confirmModal, openAuthModal } from '../lib/ui.js';
 import { emptyState } from './_components.js';
+import { pageTitle } from '../lib/site.config.js';
 
 export async function profile(_params, ctx) {
   // Wait briefly for auth to initialize on first paint
@@ -45,7 +46,7 @@ export async function profile(_params, ctx) {
       const result = await openAuthModal({ initialTab: 'signup' });
       if (result) return profile(_params, ctx);
     });
-    return { title: 'Profile · VoidScans' };
+    return { title: pageTitle('Profile') };
   }
 
   // Render shell
@@ -70,7 +71,7 @@ export async function profile(_params, ctx) {
   });
 
   return {
-    title: 'My Profile · VoidScans',
+    title: pageTitle('My Profile'),
     cleanup: () => off?.()
   };
 }
