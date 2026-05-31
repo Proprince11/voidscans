@@ -10,6 +10,9 @@ import { onAuthChange, signOut, getUser } from './lib/auth.js';
 import { onProfileChange, getProfile } from './lib/account.js';
 import { avatarLetter, esc } from './lib/utils.js';
 import { SITE } from './lib/site.config.js';
+import { loadSettings, watchSettings, getSettings } from './lib/settings.js';
+import { applyBranding, watchBrandingChanges } from './lib/branding.js';
+import { applyInitialTheme, cycleTheme, getTheme } from './lib/theme.js';
 
 // Lazy-import views: code-split so a slow chapter image
 // doesn't prevent the home page from rendering.
@@ -22,6 +25,23 @@ import { reader }   from './views/reader.js';
 import { library }  from './views/library.js';
 import { profile }  from './views/profile.js';
 import { notFound } from './views/notFound.js';
+
+// =====================================================
+// SITE SETTINGS — load once at boot, then apply branding + ads.
+// Theme is applied synchronously from localStorage so there's no
+// flash of dark when the user prefers light/sepia.
+// =====================================================
+applyInitialTheme();  // synchronous, uses saved user pref or 'dark'
+loadSettings().then(() => {
+  // Re-apply theme using the admin-configured site default if user hasn't picked one
+  const s = getSettings();
+  if (!getTheme() && s.theme?.defaultTheme) {
+    document.documentElement.setAttribute('data-theme', s.theme.defaultTheme);
+  }
+  applyBranding();
+  watchBrandingChanges();
+});
+watchSettings();  // real-time updates for cross-tab admin saves
 
 // =====================================================
 // Mount route outlet
@@ -97,7 +117,27 @@ function mountAuthChrome() {
   slot.style.position = 'relative';
   slot.style.display = 'flex';
   slot.style.alignItems = 'center';
+  slot.style.gap = 'var(--s-2)';
   navActions.appendChild(slot);
+
+  // Theme toggle button — appears alongside the auth button when feature enabled
+  const themeBtn = document.createElement('button');
+  themeBtn.className = 'theme-toggle';
+  themeBtn.setAttribute('aria-label', 'Toggle theme (dark / light / sepia)');
+  themeBtn.title = 'Toggle theme';
+  themeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+  themeBtn.addEventListener('click', () => cycleTheme());
+  // Hidden by default; shown when settings load with feature enabled
+  themeBtn.style.display = 'none';
+  slot.appendChild(themeBtn);
+  // Re-evaluate visibility whenever settings change
+  function updateThemeBtn() {
+    const s = getSettings();
+    themeBtn.style.display = s.features?.themeToggleEnabled ? 'inline-flex' : 'none';
+  }
+  updateThemeBtn();
+  document.addEventListener('themechange', updateThemeBtn);
+  loadSettings().then(updateThemeBtn);
 
   function paint(user, profileData) {
     slot.innerHTML = '';

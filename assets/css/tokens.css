@@ -148,3 +148,138 @@
     --t-slower: 0ms;
   }
 }
+
+
+
+/* =====================================================
+   THEME OVERRIDES — toggled via [data-theme] on <html>.
+   Default (no attr or data-theme="dark") uses the values above.
+   ===================================================== */
+
+[data-theme="light"] {
+  --bg:           #f7f7fa;
+  --bg-deep:      #ffffff;
+  --surface-1:    #ffffff;
+  --surface-2:    #f0f0f4;
+  --surface-3:    #e6e6ec;
+  --border:       #dadae3;
+  --border-soft:  #ececf2;
+  --border-bold:  #c5c5d0;
+
+  --text:         #15151a;
+  --text-soft:    #44444d;
+  --text-muted:   #74747f;
+  --text-faint:   #b4b4c0;
+
+  --accent-soft:  #f0b94130;
+  --accent-glow:  #f0b94155;
+}
+
+[data-theme="sepia"] {
+  --bg:           #f4ecd8;
+  --bg-deep:      #faf3e0;
+  --surface-1:    #efe4c9;
+  --surface-2:    #e8dab9;
+  --surface-3:    #ddcca5;
+  --border:       #c9b48b;
+  --border-soft:  #d8c599;
+  --border-bold:  #a8946d;
+
+  --text:         #3d2e1f;
+  --text-soft:    #6b513a;
+  --text-muted:   #8e7559;
+  --text-faint:   #b8a583;
+
+  --accent:       #b8741b;
+  --accent-soft:  #b8741b25;
+  --accent-glow:  #b8741b40;
+  --accent-2:     #a83b1b;
+}
+
+/* =====================================================
+   AD SLOTS — placeholders that admin scripts get injected into.
+   Hidden by default; .branding.applyAds() reveals when filled.
+   ===================================================== */
+[data-ad-slot] {
+  display: none;
+  margin: var(--s-4) auto;
+  text-align: center;
+  max-width: 970px;
+}
+[data-ad-slot]:not(:empty) { display: block; }
+[data-ad-slot="header"] { margin: var(--s-2) auto var(--s-4); }
+[data-ad-slot="footer"] { margin: var(--s-6) auto var(--s-4); }
+[data-ad-slot="mid-chapter"] { margin: var(--s-6) auto; max-width: 100%; }
+[data-ad-slot="sidebar"] { margin: var(--s-4) 0; max-width: 100%; }
+
+/* =====================================================
+   KO-FI / SUPPORT WIDGET (reader page footer)
+   ===================================================== */
+.kofi-widget {
+  margin: var(--s-8) auto var(--s-4);
+  padding: var(--s-6);
+  border-radius: var(--r-lg);
+  background: linear-gradient(135deg, var(--surface-1), var(--surface-2));
+  border: 1px solid var(--border);
+  text-align: center;
+  max-width: 720px;
+}
+.kofi-widget-text {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  color: var(--text);
+  margin-bottom: var(--s-4);
+  line-height: var(--lh-snug);
+}
+.kofi-widget-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-6);
+  border-radius: var(--r-pill);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #15151a;
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 14px var(--accent-glow);
+}
+.kofi-widget-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px var(--accent-glow); }
+.kofi-widget-btn:active { transform: translateY(0); }
+
+/* =====================================================
+   THEME TOGGLE BUTTON in nav
+   ===================================================== */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.theme-toggle:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-bold); }
+
+/* =====================================================
+   REPORT MODAL — chapter page user-report form
+   ===================================================== */
+.report-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: var(--s-1) var(--s-3);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.report-trigger:hover { color: var(--accent-2); border-color: var(--accent-2); }

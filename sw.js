@@ -13,7 +13,10 @@
 // Bumped from v3.3.2 → v3.4.1 for the JayaScans rebrand + admin auth header
 // rollout so existing browsers replace the cached "VoidScans" shell + the old
 // no-Authorization admin scripts on next visit.
-const CACHE_VERSION = 'v3.4.1';
+// Bumped from v3.4.1 → v3.5.0 for the admin Settings + Ko-fi + ads + theme +
+// reports + Discord rollout, plus the expanded CSP that fixes the imgsrv4 /
+// anilist / cloudflareinsights / Firebase source-map blocks reported on prod.
+const CACHE_VERSION = 'v3.5.0';
 const SHELL_CACHE   = `shell-${CACHE_VERSION}`;
 const ASSET_CACHE   = `asset-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `images-${CACHE_VERSION}`;
@@ -34,6 +37,10 @@ const SHELL_URLS = [
   '/assets/js/lib/auth.js',
   '/assets/js/lib/account.js',
   '/assets/js/lib/site.config.js',
+  '/assets/js/lib/settings.js',
+  '/assets/js/lib/branding.js',
+  '/assets/js/lib/theme.js',
+  '/assets/js/lib/discord.js',
   '/assets/js/lib/router.js',
   '/assets/js/lib/library.js',
   '/assets/js/lib/ui.js',

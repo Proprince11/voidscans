@@ -108,12 +108,18 @@
   </header>
 
   <!-- =================== ROUTE OUTLET =================== -->
+  <!-- Admin-configurable ad slot (header) — empty unless enabled in admin Settings -->
+  <div data-ad-slot="header" style="display:none;"></div>
+
   <main id="app" role="main">
     <!-- Initial loader (shown while JS boots) -->
     <div class="container section">
       <div class="center" style="min-height: 40dvh;"><div class="spinner"></div></div>
     </div>
   </main>
+
+  <!-- Admin-configurable ad slot (footer) — empty unless enabled in admin Settings -->
+  <div data-ad-slot="footer" style="display:none;"></div>
 
   <!-- =================== BOTTOM NAV (mobile) =================== -->
   <nav class="bottom-nav" id="bottomnav" aria-label="Primary navigation">

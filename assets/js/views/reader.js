@@ -16,6 +16,10 @@ import { getProfile } from '../lib/account.js';
 import { esc, html, throttle, timeAgo, avatarLetter, isMobile, isTouch, proxyImage, setMeta, truncate } from '../lib/utils.js';
 import { spinner, toast, drawer, share } from '../lib/ui.js';
 import { SITE, pageTitle } from '../lib/site.config.js';
+import { getSettings } from '../lib/settings.js';
+import { applyBranding } from '../lib/branding.js';
+import { submitReport } from '../lib/api.js';
+import { onAuthChange } from '../lib/auth.js';
 
 export async function reader(params, ctx) {
   const slug = params.slug;
@@ -97,6 +101,35 @@ export async function reader(params, ctx) {
     });
   }
 
+  // Apply admin-configured branding/ads to slots present in this view
+  applyBranding();
+
+  // Show Ko-fi widget if enabled in admin Settings → Monetization
+  const settings = getSettings();
+  if (settings?.features?.kofiEnabled && settings?.monetization?.kofi?.enabled) {
+    const url = settings.monetization.kofi.url;
+    if (url) {
+      const wrap = document.getElementById('rSupport');
+      const txt  = document.getElementById('rSupportText');
+      const link = document.getElementById('rSupportLink');
+      if (wrap && txt && link) {
+        txt.textContent = settings.monetization.kofi.text || 'Enjoying our scans? Show some love.';
+        link.href = url;
+        wrap.style.display = 'block';
+      }
+    }
+  }
+
+  // Show "Report a problem" button if reports feature is enabled
+  if (settings?.features?.reportsEnabled) {
+    const row = document.getElementById('rReportRow');
+    const btn = document.getElementById('rReportBtn');
+    if (row && btn) {
+      row.style.display = 'block';
+      btn.addEventListener('click', () => openReportDialog(s, ch));
+    }
+  }
+
   // Restore progress
   getProgress(slug, ch.number).then(p => {
     if (p && p.page > 0 && p.page < ch.pages.length - 1) {
@@ -151,7 +184,25 @@ function renderReader(s, ch, prev, next, all, prefs) {
              loading="${i < 3 ? 'eager' : 'lazy'}" decoding="async"
              data-page="${i}"
              onerror="this.onerror=null;this.style.background='var(--surface-3)';this.alt='Image failed to load';">
+        ${i === 4 ? '<div data-ad-slot="mid-chapter" style="display:none;"></div>' : ''}
       `).join('')}
+    </div>
+
+    <!-- Ko-fi / support widget (toggled in admin Settings → Monetization) -->
+    <div id="rSupport" class="kofi-widget" style="display: none;">
+      <p class="kofi-widget-text" id="rSupportText"></p>
+      <a id="rSupportLink" class="kofi-widget-btn" target="_blank" rel="noopener">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M5 7h12a4 4 0 0 1 4 4v1a4 4 0 0 1-4 4h-1.5a3.5 3.5 0 0 1-3.5 3.5h-4A3.5 3.5 0 0 1 4.5 16V8a1 1 0 0 1 .5-1zm12 2v5a2 2 0 0 0 2-2v-1a2 2 0 0 0-2-2z"/></svg>
+        Support us
+      </a>
+    </div>
+
+    <!-- User report button -->
+    <div id="rReportRow" style="text-align: center; margin: var(--s-4) auto var(--s-6); display: none;">
+      <button class="report-trigger" id="rReportBtn" type="button">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        Report a problem with this chapter
+      </button>
     </div>
 
     <div class="reader-bottombar">
@@ -521,5 +572,81 @@ function paintChapterComments(s, items) {
         toast('Could not like', 'error');
       }
     });
+  });
+}
+
+
+
+// =====================================================
+// REPORT DIALOG — user-submitted issue report on chapter
+// =====================================================
+function openReportDialog(s, ch) {
+  // Lightweight modal — we don't have a generic openModal helper, so build inline
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    display: grid; place-items: center; padding: var(--s-4);
+  `;
+  overlay.innerHTML = `
+    <div style="background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-6); width: 100%; max-width: 480px;">
+      <h3 style="margin: 0 0 var(--s-4); font-family: var(--font-display); font-weight: 700;">Report a problem</h3>
+      <p style="font-size: var(--fs-sm); color: var(--text-muted); margin-bottom: var(--s-4);">Thanks for helping us improve. We'll review every report.</p>
+
+      <div class="field" style="margin-bottom: var(--s-3);">
+        <label class="field-label">What's wrong?</label>
+        <select id="repReason" class="field-input">
+          <option value="broken_image">Broken / missing image</option>
+          <option value="wrong_chapter">Wrong chapter or order</option>
+          <option value="bad_translation">Bad / unreadable translation</option>
+          <option value="spam_comment">Spam in comments</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div class="field" style="margin-bottom: var(--s-3);">
+        <label class="field-label">Details (optional)</label>
+        <textarea id="repDetails" class="field-input" rows="3" maxlength="1000" placeholder="e.g. page 5 doesn't load, or page 12 looks like it's from another chapter"></textarea>
+      </div>
+
+      <div class="field" style="margin-bottom: var(--s-4);">
+        <label class="field-label">Your email (optional, so we can reply)</label>
+        <input type="email" id="repEmail" class="field-input" placeholder="you@example.com">
+      </div>
+
+      <div style="display: flex; gap: var(--s-3); justify-content: flex-end;">
+        <button class="btn btn-ghost" id="repCancel" type="button">Cancel</button>
+        <button class="btn btn-primary" id="repSubmit" type="button">Submit Report</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const close = () => overlay.remove();
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  overlay.querySelector('#repCancel').addEventListener('click', close);
+
+  overlay.querySelector('#repSubmit').addEventListener('click', async () => {
+    const btn = overlay.querySelector('#repSubmit');
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+    try {
+      const profile = getProfile();
+      await submitReport({
+        seriesSlug: s.slug,
+        chapter: ch.number,
+        reason: overlay.querySelector('#repReason').value,
+        details: overlay.querySelector('#repDetails').value,
+        authorName: profile?.displayName || '',
+        authorEmail: overlay.querySelector('#repEmail').value
+      });
+      toast('Report sent. Thank you!', 'success');
+      close();
+    } catch (e) {
+      console.error(e);
+      toast(`Could not send: ${e.message}`, 'error');
+      btn.disabled = false;
+      btn.textContent = 'Submit Report';
+    }
   });
 }

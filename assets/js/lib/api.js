@@ -523,3 +523,32 @@ export async function fetchChapterComments(slug, chapterNum, limitTo = 30) {
     }
   });
 }
+
+
+
+// =====================================================
+// REPORTS — user-submitted issue reports for chapters/series
+// (broken images, bad translation, wrong order, etc.)
+// Stored under top-level /reports collection. Admin-readable,
+// public-writable (rules clamp to required fields + rate-limit).
+// =====================================================
+export async function submitReport({ seriesSlug, chapter = null, reason, details = '', authorName = '', authorEmail = '' }) {
+  const allowedReasons = ['broken_image', 'wrong_chapter', 'bad_translation', 'spam_comment', 'other'];
+  if (!seriesSlug) throw new Error('seriesSlug required');
+  if (!allowedReasons.includes(reason)) throw new Error('invalid reason');
+  const cleanDetails = String(details || '').trim().slice(0, 1000);
+  const payload = {
+    seriesSlug: String(seriesSlug).slice(0, 200),
+    chapter: chapter ? Number(chapter) : null,
+    reason,
+    details: cleanDetails,
+    authorName: String(authorName || 'Anonymous').slice(0, 40),
+    authorEmail: String(authorEmail || '').slice(0, 200),
+    status: 'open',
+    pageUrl: typeof location !== 'undefined' ? location.href.slice(0, 500) : '',
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 200) : '',
+    createdAt: serverTimestamp()
+  };
+  const ref = await addDoc(collection(db, 'reports'), payload);
+  return ref.id;
+}
