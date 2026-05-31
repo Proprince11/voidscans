@@ -122,7 +122,7 @@ export async function home(_params, ctx) {
     ${heroHtml}
 
     ${continueReading.length > 0 ? html`
-    <section class="section" id="continue-reading">
+    <section class="section cv-deferred" id="continue-reading">
       <div class="container">
         <div class="section-header">
           <h2 class="section-title">Continue Reading</h2>
@@ -147,7 +147,7 @@ export async function home(_params, ctx) {
     </section>
     ` : ''}
 
-    <section class="section" id="latest">
+    <section class="section cv-deferred" id="latest">
       <div class="container">
         <div class="section-header">
           <h2 class="section-title">Latest Updates</h2>
@@ -159,7 +159,7 @@ export async function home(_params, ctx) {
       </div>
     </section>
 
-    <section class="section">
+    <section class="section cv-deferred">
       <div class="container">
         <div class="section-header">
           <h2 class="section-title">Browse by Genre</h2>
@@ -168,7 +168,7 @@ export async function home(_params, ctx) {
       </div>
     </section>
 
-    <section class="section">
+    <section class="section cv-deferred">
       <div class="container">
         <div class="section-header">
           <h2 class="section-title">Popular Now</h2>
@@ -181,7 +181,7 @@ export async function home(_params, ctx) {
     </section>
 
     ${newlyAdded.length > 0 ? html`
-    <section class="section">
+    <section class="section cv-deferred">
       <div class="container">
         <div class="section-header">
           <h2 class="section-title">New Arrivals</h2>
