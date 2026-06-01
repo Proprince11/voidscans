@@ -147,8 +147,11 @@ function renderShell(s) {
                 ${s.latestChapter > 0 ? `Read Latest · Ch.${s.latestChapter}` : 'No chapters yet'}
               </button>
               <button class="btn btn-outline" id="readFirstBtn">Start from Ch.1</button>
-              <button class="btn btn-outline icon-btn" id="bookmarkBtn" aria-label="Add to library" title="Bookmark"></button>
-              <button class="btn btn-outline icon-btn" id="shareBtn" aria-label="Share" title="Share">
+              <button class="btn btn-outline btn-icon" id="bookmarkBtn" aria-label="Add to library" title="Bookmark">
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+</button>
+<button class="btn btn-outline btn-icon" id="shareBtn" aria-label="Share" title="Share">
+
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
               </button>
             </div>
