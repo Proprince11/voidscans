@@ -103,3 +103,88 @@ export function emptyState({ icon = '∅', title = 'Nothing here', subtitle = ''
     </div>
   `;
 }
+
+
+
+// =====================================================
+// RECOMMENDATION STRIPS — used by series.js and reader.js to keep
+// readers in the catalog after they finish a chapter or browse a series.
+// =====================================================
+
+/**
+ * Build a "You might also like / More {Type} / Popular Series" card grid.
+ * Always returns something useful, even on fresh sites with no genre overlap.
+ *
+ * @param {object}     currentSeries  - the series the user is on (excluded from recs)
+ * @param {object[]}   allSeries      - the full series catalog
+ * @param {object}     opts
+ * @param {number}     [opts.limit=6] - max cards to show
+ * @returns {{ titleText: string, cards: string[] }}
+ */
+export function buildRecommendations(currentSeries, allSeries, opts = {}) {
+  const limit = Math.max(1, Number(opts.limit) || 6);
+  if (!Array.isArray(allSeries) || !allSeries.length || !currentSeries) {
+    return { titleText: '', cards: [] };
+  }
+
+  const myGenres = new Set((currentSeries.genres || []).map(g => g.toLowerCase()));
+  const others = allSeries.filter(x => x.slug !== currentSeries.slug);
+
+  // 1) Genre overlap (best signal)
+  let candidates = others
+    .map(x => ({
+      x,
+      overlap: (x.genres || []).filter(g => myGenres.has(g.toLowerCase())).length
+    }))
+    .filter(r => r.overlap > 0)
+    .sort((a, b) => {
+      if (b.overlap !== a.overlap) return b.overlap - a.overlap;
+      return (b.x.views || 0) - (a.x.views || 0);
+    })
+    .map(r => r.x);
+
+  let titleText = 'You might also like';
+
+  // 2) Same type fallback
+  if (candidates.length === 0 && currentSeries.type) {
+    candidates = others
+      .filter(x => x.type === currentSeries.type)
+      .sort((a, b) => (b.views || 0) - (a.views || 0));
+    if (candidates.length) {
+      titleText = `More ${currentSeries.type.charAt(0).toUpperCase() + currentSeries.type.slice(1)}`;
+    }
+  }
+
+  // 3) Popular fallback
+  if (candidates.length === 0) {
+    candidates = others.sort((a, b) => (b.views || 0) - (a.views || 0));
+    if (candidates.length) titleText = 'Popular Series';
+  }
+
+  return {
+    titleText,
+    cards: candidates.slice(0, limit).map(s => seriesCard(s))
+  };
+}
+
+/**
+ * Build a list of the most-recently-updated series, excluding the current one.
+ * Used as a "Latest Updates" tail strip for global discovery.
+ *
+ * @returns {string[]} array of updateRow() HTML
+ */
+export function buildLatestUpdates(currentSlug, allSeries, opts = {}) {
+  const limit = Math.max(1, Number(opts.limit) || 6);
+  if (!Array.isArray(allSeries) || !allSeries.length) return [];
+  return allSeries
+    .filter(x => x.slug !== currentSlug && x.latestChapter > 0)
+    .sort((a, b) => {
+      const at = a.latestChapterAt?.toMillis ? a.latestChapterAt.toMillis()
+        : (a.latestChapterAt ? new Date(a.latestChapterAt).getTime() || 0 : 0);
+      const bt = b.latestChapterAt?.toMillis ? b.latestChapterAt.toMillis()
+        : (b.latestChapterAt ? new Date(b.latestChapterAt).getTime() || 0 : 0);
+      return bt - at;
+    })
+    .slice(0, limit)
+    .map(s => updateRow(s));
+}
