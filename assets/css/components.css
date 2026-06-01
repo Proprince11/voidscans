@@ -563,13 +563,44 @@ body.has-bottom-nav {
   z-index: 3;
 }
 .hero-dot {
+  position: relative;
   width: 8px; height: 8px;
   border-radius: var(--r-full);
   background: rgba(255,255,255,0.3);
   cursor: pointer;
   transition: all var(--t-fast);
+  overflow: hidden;
+  border: 0;
+  padding: 0;
 }
-.hero-dot.active { background: var(--accent); width: 24px; border-radius: var(--r-pill); }
+.hero-dot.active {
+  background: rgba(255,255,255,0.25);
+  width: 28px;
+  border-radius: var(--r-pill);
+}
+/* Progress fill on the active dot — JS animates --dot-progress 0% → 100% */
+.hero-dot.active::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: var(--dot-progress, 0%);
+  background: var(--accent);
+  border-radius: inherit;
+  transition: width 80ms linear;
+}
+.hero-dot:hover { background: rgba(255,255,255,0.5); }
+
+/* Subtle Ken-Burns drift on the active blurred bg.
+   Disabled automatically for users with reduced-motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-slide.active .hero-bg {
+    animation: heroBgKenBurns 16s ease-in-out infinite alternate;
+  }
+}
+@keyframes heroBgKenBurns {
+  0%   { transform: scale(1.1)  translate(0, 0); }
+  100% { transform: scale(1.18) translate(-2%, -2%); }
+}
 
 .hero-arrow {
   position: absolute;

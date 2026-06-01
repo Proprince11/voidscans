@@ -220,31 +220,77 @@ function setupHeroSlider() {
   const next   = hero.querySelector('.hero-arrow.next');
   if (slides.length <= 1) return () => {};
 
+  // Respect users who explicitly asked for reduced motion — disable auto-rotate
+  // for them but keep manual controls fully functional.
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const ROTATE_MS = 5000; // 5s per slide — feels dynamic without being frantic
+
   let idx = 0;
   let timer = null;
+  let progressStart = 0;
 
   function go(i) {
     idx = (i + slides.length) % slides.length;
     slides.forEach((s, k) => s.classList.toggle('active', k === idx));
     dots.forEach((d, k) => d.classList.toggle('active', k === idx));
+    progressStart = performance.now();
+    setActiveDotProgress(0);
   }
-  function start() { stop(); timer = setInterval(() => go(idx + 1), 6000); }
-  function stop()  { if (timer) { clearInterval(timer); timer = null; } }
+
+  function setActiveDotProgress(pct) {
+    const active = hero.querySelector('.hero-dot.active');
+    if (active) active.style.setProperty('--dot-progress', `${pct * 100}%`);
+  }
+
+  let rafId = null;
+  function tickProgress() {
+    if (!timer) { rafId = null; return; }
+    const elapsed = performance.now() - progressStart;
+    setActiveDotProgress(Math.min(1, elapsed / ROTATE_MS));
+    rafId = requestAnimationFrame(tickProgress);
+  }
+
+  function start() {
+    stop();
+    if (reducedMotion) return;
+    progressStart = performance.now();
+    timer = setInterval(() => go(idx + 1), ROTATE_MS);
+    rafId = requestAnimationFrame(tickProgress);
+  }
+  function stop() {
+    if (timer) { clearInterval(timer); timer = null; }
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    setActiveDotProgress(0);
+  }
+
+  // Pause when tab isn't visible — saves CPU + state
+  function onVisibility() {
+    if (document.visibilityState === 'visible') start();
+    else stop();
+  }
+  document.addEventListener('visibilitychange', onVisibility);
 
   hero.addEventListener('mouseenter', stop);
   hero.addEventListener('mouseleave', start);
+  // Pause on focus-within for keyboard users
+  hero.addEventListener('focusin', stop);
+  hero.addEventListener('focusout', start);
   prev?.addEventListener('click', () => { go(idx - 1); start(); });
   next?.addEventListener('click', () => { go(idx + 1); start(); });
   dots.forEach(d => d.addEventListener('click', () => { go(Number(d.dataset.idx)); start(); }));
 
   // Touch swipe
   let sx = 0;
-  hero.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; }, { passive: true });
+  hero.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; stop(); }, { passive: true });
   hero.addEventListener('touchend', (e) => {
     const dx = e.changedTouches[0].clientX - sx;
-    if (Math.abs(dx) > 50) { dx < 0 ? go(idx + 1) : go(idx - 1); start(); }
+    if (Math.abs(dx) > 50) { dx < 0 ? go(idx + 1) : go(idx - 1); }
+    start();
   });
 
   start();
-  return () => stop();
+  return () => {
+    stop();
+    document.removeEventListener('visibilitychange', onVisibility);
+  };
 }
