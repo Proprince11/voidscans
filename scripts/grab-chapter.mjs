@@ -27,8 +27,8 @@ function getArg(name, defaultVal = '') {
 }
 function hasFlag(name) { return args.includes(`--${name}`); }
 
-const SINGLE_URL = args.find(a => a.startsWith('http'));
 const BATCH_PATTERN = getArg('batch');
+const SINGLE_URL = BATCH_PATTERN ? null : args.find(a => a.startsWith('http'));
 const START = parseInt(getArg('start', '1'), 10);
 const END = parseInt(getArg('end', '1'), 10);
 const SAVE_FILE = getArg('save');
