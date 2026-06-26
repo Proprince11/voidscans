@@ -50,6 +50,8 @@ const PROXY_ALLOWED_HOSTS = [
   'files.catbox.moe',
   'i.ibb.co',
   'i.imgur.com',
+  'storage.hivetoon.com',
+  'cdn.hivetoon.com',
   'pub-' // R2 public URLs (https://pub-XXXXX.r2.dev/...)
 ];
 

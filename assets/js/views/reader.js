@@ -346,7 +346,7 @@ function wireUp(s, ch, prev, next, all, prefs) {
           loadObserver.unobserve(img);
         }
       }
-    }, { rootMargin: '150% 0px' }); // Start loading when within 1.5 screens
+    }, { rootMargin: '250% 0px' }); // Start loading when within 2.5 screens (aggressive preload)
     lazyImages.forEach(img => loadObserver.observe(img));
     cleanups.push(() => loadObserver.disconnect());
   }

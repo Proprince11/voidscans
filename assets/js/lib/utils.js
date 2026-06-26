@@ -181,23 +181,20 @@ export function icon(name, size = 20) {
 }
 
 
-/** Wrap a cover/asset URL with the same-origin /api/proxy-image proxy
- *  if it's a hotlink-protected host (e.g. MangaDex CDN). The Worker
- *  fetches it server-side with the right Referer header so the actual
- *  image is served instead of a "Read on …" placeholder. */
+/** Wrap ALL chapter image URLs through the same-origin /api/proxy-image proxy.
+ *  This routes images through Cloudflare's edge cache — first load comes from
+ *  Catbox/ImgBB, then Cloudflare caches it for 24h at the nearest PoP.
+ *  Subsequent readers get ~50ms loads instead of 500ms+ from origin. */
 const HOTLINK_HOSTS = ['mangadex.org', 'cdn.statically.io', 'uploads.mangadex.org'];
 export function proxyImage(url) {
   if (!url || typeof url !== 'string') return url;
   if (url.startsWith('/api/')) return url;       // already proxied
   if (url.startsWith('data:'))  return url;
+  // Proxy ALL external images (for edge caching), not just hotlink-protected ones
   try {
     const u = new URL(url);
-    const h = u.hostname.toLowerCase();
-    for (const protected_ of HOTLINK_HOSTS) {
-      if (h === protected_ || h.endsWith('.' + protected_)) {
-        return `/api/proxy-image?url=${encodeURIComponent(url)}`;
-      }
-    }
+    if (u.origin === location.origin) return url; // same-origin, no need
+    return `/api/proxy-image?url=${encodeURIComponent(url)}`;
   } catch { /* invalid URL — return as-is */ }
   return url;
 }

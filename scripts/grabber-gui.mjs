@@ -401,7 +401,7 @@ async function uploadToCatbox(blob, sourceUrl) {
   if (sharp && ext !== 'webp' && ext !== 'gif') {
     try {
       const buffer = Buffer.from(await blob.arrayBuffer());
-      const webpBuffer = await sharp(buffer).webp({ quality: 82 }).toBuffer();
+      const webpBuffer = await sharp(buffer).webp({ quality: 75 }).toBuffer();
       // Only use WebP if it's actually smaller
       if (webpBuffer.length < buffer.length * 0.95) {
         uploadBlob = new Blob([webpBuffer], { type: 'image/webp' });
@@ -454,7 +454,7 @@ async function uploadToImgBB(blob, sourceUrl) {
     if (sharp && ext !== 'webp' && ext !== 'gif') {
       try {
         const buf = Buffer.from(await blob.arrayBuffer());
-        const webpBuf = await sharp(buf).webp({ quality: 82 }).toBuffer();
+        const webpBuf = await sharp(buf).webp({ quality: 75 }).toBuffer();
         if (webpBuf.length < buf.length * 0.95) {
           uploadBlob = new Blob([webpBuf], { type: 'image/webp' });
         }
