@@ -225,10 +225,22 @@ function renderShell(s) {
             <div></div>
           </div>
           <textarea class="textarea" id="cText" placeholder="Share your thoughts… (2–1000 chars)" maxlength="1000"></textarea>
+          <div id="cGifPreview" style="display:none; margin-top: var(--s-2);">
+            <div style="position:relative; display:inline-block;">
+              <img id="cGifImg" src="" alt="GIF" style="max-width:200px; border-radius: var(--r-sm); border: 1px solid var(--border);">
+              <button type="button" id="cGifRemove" style="position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.8); color:var(--danger); border:none; border-radius:50%; width:20px; height:20px; cursor:pointer; font-size:12px;">✕</button>
+            </div>
+          </div>
           <div class="row gap-3" style="margin-top: var(--s-2); align-items: center;">
+            <button type="button" class="btn btn-secondary btn-sm" id="cGifBtn" title="Add GIF" style="font-size: var(--fs-sm);">🎬 GIF</button>
             <span class="field-hint" id="cCounter">0 / 1000</span>
             <span class="nav-spacer"></span>
             <button class="btn btn-primary" id="cSubmit">Post Comment</button>
+          </div>
+          <div id="cGifPicker" hidden style="margin-top: var(--s-3); padding: var(--s-3); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md);">
+            <input type="text" class="input" id="cGifSearch" placeholder="Search GIFs..." style="margin-bottom: var(--s-3);">
+            <div id="cGifGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: var(--s-2); max-height: 250px; overflow-y: auto;"></div>
+            <p style="font-size: 10px; color: var(--text-faint); margin-top: var(--s-2); text-align:right;">Powered by Tenor</p>
           </div>
         </div>
         <div class="comments-list" id="commentList" style="margin-top: var(--s-5);">${spinner('sm')}</div>
@@ -338,17 +350,84 @@ function wireUpShell(s) {
     if (nameInput && !nameInput.value) nameInput.value = profile.displayName;
   }
 
+  // GIF Picker
+  let selectedGif = '';
+  const gifBtn = document.getElementById('cGifBtn');
+  const gifPicker = document.getElementById('cGifPicker');
+  const gifSearch = document.getElementById('cGifSearch');
+  const gifGrid = document.getElementById('cGifGrid');
+  const gifPreview = document.getElementById('cGifPreview');
+  const gifImg = document.getElementById('cGifImg');
+  const gifRemove = document.getElementById('cGifRemove');
+
+  // Tenor API (free tier, key is public/rate-limited)
+  const TENOR_KEY = 'AIzaSyA3gT_cGL5fgFgYdWMYUjblrHhZyPEaFpU'; // Google's public Tenor key
+  const TENOR_API = 'https://tenor.googleapis.com/v2';
+
+  gifBtn?.addEventListener('click', () => {
+    gifPicker.hidden = !gifPicker.hidden;
+    if (!gifPicker.hidden) { gifSearch.focus(); loadTrendingGifs(); }
+  });
+
+  gifRemove?.addEventListener('click', () => {
+    selectedGif = '';
+    gifPreview.style.display = 'none';
+    gifImg.src = '';
+  });
+
+  async function loadTrendingGifs() {
+    try {
+      const res = await fetch(`${TENOR_API}/featured?key=${TENOR_KEY}&limit=20&media_filter=tinygif`);
+      const data = await res.json();
+      renderGifResults(data.results || []);
+    } catch {}
+  }
+
+  let gifSearchTimeout;
+  gifSearch?.addEventListener('input', () => {
+    clearTimeout(gifSearchTimeout);
+    gifSearchTimeout = setTimeout(async () => {
+      const q = gifSearch.value.trim();
+      if (!q) { loadTrendingGifs(); return; }
+      try {
+        const res = await fetch(`${TENOR_API}/search?key=${TENOR_KEY}&q=${encodeURIComponent(q)}&limit=20&media_filter=tinygif`);
+        const data = await res.json();
+        renderGifResults(data.results || []);
+      } catch {}
+    }, 400);
+  });
+
+  function renderGifResults(results) {
+    gifGrid.innerHTML = results.map(r => {
+      const url = r.media_formats?.tinygif?.url || r.media_formats?.gif?.url || '';
+      if (!url) return '';
+      return `<img src="${esc(url)}" alt="GIF" loading="lazy" style="width:100%; border-radius:4px; cursor:pointer; aspect-ratio:1; object-fit:cover;" data-gif="${esc(url)}">`;
+    }).join('');
+    gifGrid.querySelectorAll('[data-gif]').forEach(img => {
+      img.addEventListener('click', () => {
+        selectedGif = img.dataset.gif;
+        gifImg.src = selectedGif;
+        gifPreview.style.display = 'block';
+        gifPicker.hidden = true;
+        gifSearch.value = '';
+      });
+    });
+  }
+
   // Comment submit
   document.getElementById('cSubmit')?.addEventListener('click', async () => {
     const name = document.getElementById('cName').value.trim() || 'Anonymous';
-    const text = cText.value.trim();
+    let text = cText.value.trim();
+    // Append GIF URL to comment text if selected
+    if (selectedGif) text = (text ? text + '\n' : '') + `[gif:${selectedGif}]`;
     const last = Number(localStorage.getItem('vs:lastComment') || 0);
     if (Date.now() - last < 60_000) { toast('Please wait a minute before commenting again', 'error'); return; }
-    if (text.length < 2) { toast('Comment too short', 'error'); return; }
+    if (text.length < 2 && !selectedGif) { toast('Comment too short', 'error'); return; }
     try {
       await postComment(s.slug, { authorName: name, text });
       localStorage.setItem('vs:lastComment', String(Date.now()));
       cText.value = ''; counter.textContent = '0 / 1000';
+      selectedGif = ''; gifPreview.style.display = 'none'; gifImg.src = '';
       toast('Posted!', 'success');
       const list = await fetchComments(s.slug, 30);
       renderComments(s, list);
@@ -470,6 +549,26 @@ function renderRating(s, rating) {
 // =====================================================
 // COMMENTS
 // =====================================================
+
+/** Format comment text: escape HTML but render [gif:URL] as inline images */
+function formatCommentText(text) {
+  if (!text) return '';
+  // Extract GIF URLs
+  const gifRegex = /\[gif:(https?:\/\/[^\]]+)\]/g;
+  const parts = text.split(gifRegex);
+  let result = '';
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 2 === 0) {
+      // Normal text — escape it
+      result += esc(parts[i]);
+    } else {
+      // GIF URL — render as image
+      result += `<img src="${esc(parts[i])}" alt="GIF" class="comment-gif" loading="lazy" referrerpolicy="no-referrer">`;
+    }
+  }
+  return result;
+}
+
 function renderComments(s, list) {
   const container = document.getElementById('commentList');
   document.getElementById('commentCount').innerHTML = `<strong>${list.length}</strong> comment${list.length === 1 ? '' : 's'}`;
@@ -488,7 +587,7 @@ function renderComments(s, list) {
             <span class="comment-name">${esc(c.authorName || 'Anonymous')}</span>
             <span class="comment-time">${esc(ts)}</span>
           </div>
-          <div class="comment-text">${esc(c.text)}</div>
+          <div class="comment-text">${formatCommentText(c.text)}</div>
           <div class="comment-actions">
             <button class="comment-action ${liked ? 'active' : ''}" data-like="${esc(c.id)}">
               👍 <span>${esc(c.likes || 0)}</span>

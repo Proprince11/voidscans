@@ -890,6 +890,14 @@ body.has-bottom-nav {
   line-height: var(--lh-base);
   word-break: break-word;
 }
+.comment-gif {
+  display: block;
+  max-width: 220px;
+  max-height: 200px;
+  border-radius: var(--r-sm);
+  margin-top: var(--s-2);
+  border: 1px solid var(--border);
+}
 .comment-actions {
   display: flex;
   gap: var(--s-2);
