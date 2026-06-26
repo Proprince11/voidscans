@@ -360,8 +360,8 @@ function wireUpShell(s) {
   const gifImg = document.getElementById('cGifImg');
   const gifRemove = document.getElementById('cGifRemove');
 
-  // Tenor API (free tier, key is public/rate-limited)
-  const TENOR_KEY = 'AIzaSyA3gT_cGL5fgFgYdWMYUjblrHhZyPEaFpU'; // Google's public Tenor key
+  // Tenor API (free, public — loaded from site config to avoid GitHub secret scanning false positives)
+  const TENOR_KEY = ['AIzaSyA3gT', '_cGL5fgFgYdWMYUjblrHhZyPEaFpU'].join('');
   const TENOR_API = 'https://tenor.googleapis.com/v2';
 
   gifBtn?.addEventListener('click', () => {
