@@ -20,6 +20,7 @@ import { esc, html, timeAgo, avatarLetter, compactNum, proxyImage, setMeta, trun
 import { spinner, toast, share, confirmModal } from '../lib/ui.js';
 import { seriesCard, statusBadge, emptyState } from './_components.js';
 import { SITE, pageTitle } from '../lib/site.config.js';
+import { navigate } from '../lib/router.js';
 
 const REACTIONS = [
   { key: 'fire',  emoji: '🔥', label: 'Fire' },
@@ -273,10 +274,10 @@ function wireUpShell(s) {
 
   // Read buttons
   document.getElementById('readLatestBtn')?.addEventListener('click', () => {
-    if (s.latestChapter > 0) location.assign(`/read/${encodeURIComponent(s.slug)}/${s.latestChapter}`);
+    if (s.latestChapter > 0) navigate(`/read/${encodeURIComponent(s.slug)}/${s.latestChapter}`);
   });
   document.getElementById('readFirstBtn')?.addEventListener('click', () => {
-    location.assign(`/read/${encodeURIComponent(s.slug)}/1`);
+    navigate(`/read/${encodeURIComponent(s.slug)}/1`);
   });
 
   // Share

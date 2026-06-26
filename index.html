@@ -16,26 +16,32 @@
   <meta property="og:title" content="JayaScans — Read Manhwa, Manga & Manhua Online Free">
   <meta property="og:description" content="Premium reading experience for manhwa, manga and manhua. Free forever, with offline support.">
   <meta property="og:url" content="https://jayascans.online/">
-  <meta property="og:image" content="/assets/images/og-default.png">
+  <meta property="og:image" content="/assets/images/logo.svg">
   <meta property="og:locale" content="en_US">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="JayaScans — Read Manhwa, Manga & Manhua">
   <meta name="twitter:description" content="Read manhwa, manga & manhua online. Free forever.">
-  <meta name="twitter:image" content="/assets/images/og-default.png">
+  <meta name="twitter:image" content="/assets/images/logo.svg">
 
   <!-- Icons & PWA -->
   <link rel="icon" type="image/svg+xml" href="/assets/images/favicon.svg">
-  <link rel="apple-touch-icon" href="/assets/images/icon-192.png">
+  <link rel="apple-touch-icon" href="/assets/images/icon.svg">
   <link rel="manifest" href="/manifest.webmanifest">
+
+  <!-- RSS feed discovery -->
+  <link rel="alternate" type="application/rss+xml" title="JayaScans - Latest Chapters" href="/rss">
 
   <!-- Font preconnect -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <!-- Load Google Fonts in parallel with CSS (was @import inside base.css,
-       which serialized the request and blocked render). -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+  <!-- Load Google Fonts asynchronously (non-render-blocking).
+       The preload hint fetches early; the actual stylesheet uses the
+       media="print" trick to avoid FOIT/FOUT render-blocking. -->
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" as="style">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"></noscript>
 
   <!-- Styles -->
   <link rel="stylesheet" href="/assets/css/tokens.css">

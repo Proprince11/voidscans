@@ -1,167 +1,138 @@
 // =====================================================
-// JayaScans — main Worker.
+// JayaScans Main Worker — API endpoints for admin tools.
 //
-// Handles:
-//   /api/health                  GET    Health probe
-//   /api/storage-info            GET    Which storage backend is active
-//   /api/upload                  POST   Image upload (R2 / ImgBB / Catbox)
-//   /api/bulk-upload             POST   Multi-file upload
-//   /api/scrape                  GET    Extract image URLs from a webpage
-//   /api/scrape-rehost           POST   Download given URLs and re-host
-//   /api/scrape-zip              GET    Download all page images as ZIP
-//   /api/proxy-image             GET    Proxy hotlink-protected images
-//   /api/mangadex/manga/:uuid    GET    MangaDex API proxy (CORS workaround)
-//   /rss                         GET    Global RSS feed
-//   /rss/series/:slug            GET    Per-series RSS feed
-//   /sitemap.xml                 GET    Auto-generated sitemap
+// Endpoints:
+//   GET  /api/scrape?url=...          → extract images from a webpage
+//   POST /api/scrape-rehost           → scrape + re-host images
+//   POST /api/upload                  → upload file to storage
+//   GET  /api/proxy-image?url=...     → reverse proxy for hotlinked images
+//   POST /api/zip-urls                → bundle URLs into a ZIP
+//   GET  /api/scrape-zip?url=...      → scrape + download as ZIP
+//   GET  /api/mangadex/manga/:id      → MangaDex proxy (CORS workaround)
+//   GET  /api/storage-info            → storage backend status
+//   GET  /sitemap.xml                 → auto-generated sitemap
+//   GET  /rss                         → RSS feed
 //
-// Anything else → falls through to env.ASSETS.fetch() (the static SPA).
+// Auth: admin-only endpoints verify Firebase ID token + admin claim.
 // =====================================================
 
-import { handleUpload, handleBulkUpload, handleStorageInfo } from './upload.js';
-import { handleScrape, handleScrapeRehost, handleScrapeZip, handleZipUrls } from './scrape.js';
-import { handleMangaDexProxy, handleProxyImage } from './proxy.js';
-import { handleGlobalRss, handleSeriesRss } from './rss.js';
+import { handleScrape, handleScrapeRehost, handleZipUrls, handleScrapeZip } from './scrape.js';
+import { handleUpload, handleStorageInfo } from './upload.js';
+import { handleProxyImage, handleMangaDexProxy } from './proxy.js';
 import { handleSitemap } from './sitemap.js';
+import { handleGlobalRss, handleSeriesRss } from './rss.js';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-};
+const FIREBASE_PROJECT_ID = 'voidscans-6c66b';
 
-function withCors(response) {
-  if (!response) return response;
-  const r = new Response(response.body, response);
-  for (const [k, v] of Object.entries(CORS)) r.headers.set(k, v);
-  return r;
+// =====================================================
+// AUTH — verify Firebase ID token + admin claim
+// =====================================================
+function base64UrlDecode(str) {
+  const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = base64.length % 4;
+  const padded = pad ? base64 + '='.repeat(4 - pad) : base64;
+  const binary = atob(padded);
+  return new Uint8Array([...binary].map(c => c.charCodeAt(0)));
 }
 
-// =====================================================
-// AUTH GUARD — verify Firebase ID token for admin routes.
-// Uses the Firebase Auth REST API to verify tokens without
-// the full Firebase Admin SDK (which requires Node.js).
-// =====================================================
-async function verifyAdminToken(request, env) {
+function decodeJwtPayload(token) {
+  const parts = token.split('.');
+  if (parts.length !== 3) throw createError(401, 'Invalid token format');
+  return JSON.parse(new TextDecoder().decode(base64UrlDecode(parts[1])));
+}
+
+async function verifyAdmin(request) {
   const authHeader = request.headers.get('Authorization') || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-  if (!token) return { ok: false, error: 'Missing Authorization header' };
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  if (!token) throw createError(401, 'No authorization token provided');
 
-  // Verify token via Google's tokeninfo endpoint (lightweight check)
-  // For production at scale, use Google's public keys + JWT verification.
-  // This approach is simple and works for low-traffic admin endpoints.
-  try {
-    const projectId = env.FIREBASE_PROJECT_ID || 'voidscans-6c66b';
-    const verifyUrl = `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${env.FIREBASE_WEB_API_KEY || ''}`;
-
-    // Decode the token to check claims (JWT structure: header.payload.signature)
-    const parts = token.split('.');
-    if (parts.length !== 3) return { ok: false, error: 'Malformed token' };
-
-    // Decode payload (base64url)
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-
-    // Check basic structure
-    if (!payload.user_id || !payload.exp) {
-      return { ok: false, error: 'Invalid token payload' };
-    }
-
-    // Check expiry
-    if (payload.exp * 1000 < Date.now()) {
-      return { ok: false, error: 'Token expired' };
-    }
-
-    // Check issuer matches our project
-    const expectedIssuer = `https://securetoken.google.com/${projectId}`;
-    if (payload.iss !== expectedIssuer) {
-      return { ok: false, error: 'Token issuer mismatch' };
-    }
-
-    // Check admin custom claim
-    if (!payload.admin) {
-      return { ok: false, error: 'Not an admin' };
-    }
-
-    return { ok: true, uid: payload.user_id };
-  } catch (e) {
-    return { ok: false, error: `Token verification failed: ${e.message}` };
-  }
+  const payload = decodeJwtPayload(token);
+  const now = Math.floor(Date.now() / 1000);
+  if (!payload.exp || payload.exp < now) throw createError(401, 'Token expired');
+  if (payload.aud !== FIREBASE_PROJECT_ID) throw createError(401, 'Token audience mismatch');
+  if (!payload.admin) throw createError(403, 'Not an admin');
+  return payload;
 }
 
-/** Middleware that gates a handler behind admin auth */
-async function requireAdmin(request, env, handler) {
-  const auth = await verifyAdminToken(request, env);
-  if (!auth.ok) {
-    return Response.json({ ok: false, error: auth.error }, { status: 401 });
-  }
-  return handler(request, env);
+function createError(status, message) {
+  const err = new Error(message);
+  err.status = status;
+  return err;
 }
 
+function cors(response) {
+  const headers = new Headers(response.headers);
+  headers.set('Access-Control-Allow-Origin', '*');
+  headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+  headers.set('Access-Control-Expose-Headers', 'Content-Disposition, X-Image-Count, X-Source-Count');
+  headers.set('Access-Control-Max-Age', '86400');
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
+
+// =====================================================
+// MAIN FETCH HANDLER
+// =====================================================
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const path = url.pathname;
 
+    // CORS preflight
     if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: CORS });
+      return cors(new Response(null, { status: 204 }));
     }
 
     try {
-      // -------- API (public) --------
-      if (url.pathname === '/api/health') {
-        return withCors(Response.json({ ok: true, t: Date.now() }));
+      // ---- Public endpoints (no auth) ----
+      if (path === '/sitemap.xml') return handleSitemap(request, env);
+      if (path === '/rss' || path === '/rss.xml') return handleGlobalRss(request, env);
+      if (path.startsWith('/rss/series/')) {
+        const slug = path.replace('/rss/series/', '').replace(/\/$/, '');
+        return handleSeriesRss(request, env, slug);
       }
-      if (url.pathname === '/api/storage-info') {
-        return withCors(await handleStorageInfo(request, env));
+      if (path === '/api/proxy-image') return handleProxyImage(request, env);
+      if (path.startsWith('/api/mangadex/manga/')) {
+        const uuid = path.replace('/api/mangadex/manga/', '').replace(/\/$/, '');
+        return cors(await handleMangaDexProxy(request, uuid));
+      }
+      if (path === '/api/storage-info') return cors(await handleStorageInfo(request, env));
+
+      // ---- Admin-only endpoints (verify token) ----
+      if (path === '/api/scrape' && request.method === 'GET') {
+        await verifyAdmin(request);
+        return cors(await handleScrape(request));
+      }
+      if (path === '/api/scrape-rehost' && request.method === 'POST') {
+        await verifyAdmin(request);
+        return cors(await handleScrapeRehost(request, env));
+      }
+      if (path === '/api/upload' && request.method === 'POST') {
+        await verifyAdmin(request);
+        return cors(await handleUpload(request, env));
+      }
+      if (path === '/api/zip-urls' && request.method === 'POST') {
+        await verifyAdmin(request);
+        return cors(await handleZipUrls(request));
+      }
+      if (path === '/api/scrape-zip' && request.method === 'GET') {
+        await verifyAdmin(request);
+        return cors(await handleScrapeZip(request));
       }
 
-      // -------- API (admin-only — upload + scrape endpoints) --------
-      if (url.pathname === '/api/upload') {
-        return withCors(await requireAdmin(request, env, handleUpload));
-      }
-      if (url.pathname === '/api/bulk-upload') {
-        return withCors(await requireAdmin(request, env, handleBulkUpload));
-      }
-      if (url.pathname === '/api/scrape') {
-        return withCors(await requireAdmin(request, env, handleScrape));
-      }
-      if (url.pathname === '/api/scrape-rehost') {
-        return withCors(await requireAdmin(request, env, handleScrapeRehost));
-      }
-      if (url.pathname === '/api/scrape-zip') {
-        return await requireAdmin(request, env, handleScrapeZip);
-      }
-      if (url.pathname === '/api/zip-urls') {
-        return await requireAdmin(request, env, handleZipUrls);
-      }
-
-      // -------- API (public — read-only proxy with allowlist) --------
-      if (url.pathname === '/api/proxy-image') {
-        return await handleProxyImage(request);
-      }
-      const mdMatch = url.pathname.match(/^\/api\/mangadex\/manga\/([^/]+)$/);
-      if (mdMatch) {
-        return withCors(await handleMangaDexProxy(request, mdMatch[1]));
-      }
-
-      // -------- RSS --------
-      if (url.pathname === '/rss' || url.pathname === '/rss.xml') {
-        return withCors(await handleGlobalRss(request, env));
-      }
-      const seriesRssMatch = url.pathname.match(/^\/rss\/series\/([^/]+?)(?:\.xml)?$/);
-      if (seriesRssMatch) {
-        return withCors(await handleSeriesRss(request, env, decodeURIComponent(seriesRssMatch[1])));
-      }
-
-      // -------- Sitemap --------
-      if (url.pathname === '/sitemap.xml') {
-        return withCors(await handleSitemap(request, env));
-      }
-
-      // -------- Static SPA fallback --------
-      return env.ASSETS.fetch(request);
+      // Fall through to static assets (handled by wrangler assets binding)
+      if (env.ASSETS) return env.ASSETS.fetch(request);
+      return new Response('Not found', { status: 404 });
     } catch (err) {
+      if (err.status) {
+        return cors(Response.json({ ok: false, error: err.message }, { status: err.status }));
+      }
       console.error('Worker error:', err);
-      return Response.json({ ok: false, error: err.message }, { status: 500 });
+      return cors(Response.json({ ok: false, error: 'Internal server error' }, { status: 500 }));
     }
   }
 };

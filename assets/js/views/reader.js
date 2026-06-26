@@ -18,6 +18,7 @@ import { spinner, toast, drawer, share } from '../lib/ui.js';
 import { SITE, pageTitle } from '../lib/site.config.js';
 import { getSettings } from '../lib/settings.js';
 import { applyBranding } from '../lib/branding.js';
+import { navigate } from '../lib/router.js';
 import { onAuthChange } from '../lib/auth.js';
 import { buildRecommendations, buildLatestUpdates } from './_components.js';
 
@@ -184,10 +185,17 @@ function renderReader(s, ch, prev, next, all, prefs) {
 
     <div class="reader-canvas ${fitClass} ${gapClass}" id="rCanvas" style="--mp-zoom: ${zoomFactor};">
       ${ch.pages.map((url, i) => `
-        <img class="manga-page" src="${esc(proxyImage(url))}" alt="Page ${i + 1}"
-             loading="${i < 3 ? 'eager' : 'lazy'}" decoding="async"
-             data-page="${i}"
-             onerror="this.onerror=null;this.style.background='var(--surface-3)';this.alt='Image failed to load';">
+        <div class="page-wrap" data-page="${i}">
+          <div class="page-loader">
+            <div class="page-spinner"></div>
+            <span class="page-loader-text">${i < 3 ? 'Loading...' : ['Hold tight, otaku...', 'Loading your fix...', 'Patience, reader...', 'Almost there...', 'Worth the wait...', 'Loading panels...'][i % 6]}</span>
+          </div>
+          <img class="manga-page" ${i < 3 ? `src="${esc(proxyImage(url))}"` : `data-src="${esc(proxyImage(url))}"`} alt="Page ${i + 1}"
+               loading="${i < 3 ? 'eager' : 'lazy'}" decoding="async"
+               data-page="${i}"
+               onload="this.parentElement.classList.add('loaded')"
+               onerror="this.onerror=null;this.parentElement.classList.add('error');this.alt='Failed to load';">
+        </div>
         ${i === 4 ? '<div data-ad-slot="mid-chapter" style="display:none;"></div>' : ''}
       `).join('')}
     </div>
@@ -318,8 +326,30 @@ function wireUp(s, ch, prev, next, all, prefs) {
     }
     saveProgress(s.slug, ch.number, lastVisibleIdx, ch.pages.length);
   }, { threshold: 0.5 });
-  document.querySelectorAll('.manga-page').forEach(img => observer.observe(img));
+  document.querySelectorAll('.page-wrap').forEach(el => observer.observe(el));
   cleanups.push(() => observer.disconnect());
+
+  // Sequential image loading — load images one by one as user scrolls near them.
+  // First 3 are already loaded (have src). The rest get src set when they're
+  // within 2 screens of the viewport (loads ahead smoothly).
+  const lazyImages = document.querySelectorAll('.manga-page[data-src]');
+  if (lazyImages.length > 0) {
+    const loadObserver = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          const img = entry.target;
+          if (img.dataset.src) {
+            img.src = img.dataset.src;
+            delete img.dataset.src;
+            img.removeAttribute('data-src');
+          }
+          loadObserver.unobserve(img);
+        }
+      }
+    }, { rootMargin: '150% 0px' }); // Start loading when within 1.5 screens
+    lazyImages.forEach(img => loadObserver.observe(img));
+    cleanups.push(() => loadObserver.disconnect());
+  }
 
   // Tap top half / bottom half to scroll on mobile (optional UX)
   // We rely on natural scroll, no tap-zones to avoid surprise.
@@ -328,39 +358,121 @@ function wireUp(s, ch, prev, next, all, prefs) {
   function onKey(e) {
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
     if (e.key === 'ArrowLeft' || e.key === 'a') {
-      if (prev) location.assign(`/read/${encodeURIComponent(s.slug)}/${prev.number}`);
+      if (prev) navigate(`/read/${encodeURIComponent(s.slug)}/${prev.number}`);
     } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === ' ') {
-      if (next) { e.preventDefault(); location.assign(`/read/${encodeURIComponent(s.slug)}/${next.number}`); }
+      if (next) { e.preventDefault(); navigate(`/read/${encodeURIComponent(s.slug)}/${next.number}`); }
     } else if (e.key === 'Home') { window.scrollTo({ top: 0 }); }
     else if (e.key === 'End') { window.scrollTo({ top: document.body.scrollHeight }); }
   }
   document.addEventListener('keydown', onKey);
   cleanups.push(() => document.removeEventListener('keydown', onKey));
 
-  // Touch swipe (left = next, right = prev) — only swipe horizontal, ignore vertical
+  // Touch swipe (left = next, right = prev) — only single-finger horizontal swipe
+  // Multi-finger gestures (pinch-zoom) are handled separately below.
   if (isTouch()) {
     let sx = 0, sy = 0, swiping = false;
-    function ts(e) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; swiping = true; }
+    function ts(e) {
+      // Only track single-finger touches for swipe navigation
+      if (e.touches.length !== 1) { swiping = false; return; }
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY; swiping = true;
+    }
     function te(e) {
       if (!swiping) return; swiping = false;
       const dx = e.changedTouches[0].clientX - sx;
       const dy = e.changedTouches[0].clientY - sy;
       if (Math.abs(dx) > 80 && Math.abs(dy) < 60) {
-        if (dx < 0 && next) location.assign(`/read/${encodeURIComponent(s.slug)}/${next.number}`);
-        if (dx > 0 && prev) location.assign(`/read/${encodeURIComponent(s.slug)}/${prev.number}`);
+        if (dx < 0 && next) navigate(`/read/${encodeURIComponent(s.slug)}/${next.number}`);
+        if (dx > 0 && prev) navigate(`/read/${encodeURIComponent(s.slug)}/${prev.number}`);
       }
     }
+    function tm(e) {
+      // Cancel swipe if user adds a second finger (pinch)
+      if (e.touches.length > 1) swiping = false;
+    }
     document.addEventListener('touchstart', ts, { passive: true });
+    document.addEventListener('touchmove', tm, { passive: true });
     document.addEventListener('touchend', te, { passive: true });
     cleanups.push(() => {
       document.removeEventListener('touchstart', ts);
+      document.removeEventListener('touchmove', tm);
       document.removeEventListener('touchend', te);
     });
+
+    // ---- PINCH-TO-ZOOM on reader canvas ----
+    const canvas = document.getElementById('rCanvas');
+    if (canvas) {
+      let currentScale = 1;
+      let startDist = 0;
+      let startScale = 1;
+      let isPinching = false;
+
+      function getDistance(touches) {
+        const dx = touches[0].clientX - touches[1].clientX;
+        const dy = touches[0].clientY - touches[1].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+
+      function onPinchStart(e) {
+        if (e.touches.length === 2) {
+          isPinching = true;
+          startDist = getDistance(e.touches);
+          startScale = currentScale;
+        }
+      }
+      function onPinchMove(e) {
+        if (!isPinching || e.touches.length !== 2) return;
+        e.preventDefault(); // prevent default browser zoom
+        const dist = getDistance(e.touches);
+        const scale = Math.min(4, Math.max(0.5, startScale * (dist / startDist)));
+        currentScale = scale;
+        canvas.style.transform = scale === 1 ? '' : `scale(${scale})`;
+        canvas.style.transformOrigin = 'top center';
+      }
+      function onPinchEnd(e) {
+        if (!isPinching) return;
+        isPinching = false;
+        // Snap back if close to 1x
+        if (currentScale > 0.9 && currentScale < 1.1) {
+          currentScale = 1;
+          canvas.style.transform = '';
+        }
+      }
+
+      canvas.addEventListener('touchstart', onPinchStart, { passive: true });
+      canvas.addEventListener('touchmove', onPinchMove, { passive: false }); // non-passive to preventDefault
+      canvas.addEventListener('touchend', onPinchEnd, { passive: true });
+      cleanups.push(() => {
+        canvas.removeEventListener('touchstart', onPinchStart);
+        canvas.removeEventListener('touchmove', onPinchMove);
+        canvas.removeEventListener('touchend', onPinchEnd);
+      });
+
+      // Double-tap to reset zoom
+      let lastTap = 0;
+      function onDoubleTap(e) {
+        if (e.touches && e.touches.length > 1) return;
+        const now = Date.now();
+        if (now - lastTap < 300) {
+          // Double tap detected — toggle zoom
+          if (currentScale !== 1) {
+            currentScale = 1;
+            canvas.style.transform = '';
+          } else {
+            currentScale = 2;
+            canvas.style.transform = 'scale(2)';
+            canvas.style.transformOrigin = 'top center';
+          }
+        }
+        lastTap = now;
+      }
+      canvas.addEventListener('touchstart', onDoubleTap, { passive: true });
+      cleanups.push(() => canvas.removeEventListener('touchstart', onDoubleTap));
+    }
   }
 
   // Chapter dropdown
   document.getElementById('rChapterSelect')?.addEventListener('change', (e) => {
-    location.assign(`/read/${encodeURIComponent(s.slug)}/${e.target.value}`);
+    navigate(`/read/${encodeURIComponent(s.slug)}/${e.target.value}`);
   });
 
   // Share

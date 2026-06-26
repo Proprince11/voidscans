@@ -421,12 +421,20 @@ export function searchSeries(allSeries, q) {
 // =====================================================
 export async function fetchStats() {
   const series = await fetchAllSeries({ limitTo: 500 });
-  // chapters: count via collectionGroup or /chapters top-level
+  // Use a summary query for chapter count instead of reading every document.
+  // Firestore count() aggregation (available since SDK 10.5+) is far cheaper
+  // than fetching all docs. Fallback to a cached count if unavailable.
   let chapterCount = 0;
   try {
-    const snap = await getDocs(collection(db, 'chapters'));
-    chapterCount = snap.size;
-  } catch {}
+    // Try getCountFromServer (Firestore aggregation query)
+    const { getCountFromServer } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
+    const q = query(collection(db, 'chapters'));
+    const snap = await getCountFromServer(q);
+    chapterCount = snap.data().count;
+  } catch {
+    // Fallback: sum latestChapter across all series (approximation, zero Firestore reads)
+    chapterCount = series.reduce((sum, s) => sum + (s.latestChapter || 0), 0);
+  }
   return {
     seriesCount: series.length,
     chapterCount,

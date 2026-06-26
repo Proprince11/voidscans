@@ -14,17 +14,24 @@ import { loadSettings, watchSettings, getSettings } from './lib/settings.js';
 import { applyBranding, watchBrandingChanges } from './lib/branding.js';
 import { applyInitialTheme, cycleTheme, getTheme } from './lib/theme.js';
 
-// Lazy-import views: code-split so a slow chapter image
-// doesn't prevent the home page from rendering.
-import { home }     from './views/home.js';
-import { browse }   from './views/browse.js';
-import { search }   from './views/search.js';
-import { genre }    from './views/genre.js';
-import { series }   from './views/series.js';
-import { reader }   from './views/reader.js';
-import { library }  from './views/library.js';
-import { profile }  from './views/profile.js';
-import { notFound } from './views/notFound.js';
+// Lazy-import views via dynamic import — actual code-splitting.
+// Each view loads on-demand so the initial boot only fetches the
+// shell + router + whichever view matches the current URL.
+const lazy = (loader) => async (params, ctx) => {
+  const mod = await loader();
+  const viewFn = mod.default || Object.values(mod)[0];
+  return viewFn(params, ctx);
+};
+
+const home    = lazy(() => import('./views/home.js'));
+const browse  = lazy(() => import('./views/browse.js'));
+const search  = lazy(() => import('./views/search.js'));
+const genre   = lazy(() => import('./views/genre.js'));
+const series  = lazy(() => import('./views/series.js'));
+const reader  = lazy(() => import('./views/reader.js'));
+const library = lazy(() => import('./views/library.js'));
+const profile = lazy(() => import('./views/profile.js'));
+const notFound = lazy(() => import('./views/notFound.js'));
 
 // =====================================================
 // SITE SETTINGS — load once at boot, then apply branding + ads.

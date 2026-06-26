@@ -261,6 +261,11 @@ body.reader-mode {
   align-items: center;
   padding-top: var(--nav-h-mobile);
   min-height: 100dvh;
+  /* Allow pinch-zoom on the canvas while keeping vertical scroll */
+  touch-action: pan-y pinch-zoom;
+  /* Smooth zoom transitions */
+  transition: transform 0.1s ease-out;
+  will-change: transform;
 }
 @media (min-width: 768px) {
   .reader-canvas { padding-top: var(--nav-h); }
@@ -284,6 +289,58 @@ body.reader-mode {
   display: block;
   background: var(--surface-2);
   min-height: 200px;
+  /* Allow individual images to be crisp when zoomed */
+  image-rendering: auto;
+}
+
+/* Page loading wrapper */
+.page-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-1);
+  border-radius: 4px;
+}
+.page-wrap.loaded {
+  min-height: auto;
+  background: none;
+}
+.page-wrap.loaded .page-loader { display: none; }
+.page-wrap.error .page-loader { display: none; }
+.page-wrap.error::after {
+  content: 'Image failed to load';
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  padding: var(--s-8);
+}
+
+.page-loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  z-index: 1;
+}
+.page-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: page-spin 0.8s linear infinite;
+}
+@keyframes page-spin { to { transform: rotate(360deg); } }
+.page-loader-text {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 .reader-bottombar {

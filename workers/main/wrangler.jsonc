@@ -1,0 +1,23 @@
+{
+  "name": "jayascans-worker",
+  "main": "src/index.js",
+  "compatibility_date": "2024-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // Public-facing domain. Used for absolute URLs (sitemap, RSS).
+  "vars": {
+    "PUBLIC_BASE_URL": "https://jayascans.online",
+    "STORAGE_PRIMARY": "catbox",
+    "FIREBASE_PROJECT_ID": "voidscans-6c66b"
+  },
+  // R2 bucket binding (optional — only needed if STORAGE_PRIMARY=r2)
+  // "r2_buckets": [{ "binding": "R2", "bucket_name": "jayascans-images" }],
+  "routes": [
+    { "pattern": "jayascans.online/api/*", "zone_name": "jayascans.online" }
+  ],
+  "assets": {
+    "directory": "../../",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "html_handling": "auto-trailing-slash"
+  }
+}

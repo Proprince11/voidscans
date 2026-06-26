@@ -31,6 +31,15 @@ build/
 backups/
 *.backup.json
 
+# Import logs & retry files
+scripts/bulk-import-log-*.json
+scripts/bulk-import-retry-*.json
+scripts/local-import-log-*.json
+scripts/local-import-retry-*.json
+scripts/batch-retry-*.json
+scripts/chapter-links-*.txt
+chapters-output/
+
 # Local secrets
 .firebase-admin.json
 service-account.json

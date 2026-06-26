@@ -37,7 +37,56 @@ export function extractImageUrls(html, pageUrl) {
       }
     }
   }
-  return [...urls];
+  // Filter out non-chapter images (logos, emotes, icons, ads, banners)
+  return [...urls].filter(isLikelyChapterPage);
+}
+
+/** Heuristic filter: keep only images that look like manga/manhwa chapter pages.
+ *  Excludes logos, emotes, icons, banners, ads, avatars, etc. */
+function isLikelyChapterPage(url) {
+  const lower = url.toLowerCase();
+  const path = lower.split('?')[0]; // ignore query params
+
+  // ---- EXCLUDE patterns ----
+  const excludePatterns = [
+    'logo', 'avatar', 'icon', 'favicon', 'banner', '/ad/', '/ads/',
+    'pixel', 'tracking', 'analytics', 'badge', 'button', 'sprite',
+    'spacer', 'blank', 'loading', 'spinner', 'placeholder',
+    'emoji', 'emote', 'smiley', 'gravatar', 'discord',
+    'featured', 'thumbnail', 'thumb_', '/theme/', '/emotes/',
+    'iconify', 'social', 'share-', 'footer', 'header-img',
+    'watermark', 'site-logo', 'brand',
+    '/upload/20', // generic site uploads like /upload/2024/ or /upload/2026/ (banners, not chapter pages)
+    'logo-end'
+  ];
+  if (excludePatterns.some(p => lower.includes(p))) return false;
+
+  // Exclude very short paths that are likely site assets (e.g. /img/like.png)
+  const pathParts = path.split('/').filter(Boolean);
+  const filename = pathParts[pathParts.length - 1] || '';
+  // Site emotes/reaction images are usually short names
+  const shortNames = ['like', 'love', 'laugh', 'wow', 'cry', 'angry', 'sad', 'happy', 'fire', 'heart'];
+  const nameWithoutExt = filename.replace(/\.[^.]+$/, '').toLowerCase();
+  if (shortNames.includes(nameWithoutExt)) return false;
+
+  // ---- INCLUDE signals (bonus: if URL looks like a chapter page, definitely keep) ----
+  const includeSignals = [
+    /page[-_]?\d/i,          // page-0001, page_1, page1
+    /\d{2,3}\.(jpg|png|webp)/i,  // 001.jpg, 01.png
+    /chapter/i,              // /chapter/ in path
+    /series\//i,             // /series/ in path (like hivetoons)
+    /ch[-_]?\d/i,            // ch-1, ch_14
+    /\d+[-_]\d+[-_]\d+/     // UUID-style filenames (storage uploads)
+  ];
+  if (includeSignals.some(re => re.test(lower))) return true;
+
+  // If no strong signal, accept if it's from a CDN/storage domain
+  const storageDomains = ['storage.', 'cdn.', 'img.', 'images.', 'uploads.', 'files.', 'media.', 'r2.dev', 'catbox', 'ibb.co', 'imgur'];
+  const hostname = (() => { try { return new URL(url).hostname.toLowerCase(); } catch { return ''; } })();
+  if (storageDomains.some(d => hostname.includes(d))) return true;
+
+  // Default: accept (better to include a junk image than miss a page)
+  return true;
 }
 
 async function fetchPageHtml(target) {
@@ -112,8 +161,13 @@ export async function handleScrapeRehost(request, env) {
         : `scraped/${safeSeries}/${Date.now()}-${padded}.${ext}`;
       const newUrl = await rehostFromUrl(env, u, key);
       results.push({ ok: true, source: u, url: newUrl });
+      // Small delay between uploads to avoid Catbox/ImgBB rate-limiting
+      // (Workers share IPs, so rapid-fire triggers anti-spam)
+      if (i % 3 === 0) await new Promise(r => setTimeout(r, 500));
     } catch (err) {
       results.push({ ok: false, source: u, error: err.message });
+      // On failure, wait a bit longer before retrying next image
+      await new Promise(r => setTimeout(r, 1000));
     }
   }
   return Response.json({ ok: true, results });

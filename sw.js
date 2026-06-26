@@ -17,7 +17,6 @@
 // - Respects prefers-reduced-motion
 // (v3.5.2 from PR #23 series recommendations is included in this branch via merge)
 const CACHE_VERSION = 'v3.5.3';
-  main
 const SHELL_CACHE   = `shell-${CACHE_VERSION}`;
 const ASSET_CACHE   = `asset-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `images-${CACHE_VERSION}`;

@@ -185,7 +185,7 @@ export function icon(name, size = 20) {
  *  if it's a hotlink-protected host (e.g. MangaDex CDN). The Worker
  *  fetches it server-side with the right Referer header so the actual
  *  image is served instead of a "Read on …" placeholder. */
-const HOTLINK_HOSTS = ['mangadex.org', 'cdn.statically.io'];
+const HOTLINK_HOSTS = ['mangadex.org', 'cdn.statically.io', 'uploads.mangadex.org'];
 export function proxyImage(url) {
   if (!url || typeof url !== 'string') return url;
   if (url.startsWith('/api/')) return url;       // already proxied
@@ -223,7 +223,17 @@ export function proxyImage(url) {
 export function setMeta({ title, description, image, url, type } = {}) {
   if (title) document.title = title;
 
-  if (url) setLinkHref('canonical', url);
+  // Canonical should strip query params and fragments to avoid duplicates
+  if (url) {
+    try {
+      const canonical = new URL(url);
+      canonical.search = '';
+      canonical.hash = '';
+      setLinkHref('canonical', canonical.href);
+    } catch {
+      setLinkHref('canonical', url);
+    }
+  }
 
   if (description) setMetaTag('name', 'description', description);
 
