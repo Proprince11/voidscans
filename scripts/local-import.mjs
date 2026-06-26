@@ -144,6 +144,10 @@ function isChapterImage(url) {
 // =====================================================
 import { readFileSync as readFs } from 'fs';
 
+// Optional WebP compression
+let sharp = null;
+try { sharp = (await import('sharp')).default; } catch {}
+
 const IMGBB_KEY = process.env.IMGBB_API_KEY || (() => {
   try {
     const envPath = new URL('./.env', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1');
@@ -153,6 +157,20 @@ const IMGBB_KEY = process.env.IMGBB_API_KEY || (() => {
 })();
 
 let uploadCounter = 0;
+
+async function compressIfNeeded(blob, imageUrl) {
+  if (!sharp) return blob;
+  const ext = imageUrl.match(/\.(jpe?g|png|webp|gif|avif)/i)?.[1]?.toLowerCase() || '';
+  if (ext === 'webp' || ext === 'gif') return blob;
+  try {
+    const buffer = Buffer.from(await blob.arrayBuffer());
+    const webp = await sharp(buffer).webp({ quality: 75 }).toBuffer();
+    if (webp.length < buffer.length * 0.95) {
+      return new Blob([webp], { type: 'image/webp' });
+    }
+  } catch {}
+  return blob;
+}
 
 async function uploadImage(imageUrl) {
   // Download the image
@@ -164,8 +182,11 @@ async function uploadImage(imageUrl) {
     }
   });
   if (!imgRes.ok) throw new Error(`Download failed: ${imgRes.status}`);
-  const blob = await imgRes.blob();
+  let blob = await imgRes.blob();
   if (blob.size < 500) throw new Error('Too small, likely not an image');
+
+  // Compress to WebP if possible
+  blob = await compressIfNeeded(blob, imageUrl);
 
   // Alternate: even = Catbox, odd = ImgBB
   uploadCounter++;
