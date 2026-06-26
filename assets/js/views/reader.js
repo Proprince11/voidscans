@@ -222,6 +222,15 @@ function renderReader(s, ch, prev, next, all, prefs) {
 
     <div class="progress-bar" id="rProgress" style="width: 0%;"></div>
 
+    <!-- Chapter navigation (top) -->
+    <div class="reader-nav-strip">
+      ${prev ? `<a href="/read/${esc(s.slug)}/${prev.number}" class="reader-nav-btn">← Ch. ${esc(prev.number)}</a>` : '<span></span>'}
+      <select class="reader-chapter-select" id="rChapterSelectTop">
+        ${all.map(c => `<option value="${c.number}" ${c.number === ch.number ? 'selected' : ''}>Ch. ${c.number}${c.title ? ' — ' + esc(c.title) : ''}</option>`).join('')}
+      </select>
+      ${next ? `<a href="/read/${esc(s.slug)}/${next.number}" class="reader-nav-btn">Ch. ${esc(next.number)} →</a>` : '<span></span>'}
+    </div>
+
     <div class="reader-canvas ${fitClass} ${gapClass}" id="rCanvas" style="--mp-zoom: ${zoomFactor};">
       ${ch.pages.map((url, i) => `
         <div class="page-wrap" data-page="${i}">
@@ -426,8 +435,11 @@ function wireUp(s, ch, prev, next, all, prefs) {
 
   }
 
-  // Chapter dropdown
+  // Chapter dropdown (both top and bottom)
   document.getElementById('rChapterSelect')?.addEventListener('change', (e) => {
+    navigate(`/read/${encodeURIComponent(s.slug)}/${e.target.value}`);
+  });
+  document.getElementById('rChapterSelectTop')?.addEventListener('change', (e) => {
     navigate(`/read/${encodeURIComponent(s.slug)}/${e.target.value}`);
   });
 

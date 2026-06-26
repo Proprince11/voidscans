@@ -270,14 +270,9 @@ menuBtn?.addEventListener('click', () => {
 });
 
 // =====================================================
-// Back-to-top FAB (mounted globally, hides on reader)
+// Back-to-top FAB (mounted globally, visible everywhere including reader)
 // =====================================================
 mountBackToTop();
-router.onAfterNavigate((p) => {
-  const fab = document.querySelector('.fab.back-to-top');
-  if (!fab) return;
-  fab.style.display = p.startsWith('/read/') ? 'none' : '';
-});
 
 // =====================================================
 // Boot router
