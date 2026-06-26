@@ -177,21 +177,25 @@ export async function reader(params, ctx) {
 // RENDER
 // =====================================================
 
-// Global retry handler for failed images (called from onclick in HTML)
-window.reloadImage = function(errorDiv) {
-  const wrap = errorDiv.closest('.page-wrap');
-  if (!wrap) return;
-  const img = wrap.querySelector('.manga-page');
-  if (!img) return;
-  wrap.classList.remove('error');
-  wrap.classList.remove('loaded');
-  // Re-trigger load with cache-bust
-  const src = img.dataset.originalSrc || img.src;
-  img.src = '';
-  img.onerror = () => { wrap.classList.add('error'); };
-  img.onload = () => { wrap.classList.add('loaded'); };
-  setTimeout(() => { img.src = src + (src.includes('?') ? '&' : '?') + 'retry=' + Date.now(); }, 100);
-};
+// Global retry handler for failed images
+function setupImageRetry() {
+  document.addEventListener('click', (e) => {
+    const errorDiv = e.target.closest('.page-error');
+    if (!errorDiv) return;
+    const wrap = errorDiv.closest('.page-wrap');
+    if (!wrap) return;
+    const img = wrap.querySelector('.manga-page');
+    if (!img) return;
+    wrap.classList.remove('error');
+    wrap.classList.remove('loaded');
+    const src = img.dataset.originalSrc || img.getAttribute('src');
+    img.src = '';
+    img.onerror = () => { wrap.classList.add('error'); };
+    img.onload = () => { wrap.classList.add('loaded'); };
+    setTimeout(() => { img.src = src + (src.includes('?') ? '&' : '?') + 'retry=' + Date.now(); }, 100);
+  });
+}
+setupImageRetry();
 
 function renderReader(s, ch, prev, next, all, prefs) {
   const fitClass = prefs.fit === 'height' ? 'fit-height' : 'fit-width';
@@ -243,7 +247,7 @@ function renderReader(s, ch, prev, next, all, prefs) {
                data-page="${i}" data-original-src="${esc(url)}"
                onload="this.parentElement.classList.add('loaded')"
                onerror="this.onerror=null;this.parentElement.classList.add('error');">
-          <div class="page-error" onclick="reloadImage(this)">
+          <div class="page-error">
             <span class="page-error-icon">⚠️</span>
             <span class="page-error-text">Image failed to load</span>
             <button class="page-error-btn">Tap to retry</button>
