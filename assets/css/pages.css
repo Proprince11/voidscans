@@ -261,20 +261,22 @@ body.reader-mode {
   align-items: center;
   padding-top: var(--nav-h-mobile);
   min-height: 100dvh;
-  /* Allow pinch-zoom on the canvas while keeping vertical scroll */
-  touch-action: pan-y pinch-zoom;
-  /* Smooth zoom transitions */
-  transition: transform 0.1s ease-out;
-  will-change: transform;
 }
 @media (min-width: 768px) {
   .reader-canvas { padding-top: var(--nav-h); }
 }
 
+/* Mobile: full width. Desktop: 80% width for comfortable reading */
 .reader-canvas.fit-width .manga-page {
-  width: calc(var(--mp-zoom, 1) * 100%);
-  max-width: calc(var(--mp-zoom, 1) * 900px);
+  width: 100%;
+  max-width: 900px;
   margin-inline: auto;
+}
+@media (min-width: 768px) {
+  .reader-canvas.fit-width .manga-page {
+    width: 80%;
+    max-width: 800px;
+  }
 }
 .reader-canvas.fit-height .manga-page { height: 100dvh; width: auto; max-width: none; }
 
@@ -341,6 +343,19 @@ body.reader-mode {
   font-size: var(--fs-xs);
   color: var(--text-muted);
   font-style: italic;
+}
+
+/* Reader recommendation grid — smaller cards that fit the reader width */
+.reader-recs-grid {
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important;
+  gap: var(--s-3) !important;
+}
+.reader-recs-grid .card-img-wrap {
+  aspect-ratio: 2/3;
+}
+.reader-recs-grid .card-title {
+  font-size: var(--fs-xs);
+  -webkit-line-clamp: 2;
 }
 
 .reader-bottombar {

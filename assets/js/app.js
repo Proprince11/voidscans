@@ -324,7 +324,8 @@ function mountFooter() {
         </div>
       </div>
       <div class="footer-bottom">
-        © ${new Date().getFullYear()} ${esc(SITE.name)} · Built with care.
+        <span class="footer-tagline">Read first. Read free. Read at <strong>${esc(SITE.name)}</strong>.</span>
+        <span class="footer-copy">© ${new Date().getFullYear()} ${esc(SITE.name)}</span>
       </div>
     </div>
   `;

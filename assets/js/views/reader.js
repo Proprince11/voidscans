@@ -262,17 +262,17 @@ function renderReader(s, ch, prev, next, all, prefs) {
 
     <!-- Discovery strips at the end of the chapter — keeps readers in
          the catalog instead of bouncing after the last page. -->
-    <section class="container section cv-deferred" style="max-width: 1200px;" id="readerRecsSection" hidden>
+    <section class="container section cv-deferred" style="max-width: 800px; padding: 0 var(--s-4);" id="readerRecsSection" hidden>
       <div class="section-header">
-        <h2 class="section-title" id="readerRecsTitle">You might also like</h2>
+        <h2 class="section-title" style="font-size: var(--fs-lg);" id="readerRecsTitle">You might also like</h2>
         <a href="/series/${esc(s.slug)}" class="section-link">All chapters →</a>
       </div>
-      <div class="card-grid" id="readerRecsGrid"></div>
+      <div class="card-grid reader-recs-grid" id="readerRecsGrid"></div>
     </section>
 
-    <section class="container section cv-deferred" style="max-width: 1200px;" id="readerLatestSection" hidden>
+    <section class="container section cv-deferred" style="max-width: 800px; padding: 0 var(--s-4);" id="readerLatestSection" hidden>
       <div class="section-header">
-        <h2 class="section-title">Latest Updates</h2>
+        <h2 class="section-title" style="font-size: var(--fs-lg);">Latest Updates</h2>
         <a href="/browse?sort=updated" class="section-link">View all →</a>
       </div>
       <div class="update-list" id="readerLatestList"></div>
@@ -398,76 +398,6 @@ function wireUp(s, ch, prev, next, all, prefs) {
       document.removeEventListener('touchend', te);
     });
 
-    // ---- PINCH-TO-ZOOM on reader canvas ----
-    const canvas = document.getElementById('rCanvas');
-    if (canvas) {
-      let currentScale = 1;
-      let startDist = 0;
-      let startScale = 1;
-      let isPinching = false;
-
-      function getDistance(touches) {
-        const dx = touches[0].clientX - touches[1].clientX;
-        const dy = touches[0].clientY - touches[1].clientY;
-        return Math.sqrt(dx * dx + dy * dy);
-      }
-
-      function onPinchStart(e) {
-        if (e.touches.length === 2) {
-          isPinching = true;
-          startDist = getDistance(e.touches);
-          startScale = currentScale;
-        }
-      }
-      function onPinchMove(e) {
-        if (!isPinching || e.touches.length !== 2) return;
-        e.preventDefault(); // prevent default browser zoom
-        const dist = getDistance(e.touches);
-        const scale = Math.min(4, Math.max(0.5, startScale * (dist / startDist)));
-        currentScale = scale;
-        canvas.style.transform = scale === 1 ? '' : `scale(${scale})`;
-        canvas.style.transformOrigin = 'top center';
-      }
-      function onPinchEnd(e) {
-        if (!isPinching) return;
-        isPinching = false;
-        // Snap back if close to 1x
-        if (currentScale > 0.9 && currentScale < 1.1) {
-          currentScale = 1;
-          canvas.style.transform = '';
-        }
-      }
-
-      canvas.addEventListener('touchstart', onPinchStart, { passive: true });
-      canvas.addEventListener('touchmove', onPinchMove, { passive: false }); // non-passive to preventDefault
-      canvas.addEventListener('touchend', onPinchEnd, { passive: true });
-      cleanups.push(() => {
-        canvas.removeEventListener('touchstart', onPinchStart);
-        canvas.removeEventListener('touchmove', onPinchMove);
-        canvas.removeEventListener('touchend', onPinchEnd);
-      });
-
-      // Double-tap to reset zoom
-      let lastTap = 0;
-      function onDoubleTap(e) {
-        if (e.touches && e.touches.length > 1) return;
-        const now = Date.now();
-        if (now - lastTap < 300) {
-          // Double tap detected — toggle zoom
-          if (currentScale !== 1) {
-            currentScale = 1;
-            canvas.style.transform = '';
-          } else {
-            currentScale = 2;
-            canvas.style.transform = 'scale(2)';
-            canvas.style.transformOrigin = 'top center';
-          }
-        }
-        lastTap = now;
-      }
-      canvas.addEventListener('touchstart', onDoubleTap, { passive: true });
-      cleanups.push(() => canvas.removeEventListener('touchstart', onDoubleTap));
-    }
   }
 
   // Chapter dropdown

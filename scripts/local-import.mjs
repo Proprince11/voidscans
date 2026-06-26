@@ -44,7 +44,7 @@ const START = parseInt(getArg('start', '1'), 10);
 const END = parseInt(getArg('end', '0'), 10);
 const DRY_RUN = hasFlag('dry-run');
 const EXPORT_FILE = getArg('export');
-const TOKEN = getArg('token') || process.env.ADMIN_TOKEN;
+const INITIAL_TOKEN = getArg('token') || process.env.ADMIN_TOKEN;
 const DELAY = parseInt(getArg('delay', '500'), 10); // ms between uploads
 const RETRY_FILE = getArg('retry');
 
@@ -52,7 +52,7 @@ if (!SERIES) {
   console.error('❌ --series is required');
   process.exit(1);
 }
-if (!DRY_RUN && !EXPORT_FILE && !TOKEN) {
+if (!DRY_RUN && !EXPORT_FILE && !INITIAL_TOKEN) {
   console.error('❌ --token is required for publishing (or use --dry-run / --export)');
   process.exit(1);
 }
@@ -197,7 +197,33 @@ async function publishChapter(num, imageUrls) {
   });
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Firestore: ${res.status} ${err.slice(0, 100)}`);
+    if (res.status === 401 || res.status === 403) {
+      // Token expired mid-run
+      console.log('\n⏰ Token expired during publish!');
+      const newToken = await askForNewToken();
+      if (newToken && newToken !== 'q') {
+        TOKEN = newToken;
+        // Retry this publish with new token
+        const retryRes = await fetch(url, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fields: {
+              seriesSlug: { stringValue: SERIES },
+              chapterNum: { integerValue: String(num) },
+              title: { stringValue: '' },
+              images: { arrayValue: { values: imageUrls.map(u => ({ stringValue: u })) } },
+              createdAt: { timestampValue: new Date().toISOString() }
+            }
+          })
+        });
+        if (!retryRes.ok) throw new Error(`Firestore retry failed: ${retryRes.status}`);
+      } else {
+        throw new Error('Token expired, user quit');
+      }
+    } else {
+      throw new Error(`Firestore: ${res.status} ${err.slice(0, 100)}`);
+    }
   }
 
   // Update series latestChapter
@@ -232,6 +258,49 @@ async function publishChapter(num, imageUrls) {
 const results = [];
 const failed = [];
 let completed = 0;
+
+// TOKEN MANAGEMENT — detect expiry, pause and ask for new one
+import { createInterface } from 'readline';
+
+function getTokenExpiry(token) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return 0;
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+    return (payload.exp || 0) * 1000; // ms
+  } catch { return 0; }
+}
+
+function isTokenExpired() {
+  if (!TOKEN) return true;
+  const expiry = getTokenExpiry(TOKEN);
+  if (!expiry) return false; // can't parse, assume valid
+  // Treat as expired if less than 2 minutes remaining
+  return Date.now() > expiry - 120_000;
+}
+
+function tokenMinutesLeft() {
+  const expiry = getTokenExpiry(TOKEN);
+  if (!expiry) return '?';
+  const mins = Math.max(0, Math.round((expiry - Date.now()) / 60_000));
+  return mins;
+}
+
+async function askForNewToken() {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve) => {
+    console.log('\n⏰ Token expired (or about to expire).');
+    console.log('   Get a fresh one from admin console:');
+    console.log('   const { auth } = await import("/assets/js/lib/firebase.js");');
+    console.log('   console.log(await auth.currentUser.getIdToken());\n');
+    rl.question('   Paste new token (or "q" to quit): ', (answer) => {
+      rl.close();
+      resolve(answer.trim());
+    });
+  });
+}
+
+let TOKEN = INITIAL_TOKEN;
 
 // CSV header
 if (EXPORT_FILE) {
@@ -316,10 +385,20 @@ async function processChapter({ num, url }) {
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // Process one chapter at a time
-console.log('\n📥 Starting import...\n');
+const minsLeft = tokenMinutesLeft();
+console.log(`\n📥 Starting import... (token valid for ~${minsLeft} min)\n`);
 const startTime = Date.now();
 
 for (const ch of chapterUrls) {
+  // Check token before publishing (scraping + uploading don't need it)
+  if (!DRY_RUN && !EXPORT_FILE && isTokenExpired()) {
+    const newToken = await askForNewToken();
+    if (newToken === 'q' || newToken === 'quit') {
+      console.log('\n⏹ Stopped by user. Progress saved.\n');
+      break;
+    }
+    if (newToken) TOKEN = newToken;
+  }
   await processChapter(ch);
   // Small pause between chapters
   await sleep(1000);
