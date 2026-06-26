@@ -2,6 +2,10 @@
 # Cloudflare Workers Static Assets respects this file.
 # See: https://developers.cloudflare.com/workers/static-assets/binding/
 
+# Git
+.git/
+.gitignore
+
 # Server-only directories
 scripts/
 workers/

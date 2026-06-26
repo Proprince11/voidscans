@@ -1153,16 +1153,20 @@ body.has-bottom-nav {
 .file-drop {
   border: 2px dashed var(--border-bold);
   border-radius: var(--r-md);
-  padding: var(--s-6);
+  padding: var(--s-8) var(--s-6);
   text-align: center;
   cursor: pointer;
   transition: all var(--t-fast);
+  background: var(--surface-1);
 }
 .file-drop:hover, .file-drop.dragover {
   border-color: var(--accent);
   background: var(--accent-soft);
+  transform: scale(1.01);
 }
 .file-drop input[type=file] { display: none; }
+.file-drop strong { color: var(--text); font-size: var(--fs-base); }
+.file-drop .field-hint { margin-top: var(--s-2); }
 
 /* =====================================================
    DRAG / SORTABLE LIST
