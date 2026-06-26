@@ -313,11 +313,37 @@ body.reader-mode {
 }
 .page-wrap.loaded .page-loader { display: none; }
 .page-wrap.error .page-loader { display: none; }
-.page-wrap.error::after {
-  content: 'Image failed to load';
-  color: var(--text-muted);
-  font-size: var(--fs-sm);
-  padding: var(--s-8);
+.page-wrap.error .page-error { display: flex; }
+.page-wrap.error .manga-page { display: none; }
+
+.page-error {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  padding: var(--s-8) var(--s-4);
+  cursor: pointer;
+  width: 100%;
+  min-height: 200px;
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+  border: 1px dashed var(--border-bold);
+  transition: background 0.15s;
+}
+.page-error:hover { background: var(--surface-3); }
+.page-error-icon { font-size: 32px; }
+.page-error-text { font-size: var(--fs-sm); color: var(--text-muted); }
+.page-error-btn {
+  margin-top: var(--s-2);
+  padding: var(--s-2) var(--s-4);
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--bg);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  border: none;
+  cursor: pointer;
 }
 
 .page-loader {

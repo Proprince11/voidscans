@@ -106,6 +106,28 @@ export async function reader(params, ctx) {
     });
   }
 
+  // Precache NEXT chapter when reader is 70% through current one
+  let nextChapterPrecached = false;
+  if (next && 'serviceWorker' in navigator) {
+    const precacheNext = async () => {
+      if (nextChapterPrecached) return;
+      const scrollPct = window.scrollY / Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      if (scrollPct > 0.7) {
+        nextChapterPrecached = true;
+        try {
+          const nextCh = await fetchChapter(slug, next.number);
+          if (nextCh?.pages?.length && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({
+              type: 'PRECACHE_IMAGES',
+              urls: nextCh.pages
+            });
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener('scroll', precacheNext, { passive: true });
+  }
+
   // Apply admin-configured branding/ads to slots present in this view
   applyBranding();
 
@@ -154,6 +176,23 @@ export async function reader(params, ctx) {
 // =====================================================
 // RENDER
 // =====================================================
+
+// Global retry handler for failed images (called from onclick in HTML)
+window.reloadImage = function(errorDiv) {
+  const wrap = errorDiv.closest('.page-wrap');
+  if (!wrap) return;
+  const img = wrap.querySelector('.manga-page');
+  if (!img) return;
+  wrap.classList.remove('error');
+  wrap.classList.remove('loaded');
+  // Re-trigger load with cache-bust
+  const src = img.dataset.originalSrc || img.src;
+  img.src = '';
+  img.onerror = () => { wrap.classList.add('error'); };
+  img.onload = () => { wrap.classList.add('loaded'); };
+  setTimeout(() => { img.src = src + (src.includes('?') ? '&' : '?') + 'retry=' + Date.now(); }, 100);
+};
+
 function renderReader(s, ch, prev, next, all, prefs) {
   const fitClass = prefs.fit === 'height' ? 'fit-height' : 'fit-width';
   const gapClass = `gap-${prefs.gap}`;
@@ -190,11 +229,16 @@ function renderReader(s, ch, prev, next, all, prefs) {
             <div class="page-spinner"></div>
             <span class="page-loader-text">${i < 3 ? 'Loading...' : ['Hold tight, otaku...', 'Loading your fix...', 'Patience, reader...', 'Almost there...', 'Worth the wait...', 'Loading panels...'][i % 6]}</span>
           </div>
-          <img class="manga-page" ${i < 3 ? `src="${esc(url)}"` : `data-src="${esc(url)}"`} alt="Page ${i + 1}"
-               loading="${i < 3 ? 'eager' : 'lazy'}" decoding="async"
-               data-page="${i}"
+          <img class="manga-page" src="${esc(url)}" alt="Page ${i + 1}"
+               loading="${i < 5 ? 'eager' : 'lazy'}" decoding="async"
+               data-page="${i}" data-original-src="${esc(url)}"
                onload="this.parentElement.classList.add('loaded')"
-               onerror="this.onerror=null;this.parentElement.classList.add('error');this.alt='Failed to load';">
+               onerror="this.onerror=null;this.parentElement.classList.add('error');">
+          <div class="page-error" onclick="reloadImage(this)">
+            <span class="page-error-icon">⚠️</span>
+            <span class="page-error-text">Image failed to load</span>
+            <button class="page-error-btn">Tap to retry</button>
+          </div>
         </div>
         ${i === 4 ? '<div data-ad-slot="mid-chapter" style="display:none;"></div>' : ''}
       `).join('')}
@@ -329,27 +373,9 @@ function wireUp(s, ch, prev, next, all, prefs) {
   document.querySelectorAll('.page-wrap').forEach(el => observer.observe(el));
   cleanups.push(() => observer.disconnect());
 
-  // Sequential image loading — load images one by one as user scrolls near them.
-  // First 3 are already loaded (have src). The rest get src set when they're
-  // within 2 screens of the viewport (loads ahead smoothly).
-  const lazyImages = document.querySelectorAll('.manga-page[data-src]');
-  if (lazyImages.length > 0) {
-    const loadObserver = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.isIntersecting) {
-          const img = entry.target;
-          if (img.dataset.src) {
-            img.src = img.dataset.src;
-            delete img.dataset.src;
-            img.removeAttribute('data-src');
-          }
-          loadObserver.unobserve(img);
-        }
-      }
-    }, { rootMargin: '250% 0px' }); // Start loading when within 2.5 screens (aggressive preload)
-    lazyImages.forEach(img => loadObserver.observe(img));
-    cleanups.push(() => loadObserver.disconnect());
-  }
+  // All images load immediately (src set on render).
+  // Browser handles parallel downloads — first load may be slow but
+  // service worker caches everything for instant offline/repeat reads.
 
   // Tap top half / bottom half to scroll on mobile (optional UX)
   // We rely on natural scroll, no tap-zones to avoid surprise.
