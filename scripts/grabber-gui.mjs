@@ -8,12 +8,27 @@
 // Features:
 // - Paste a URL → see all images as thumbnails
 // - Click to deselect junk images
+// - Upload selected → get Catbox/ImgBB links
+// - Auto WebP conversion (if sharp is installed)
+//
+// Optional: npm install sharp (for WebP conversion)
+// Without sharp, images upload as-is (still works fine).
+// =====================================================
 // - Upload selected → get Catbox links
 // - Copy all links or save as .txt
 // =====================================================
 
 import { createServer } from 'http';
 import { readFileSync, writeFileSync } from 'fs';
+
+// Optional: WebP conversion via sharp (skip if not installed)
+let sharp = null;
+try {
+  sharp = (await import('sharp')).default;
+  console.log('✅ sharp found — WebP conversion enabled (JPG/PNG → WebP, ~40% smaller)');
+} catch {
+  console.log('ℹ️  sharp not installed — images upload as-is (run "npm install sharp" to enable WebP conversion)');
+}
 
 const PORT = 3456;
 
@@ -379,10 +394,27 @@ function isChapterImage(url) {
 // UPLOAD HELPERS — Catbox + ImgBB
 // =====================================================
 async function uploadToCatbox(blob, sourceUrl) {
+  // Convert to WebP if sharp available and image isn't already WebP
+  let uploadBlob = blob;
+  let ext = sourceUrl.match(/\.(jpe?g|png|webp|gif|avif)/i)?.[1] || 'jpg';
+
+  if (sharp && ext !== 'webp' && ext !== 'gif') {
+    try {
+      const buffer = Buffer.from(await blob.arrayBuffer());
+      const webpBuffer = await sharp(buffer).webp({ quality: 82 }).toBuffer();
+      // Only use WebP if it's actually smaller
+      if (webpBuffer.length < buffer.length * 0.95) {
+        uploadBlob = new Blob([webpBuffer], { type: 'image/webp' });
+        ext = 'webp';
+      }
+    } catch {
+      // Conversion failed, upload original
+    }
+  }
+
   const form = new FormData();
   form.append('reqtype', 'fileupload');
-  const ext = sourceUrl.match(/\.(jpe?g|png|webp|gif|avif)/i)?.[1] || 'jpg';
-  form.append('fileToUpload', blob, `page.${ext}`);
+  form.append('fileToUpload', uploadBlob, `page.${ext}`);
 
   const res = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: form });
   if (!res.ok) throw new Error(`Catbox: ${res.status}`);
@@ -397,7 +429,21 @@ const IMGBB_KEY = process.env.IMGBB_API_KEY || '';
 async function uploadToImgBB(blob, sourceUrl) {
   if (!IMGBB_KEY) return null; // no key, skip
   try {
-    const buffer = Buffer.from(await blob.arrayBuffer());
+    // Convert to WebP if sharp available and image isn't already WebP
+    let uploadBlob = blob;
+    const ext = sourceUrl.match(/\.(jpe?g|png|webp|gif|avif)/i)?.[1] || 'jpg';
+
+    if (sharp && ext !== 'webp' && ext !== 'gif') {
+      try {
+        const buf = Buffer.from(await blob.arrayBuffer());
+        const webpBuf = await sharp(buf).webp({ quality: 82 }).toBuffer();
+        if (webpBuf.length < buf.length * 0.95) {
+          uploadBlob = new Blob([webpBuf], { type: 'image/webp' });
+        }
+      } catch {}
+    }
+
+    const buffer = Buffer.from(await uploadBlob.arrayBuffer());
     const base64 = buffer.toString('base64');
 
     const form = new FormData();
