@@ -101,9 +101,21 @@ function isChapterImage(url) {
 }
 
 // =====================================================
-// UPLOADER — download image then upload to Catbox
+// UPLOADER — alternates between Catbox and ImgBB
 // =====================================================
-async function uploadToCatbox(imageUrl) {
+import { readFileSync as readFs } from 'fs';
+
+const IMGBB_KEY = process.env.IMGBB_API_KEY || (() => {
+  try {
+    const envPath = new URL('./.env', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1');
+    const lines = readFs(envPath, 'utf8').split('\n');
+    for (const l of lines) { const m = l.match(/^IMGBB_API_KEY\s*=\s*(.+)/); if (m) return m[1].trim().replace(/^["']|["']$/g, ''); }
+  } catch {} return '';
+})();
+
+let uploadCounter = 0;
+
+async function uploadImage(imageUrl) {
   // Download
   const res = await fetch(imageUrl, {
     headers: {
@@ -116,22 +128,41 @@ async function uploadToCatbox(imageUrl) {
   const blob = await res.blob();
   if (blob.size < 500) throw new Error('Too small');
 
-  // Upload
+  // Alternate: even = Catbox, odd = ImgBB (fallback to Catbox if no key)
+  uploadCounter++;
+  if (IMGBB_KEY && uploadCounter % 2 === 0) {
+    try {
+      const url = await uploadToImgBB(blob);
+      if (url) return url;
+    } catch {} // fall through to Catbox
+  }
+  return await uploadToCatbox(blob, imageUrl);
+}
+
+async function uploadToCatbox(blob, imageUrl) {
   const form = new FormData();
   form.append('reqtype', 'fileupload');
   const ext = imageUrl.match(/\.(jpe?g|png|webp|gif|avif)/i)?.[1] || 'jpg';
   form.append('fileToUpload', blob, `page.${ext}`);
 
-  const uploadRes = await fetch('https://catbox.moe/user/api.php', {
-    method: 'POST',
-    body: form
-  });
+  const uploadRes = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: form });
   if (!uploadRes.ok) throw new Error(`Catbox: ${uploadRes.status}`);
   const text = (await uploadRes.text()).trim();
-  if (!text.startsWith('https://files.catbox.moe/')) {
-    throw new Error(`Catbox error: ${text.slice(0, 80)}`);
-  }
+  if (!text.startsWith('https://files.catbox.moe/')) throw new Error(`Catbox error: ${text.slice(0, 80)}`);
   return text;
+}
+
+async function uploadToImgBB(blob) {
+  const buffer = Buffer.from(await blob.arrayBuffer());
+  const base64 = buffer.toString('base64');
+  const form = new FormData();
+  form.append('key', IMGBB_KEY);
+  form.append('image', base64);
+  const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: form });
+  if (!res.ok) return null;
+  const json = await res.json();
+  if (!json.success) return null;
+  return json.data?.image?.url || json.data?.url || json.data?.display_url || null;
 }
 
 // =====================================================
@@ -153,15 +184,15 @@ async function processChapter(url, outputFile) {
 
   for (let i = 0; i < images.length; i++) {
     try {
-      const catboxUrl = await uploadToCatbox(images[i]);
-      links.push(catboxUrl);
+      const hostedUrl = await uploadImage(images[i]);
+      links.push(hostedUrl);
       process.stdout.write(`\r   📤 ${i + 1}/${images.length} uploaded`);
     } catch (err) {
       // Retry once
       await sleep(2000);
       try {
-        const catboxUrl = await uploadToCatbox(images[i]);
-        links.push(catboxUrl);
+        const hostedUrl = await uploadImage(images[i]);
+        links.push(hostedUrl);
         process.stdout.write(`\r   📤 ${i + 1}/${images.length} uploaded (retried)`);
       } catch {
         failed++;

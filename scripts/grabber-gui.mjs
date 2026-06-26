@@ -423,8 +423,26 @@ async function uploadToCatbox(blob, sourceUrl) {
   return text;
 }
 
-// ImgBB API key — get yours free at https://api.imgbb.com/
-const IMGBB_KEY = process.env.IMGBB_API_KEY || '';
+// ImgBB API key — checks env var OR .env file in scripts folder
+const IMGBB_KEY = process.env.IMGBB_API_KEY || loadEnvKey('IMGBB_API_KEY') || '';
+
+function loadEnvKey(name) {
+  try {
+    const envPath = new URL('./.env', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1');
+    const lines = readFileSync(envPath, 'utf8').split('\n');
+    for (const line of lines) {
+      const match = line.match(new RegExp(`^${name}\\s*=\\s*(.+)`));
+      if (match) return match[1].trim().replace(/^["']|["']$/g, '');
+    }
+  } catch {}
+  return '';
+}
+
+if (IMGBB_KEY) {
+  console.log('✅ ImgBB key found — alternating Catbox/ImgBB uploads (spreads load)');
+} else {
+  console.log('ℹ️  No ImgBB key — using Catbox only. To alternate, create scripts/.env with IMGBB_API_KEY=your-key');
+}
 
 async function uploadToImgBB(blob, sourceUrl) {
   if (!IMGBB_KEY) return null; // no key, skip
