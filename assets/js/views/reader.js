@@ -13,7 +13,7 @@ import {
   hasLikedComment, markCommentLiked
 } from '../lib/library.js';
 import { getProfile } from '../lib/account.js';
-import { esc, html, throttle, timeAgo, avatarLetter, isMobile, isTouch, proxyImage, setMeta, truncate } from '../lib/utils.js';
+import { esc, html, throttle, timeAgo, avatarLetter, isMobile, isTouch, proxyImage, proxyReaderImage, setMeta, truncate } from '../lib/utils.js';
 import { spinner, toast, drawer, share } from '../lib/ui.js';
 import { SITE, pageTitle } from '../lib/site.config.js';
 import { getSettings } from '../lib/settings.js';
@@ -190,7 +190,7 @@ function renderReader(s, ch, prev, next, all, prefs) {
             <div class="page-spinner"></div>
             <span class="page-loader-text">${i < 3 ? 'Loading...' : ['Hold tight, otaku...', 'Loading your fix...', 'Patience, reader...', 'Almost there...', 'Worth the wait...', 'Loading panels...'][i % 6]}</span>
           </div>
-          <img class="manga-page" ${i < 3 ? `src="${esc(proxyImage(url))}"` : `data-src="${esc(proxyImage(url))}"`} alt="Page ${i + 1}"
+          <img class="manga-page" ${i < 3 ? `src="${esc(proxyReaderImage(url))}"` : `data-src="${esc(proxyReaderImage(url))}"`} alt="Page ${i + 1}"
                loading="${i < 3 ? 'eager' : 'lazy'}" decoding="async"
                data-page="${i}"
                onload="this.parentElement.classList.add('loaded')"

@@ -181,22 +181,32 @@ export function icon(name, size = 20) {
 }
 
 
-/** Wrap ALL chapter image URLs through the same-origin /api/proxy-image proxy.
- *  This routes images through Cloudflare's edge cache — first load comes from
- *  Catbox/ImgBB, then Cloudflare caches it for 24h at the nearest PoP.
- *  Subsequent readers get ~50ms loads instead of 500ms+ from origin. */
-const HOTLINK_HOSTS = ['mangadex.org', 'cdn.statically.io', 'uploads.mangadex.org'];
+/** Route image through same-origin proxy for edge caching.
+ *  ONLY used for chapter page images in the reader (large, worth caching).
+ *  Cover thumbnails and other images load directly (fast enough, saves Worker load). */
 export function proxyImage(url) {
   if (!url || typeof url !== 'string') return url;
-  if (url.startsWith('/api/')) return url;       // already proxied
+  if (url.startsWith('/api/')) return url;
   if (url.startsWith('data:'))  return url;
-  // Proxy ALL external images (for edge caching), not just hotlink-protected ones
+  // Don't proxy same-origin images
   try {
     const u = new URL(url);
-    if (u.origin === location.origin) return url; // same-origin, no need
-    return `/api/proxy-image?url=${encodeURIComponent(url)}`;
-  } catch { /* invalid URL — return as-is */ }
+    if (u.origin === location.origin) return url;
+  } catch { return url; }
   return url;
+}
+
+/** Proxy specifically for reader pages — routes through Cloudflare edge cache.
+ *  Call this ONLY for chapter page images in the reader view. */
+export function proxyReaderImage(url) {
+  if (!url || typeof url !== 'string') return url;
+  if (url.startsWith('/api/')) return url;
+  if (url.startsWith('data:'))  return url;
+  try {
+    const u = new URL(url);
+    if (u.origin === location.origin) return url;
+    return `/api/proxy-image?url=${encodeURIComponent(url)}`;
+  } catch { return url; }
 }
 
 // =====================================================
