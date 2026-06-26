@@ -45,7 +45,7 @@ const END = parseInt(getArg('end', '0'), 10);
 const DRY_RUN = hasFlag('dry-run');
 const EXPORT_FILE = getArg('export');
 const INITIAL_TOKEN = getArg('token') || process.env.ADMIN_TOKEN;
-const DELAY = parseInt(getArg('delay', '500'), 10); // ms between uploads
+const DELAY = parseInt(getArg('delay', '300'), 10); // ms between uploads
 const RETRY_FILE = getArg('retry');
 
 if (!SERIES) {

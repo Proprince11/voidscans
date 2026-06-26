@@ -32,7 +32,7 @@ const BATCH_PATTERN = getArg('batch');
 const START = parseInt(getArg('start', '1'), 10);
 const END = parseInt(getArg('end', '1'), 10);
 const SAVE_FILE = getArg('save');
-const DELAY = parseInt(getArg('delay', '700'), 10);
+const DELAY = parseInt(getArg('delay', '350'), 10);
 const OUTPUT_DIR = getArg('out', 'chapters-output');
 
 if (!SINGLE_URL && !BATCH_PATTERN) {
