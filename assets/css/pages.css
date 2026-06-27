@@ -460,17 +460,28 @@ body.reader-mode {
   border: 1px solid var(--border);
   white-space: nowrap;
   transition: background 0.15s;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
 }
 .reader-nav-btn:hover { background: var(--surface-3); }
+@media (max-width: 400px) {
+  .reader-nav-btn { padding: var(--s-2); font-size: 11px; }
+}
 .reader-nav-strip select {
   flex: 1;
-  max-width: 200px;
+  max-width: 180px;
+  min-width: 0;
   padding: var(--s-2) var(--s-3);
   border-radius: var(--r-sm);
   background: var(--surface-2);
   border: 1px solid var(--border);
   color: var(--text);
   font-size: var(--fs-xs);
+  min-height: 44px;
+}
+@media (max-width: 400px) {
+  .reader-nav-strip select { max-width: 120px; font-size: 11px; }
 }
 
 .reader-bottombar {

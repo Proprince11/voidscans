@@ -61,6 +61,7 @@
 .btn-ghost:hover { background: var(--surface-2); color: var(--text); }
 
 .btn-sm { height: 32px; padding: 0 var(--s-3); font-size: var(--fs-xs); }
+@media (max-width: 767px) { .btn-sm { height: 36px; min-width: 36px; } }
 .btn-lg { height: 48px; padding: 0 var(--s-6); font-size: var(--fs-base); }
 .btn-icon {
   width: 40px; padding: 0;
@@ -897,6 +898,9 @@ body.has-bottom-nav {
   border-radius: var(--r-sm);
   margin-top: var(--s-2);
   border: 1px solid var(--border);
+}
+@media (max-width: 480px) {
+  .comment-gif { max-width: 160px; max-height: 150px; }
 }
 .comment-actions {
   display: flex;
