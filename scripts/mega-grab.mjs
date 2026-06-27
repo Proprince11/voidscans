@@ -240,8 +240,10 @@ async function processChapter(slug, num, pageUrl) {
   }
 
   // Scrape
+  process.stdout.write(`  ${slug} ch.${num}: scraping...`);
   const images = await scrapePage(pageUrl);
   if (!images.length) throw new Error('No images found');
+  process.stdout.write(` ${images.length} imgs → uploading `);
 
   // Upload each image
   const pages = [];
@@ -256,6 +258,8 @@ async function processChapter(slug, num, pageUrl) {
       blob = await compress(blob, images[i]);
       const url = await upload(blob, images[i]);
       pages.push(url);
+      // Show dot every 5 images for progress
+      if ((i + 1) % 5 === 0) process.stdout.write('.');
     } catch {
       // Retry once
       await sleep(2000);
@@ -268,10 +272,11 @@ async function processChapter(slug, num, pageUrl) {
         blob = await compress(blob, images[i]);
         const url = await upload(blob, images[i]);
         pages.push(url);
-      } catch { /* skip this image */ }
+      } catch { process.stdout.write('x'); }
     }
     if (i < images.length - 1) await sleep(DELAY);
   }
+  process.stdout.write('\n');
 
   if (!pages.length) throw new Error('All uploads failed');
 
@@ -343,6 +348,7 @@ for (const series of seriesList) {
       if (r.status === 'fulfilled') {
         if (r.value.result === 'skipped') {
           totalSkipped++;
+          process.stdout.write(`  ${slug} ch.${r.value.chNum}: skipped\n`);
         } else {
           totalSuccess++;
           log(`  ✓ ${slug} ch.${r.value.chNum} — ${r.value.result} pages`);
