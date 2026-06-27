@@ -17,7 +17,8 @@
 // =====================================================
 
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
-import { resolve, join } from 'path';
+import { resolve, join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 const args = process.argv.slice(2);
 function getArg(name, defaultVal = '') {

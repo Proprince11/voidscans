@@ -129,9 +129,15 @@ async function compress(blob, url) {
 // IMGBB KEY
 // =====================================================
 import { readFileSync as readFs2 } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const IMGBB_KEY = process.env.IMGBB_API_KEY || (() => {
   try {
-    const envPath = join(new URL('.', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1'), '.env');
+    const envPath = join(__dirname, '.env');
     const lines = readFs2(envPath, 'utf8').split('\n');
     for (const l of lines) { const m = l.match(/^IMGBB_API_KEY\s*=\s*(.+)/); if (m) return m[1].trim().replace(/^["']|["']$/g, ''); }
   } catch {} return '';

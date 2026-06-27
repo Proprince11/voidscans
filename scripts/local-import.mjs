@@ -24,7 +24,8 @@
 // =====================================================
 
 import { readFileSync, writeFileSync, existsSync, appendFileSync } from 'fs';
-import { resolve } from 'path';
+import { resolve, join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 // =====================================================
 // CLI Arguments
