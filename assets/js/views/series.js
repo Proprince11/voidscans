@@ -206,6 +206,7 @@ function renderShell(s) {
         <div class="section-header">
           <h2 class="section-title">Chapters</h2>
           <div class="row gap-2">
+            <span id="readProgress" style="display:none;"></span>
             <button class="btn btn-ghost btn-sm" id="sortChaps" data-order="desc">Newest first ↓</button>
           </div>
         </div>
@@ -450,6 +451,16 @@ function renderChapters(s, chapters, readSet) {
     list.innerHTML = emptyState({ icon: '📖', title: 'No chapters yet', subtitle: 'Check back soon.' });
     return;
   }
+
+  // Show reading progress badge
+  const readCount = readSet?.size || 0;
+  const highestRead = readSet?.size ? Math.max(...readSet) : 0;
+  const progressEl = document.getElementById('readProgress');
+  if (progressEl && readCount > 0) {
+    progressEl.innerHTML = `<span class="badge badge-ongoing" style="font-size: var(--fs-xs);">✓ Read up to Ch. ${highestRead}</span>`;
+    progressEl.style.display = '';
+  }
+
   let order = 'desc';
   function paint() {
     const chs = [...chapters].sort((a, b) => order === 'desc' ? b.number - a.number : a.number - b.number);
