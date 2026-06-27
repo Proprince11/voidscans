@@ -13,6 +13,21 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 import { normStatus, normType, slugify } from './utils.js';
+import { SITE } from './site.config.js';
+
+// =====================================================
+// EDGE CACHE — try cache Worker first, fallback to Firestore.
+// =====================================================
+async function cachedApiGet(path) {
+  if (!SITE.cacheApi) return null; // disabled
+  try {
+    const res = await fetch(`${SITE.cacheApi}${path}`, { signal: AbortSignal.timeout(3000) });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null; // cache Worker down, fall through to Firestore
+  }
+}
 
 // =====================================================
 // CACHE — in-memory TTL cache to dedupe Firestore reads.
@@ -119,6 +134,10 @@ export function normalizeChapter(raw, fallbackId = '') {
 // =====================================================
 export async function fetchAllSeries({ limitTo = 200 } = {}) {
   return memoFetch(`series:all:${limitTo}`, TTL.series, async () => {
+    // Try edge cache first (avoids Firestore read)
+    const cached = await cachedApiGet('/api/series');
+    if (cached && Array.isArray(cached)) return cached.slice(0, limitTo);
+    // Fallback to direct Firestore
     const q = query(collection(db, 'series'), orderBy('createdAt', 'desc'), limit(limitTo));
     const snap = await getDocs(q);
     return snap.docs.map(d => normalizeSeries(d.data(), d.id));
@@ -129,6 +148,10 @@ export async function fetchAllSeries({ limitTo = 200 } = {}) {
 export async function fetchSeriesBySlug(slug) {
   if (!slug) return null;
   return memoFetch(`series:slug:${slug}`, TTL.series, async () => {
+    // Try edge cache first
+    const cached = await cachedApiGet(`/api/series/${encodeURIComponent(slug)}`);
+    if (cached && cached.slug && !cached.error) return cached;
+    // Fallback to direct Firestore
     const q = query(collection(db, 'series'), where('slug', '==', slug), limit(1));
     const snap = await getDocs(q);
     if (snap.empty) return null;
@@ -210,6 +233,10 @@ export async function deleteSeries(docId, slug) {
 export async function fetchChapters(slug) {
   if (!slug) return [];
   return memoFetch(`chapters:${slug}`, TTL.chapters, async () => {
+    // Try edge cache first
+    const cached = await cachedApiGet(`/api/chapters/${encodeURIComponent(slug)}`);
+    if (cached && Array.isArray(cached)) return cached;
+    // Fallback to direct Firestore
     const q = query(
       collection(db, 'chapters'),
       where('seriesSlug', '==', slug),
@@ -224,6 +251,10 @@ export async function fetchChapter(slug, number) {
   const num = Number(number);
   if (!slug || !num) return null;
   return memoFetch(`chapters:${slug}:${num}`, TTL.chapters, async () => {
+    // Try edge cache first
+    const cached = await cachedApiGet(`/api/chapter/${encodeURIComponent(slug)}/${num}`);
+    if (cached && cached.pages && !cached.error) return cached;
+    // Fallback to direct Firestore
     const q = query(
       collection(db, 'chapters'),
       where('seriesSlug', '==', slug),

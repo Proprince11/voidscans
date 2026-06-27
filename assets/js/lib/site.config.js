@@ -23,6 +23,10 @@ export const SITE = {
   // with wrangler.jsonc → vars.PUBLIC_BASE_URL (server side).
   baseUrl: 'https://jayascans.online',
 
+  // Cache Worker URL — edge-caches Firestore reads (8× fewer reads).
+  // Set to '' to disable (falls back to direct Firestore).
+  cacheApi: 'https://jayascans-cache.isthe.workers.dev',
+
   tagline: 'Premium reading experience for manhwa, manga, and manhua. Free forever.',
 
   // Optional socials (leave '' to hide)
