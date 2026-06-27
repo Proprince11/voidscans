@@ -1,0 +1,334 @@
+{
+  "lookism": {
+    "chapters": {
+      "1": {
+        "pages": 92,
+        "file": "lookism/ch-0001.json"
+      },
+      "2": {
+        "pages": 117,
+        "file": "lookism/ch-0002.json"
+      },
+      "11": {
+        "pages": 101,
+        "file": "lookism/ch-0011.json"
+      },
+      "12": {
+        "pages": 93,
+        "file": "lookism/ch-0012.json"
+      },
+      "13": {
+        "pages": 113,
+        "file": "lookism/ch-0013.json"
+      },
+      "14": {
+        "pages": 101,
+        "file": "lookism/ch-0014.json"
+      },
+      "15": {
+        "pages": 79,
+        "file": "lookism/ch-0015.json"
+      },
+      "16": {
+        "pages": 108,
+        "file": "lookism/ch-0016.json"
+      },
+      "17": {
+        "pages": 83,
+        "file": "lookism/ch-0017.json"
+      },
+      "18": {
+        "pages": 81,
+        "file": "lookism/ch-0018.json"
+      },
+      "19": {
+        "pages": 57,
+        "file": "lookism/ch-0019.json"
+      },
+      "20": {
+        "pages": 70,
+        "file": "lookism/ch-0020.json"
+      },
+      "21": {
+        "pages": 50,
+        "file": "lookism/ch-0021.json"
+      },
+      "22": {
+        "pages": 58,
+        "file": "lookism/ch-0022.json"
+      },
+      "23": {
+        "pages": 95,
+        "file": "lookism/ch-0023.json"
+      },
+      "24": {
+        "pages": 54,
+        "file": "lookism/ch-0024.json"
+      },
+      "25": {
+        "pages": 59,
+        "file": "lookism/ch-0025.json"
+      },
+      "26": {
+        "pages": 72,
+        "file": "lookism/ch-0026.json"
+      },
+      "27": {
+        "pages": 101,
+        "file": "lookism/ch-0027.json"
+      },
+      "28": {
+        "pages": 74,
+        "file": "lookism/ch-0028.json"
+      },
+      "29": {
+        "pages": 71,
+        "file": "lookism/ch-0029.json"
+      },
+      "30": {
+        "pages": 69,
+        "file": "lookism/ch-0030.json"
+      },
+      "31": {
+        "pages": 63,
+        "file": "lookism/ch-0031.json"
+      },
+      "32": {
+        "pages": 79,
+        "file": "lookism/ch-0032.json"
+      },
+      "33": {
+        "pages": 107,
+        "file": "lookism/ch-0033.json"
+      },
+      "34": {
+        "pages": 57,
+        "file": "lookism/ch-0034.json"
+      },
+      "35": {
+        "pages": 56,
+        "file": "lookism/ch-0035.json"
+      },
+      "36": {
+        "pages": 60,
+        "file": "lookism/ch-0036.json"
+      },
+      "37": {
+        "pages": 57,
+        "file": "lookism/ch-0037.json"
+      },
+      "38": {
+        "pages": 66,
+        "file": "lookism/ch-0038.json"
+      },
+      "39": {
+        "pages": 65,
+        "file": "lookism/ch-0039.json"
+      },
+      "40": {
+        "pages": 55,
+        "file": "lookism/ch-0040.json"
+      },
+      "41": {
+        "pages": 44,
+        "file": "lookism/ch-0041.json"
+      },
+      "42": {
+        "pages": 44,
+        "file": "lookism/ch-0042.json"
+      },
+      "43": {
+        "pages": 56,
+        "file": "lookism/ch-0043.json"
+      },
+      "44": {
+        "pages": 47,
+        "file": "lookism/ch-0044.json"
+      },
+      "45": {
+        "pages": 63,
+        "file": "lookism/ch-0045.json"
+      },
+      "46": {
+        "pages": 58,
+        "file": "lookism/ch-0046.json"
+      },
+      "47": {
+        "pages": 57,
+        "file": "lookism/ch-0047.json"
+      },
+      "48": {
+        "pages": 50,
+        "file": "lookism/ch-0048.json"
+      },
+      "49": {
+        "pages": 49,
+        "file": "lookism/ch-0049.json"
+      },
+      "50": {
+        "pages": 81,
+        "file": "lookism/ch-0050.json"
+      },
+      "51": {
+        "pages": 59,
+        "file": "lookism/ch-0051.json"
+      },
+      "52": {
+        "pages": 67,
+        "file": "lookism/ch-0052.json"
+      },
+      "53": {
+        "pages": 43,
+        "file": "lookism/ch-0053.json"
+      },
+      "54": {
+        "pages": 53,
+        "file": "lookism/ch-0054.json"
+      },
+      "55": {
+        "pages": 63,
+        "file": "lookism/ch-0055.json"
+      },
+      "56": {
+        "pages": 64,
+        "file": "lookism/ch-0056.json"
+      },
+      "57": {
+        "pages": 57,
+        "file": "lookism/ch-0057.json"
+      },
+      "58": {
+        "pages": 66,
+        "file": "lookism/ch-0058.json"
+      },
+      "59": {
+        "pages": 67,
+        "file": "lookism/ch-0059.json"
+      },
+      "60": {
+        "pages": 54,
+        "file": "lookism/ch-0060.json"
+      },
+      "61": {
+        "pages": 62,
+        "file": "lookism/ch-0061.json"
+      },
+      "62": {
+        "pages": 63,
+        "file": "lookism/ch-0062.json"
+      },
+      "63": {
+        "pages": 62,
+        "file": "lookism/ch-0063.json"
+      },
+      "64": {
+        "pages": 66,
+        "file": "lookism/ch-0064.json"
+      },
+      "65": {
+        "pages": 65,
+        "file": "lookism/ch-0065.json"
+      },
+      "66": {
+        "pages": 69,
+        "file": "lookism/ch-0066.json"
+      },
+      "67": {
+        "pages": 63,
+        "file": "lookism/ch-0067.json"
+      },
+      "68": {
+        "pages": 71,
+        "file": "lookism/ch-0068.json"
+      },
+      "69": {
+        "pages": 52,
+        "file": "lookism/ch-0069.json"
+      },
+      "70": {
+        "pages": 76,
+        "file": "lookism/ch-0070.json"
+      },
+      "71": {
+        "pages": 65,
+        "file": "lookism/ch-0071.json"
+      },
+      "72": {
+        "pages": 76,
+        "file": "lookism/ch-0072.json"
+      },
+      "73": {
+        "pages": 78,
+        "file": "lookism/ch-0073.json"
+      },
+      "74": {
+        "pages": 82,
+        "file": "lookism/ch-0074.json"
+      },
+      "75": {
+        "pages": 68,
+        "file": "lookism/ch-0075.json"
+      },
+      "76": {
+        "pages": 80,
+        "file": "lookism/ch-0076.json"
+      },
+      "77": {
+        "pages": 72,
+        "file": "lookism/ch-0077.json"
+      },
+      "78": {
+        "pages": 75,
+        "file": "lookism/ch-0078.json"
+      },
+      "79": {
+        "pages": 84,
+        "file": "lookism/ch-0079.json"
+      },
+      "80": {
+        "pages": 75,
+        "file": "lookism/ch-0080.json"
+      },
+      "81": {
+        "pages": 65,
+        "file": "lookism/ch-0081.json"
+      },
+      "82": {
+        "pages": 64,
+        "file": "lookism/ch-0082.json"
+      },
+      "83": {
+        "pages": 70,
+        "file": "lookism/ch-0083.json"
+      },
+      "84": {
+        "pages": 60,
+        "file": "lookism/ch-0084.json"
+      },
+      "85": {
+        "pages": 75,
+        "file": "lookism/ch-0085.json"
+      },
+      "86": {
+        "pages": 91,
+        "file": "lookism/ch-0086.json"
+      },
+      "87": {
+        "pages": 79,
+        "file": "lookism/ch-0087.json"
+      },
+      "88": {
+        "pages": 76,
+        "file": "lookism/ch-0088.json"
+      },
+      "89": {
+        "pages": 63,
+        "file": "lookism/ch-0089.json"
+      },
+      "90": {
+        "pages": 95,
+        "file": "lookism/ch-0090.json"
+      }
+    }
+  }
+}

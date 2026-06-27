@@ -319,20 +319,14 @@ function renderReader(s, ch, prev, next, all, prefs) {
 
     <!-- Discovery strips at the end of the chapter — keeps readers in
          the catalog instead of bouncing after the last page. -->
-    <section class="container section cv-deferred" style="max-width: 800px; padding: 0 var(--s-4);" id="readerRecsSection" hidden>
-      <div class="section-header">
-        <h2 class="section-title" style="font-size: var(--fs-lg);" id="readerRecsTitle">You might also like</h2>
-        <a href="/series/${esc(s.slug)}" class="section-link">All chapters →</a>
-      </div>
-      <div class="card-grid reader-recs-grid" id="readerRecsGrid"></div>
+    <section class="reader-recs-section" id="readerRecsSection" hidden>
+      <h3 class="reader-recs-title" id="readerRecsTitle">You might also like</h3>
+      <div class="reader-recs-grid" id="readerRecsGrid"></div>
     </section>
 
-    <section class="container section cv-deferred" style="max-width: 800px; padding: 0 var(--s-4);" id="readerLatestSection" hidden>
-      <div class="section-header">
-        <h2 class="section-title" style="font-size: var(--fs-lg);">Latest Updates</h2>
-        <a href="/browse?sort=updated" class="section-link">View all →</a>
-      </div>
-      <div class="update-list" id="readerLatestList"></div>
+    <section class="reader-recs-section" id="readerLatestSection" hidden>
+      <h3 class="reader-recs-title">Latest Updates</h3>
+      <div class="reader-latest-list" id="readerLatestList"></div>
     </section>
   `;
 }
