@@ -316,31 +316,45 @@ let totalChapters = 0;
 let totalSuccess = 0;
 let totalSkipped = 0;
 let totalFailed = 0;
+const CONCURRENCY = parseInt(getArg('concurrency', '2'), 10);
 
 for (const series of seriesList) {
   const { slug, pattern, start, end } = series;
   if (!slug || !pattern || !end) { log(`⚠ Skipping invalid entry: ${JSON.stringify(series)}`); continue; }
 
-  log(`\n━━━ ${slug} (chapters ${start}–${end}) ━━━`);
+  log(`\n━━━ ${slug} (chapters ${start}–${end}, concurrency ${CONCURRENCY}) ━━━`);
 
-  for (let n = start; n <= end; n++) {
-    totalChapters++;
-    const url = pattern.replace('{N}', String(n)).replace('{n}', String(n));
-    try {
-      const result = await processChapter(slug, n, url);
-      if (result === 'skipped') {
-        totalSkipped++;
-        // Don't log skipped to keep output clean
-      } else {
-        totalSuccess++;
-        log(`  ✓ ${slug} ch.${n} — ${result} pages`);
-      }
-    } catch (err) {
-      totalFailed++;
-      log(`  ✗ ${slug} ch.${n} — ${err.message}`);
+  // Process in batches of CONCURRENCY
+  for (let n = start; n <= end; n += CONCURRENCY) {
+    const batch = [];
+    for (let i = 0; i < CONCURRENCY && n + i <= end; i++) {
+      const chNum = n + i;
+      const url = pattern.replace('{N}', String(chNum)).replace('{n}', String(chNum));
+      batch.push({ slug, chNum, url });
     }
-    // Pause between chapters
-    await sleep(1000);
+
+    const results = await Promise.allSettled(batch.map(async ({ slug, chNum, url }) => {
+      totalChapters++;
+      const result = await processChapter(slug, chNum, url);
+      return { chNum, result };
+    }));
+
+    for (const r of results) {
+      if (r.status === 'fulfilled') {
+        if (r.value.result === 'skipped') {
+          totalSkipped++;
+        } else {
+          totalSuccess++;
+          log(`  ✓ ${slug} ch.${r.value.chNum} — ${r.value.result} pages`);
+        }
+      } else {
+        totalFailed++;
+        log(`  ✗ ${slug} ch.${batch[results.indexOf(r)]?.chNum} — ${r.reason?.message || 'unknown'}`);
+      }
+    }
+
+    // Small pause between batches
+    await sleep(500);
   }
 }
 
