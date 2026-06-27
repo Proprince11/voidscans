@@ -38,6 +38,7 @@ scripts/local-import-log-*.json
 scripts/local-import-retry-*.json
 scripts/batch-retry-*.json
 scripts/chapter-links-*.txt
+scripts/mega-output/
 chapters-output/
 
 # Local secrets
