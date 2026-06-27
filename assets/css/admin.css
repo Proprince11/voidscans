@@ -293,10 +293,11 @@
 /* Custom upload progress bar (replaces unstyled native <progress>) */
 .upload-bar {
   width: 100%;
-  height: 8px;
+  height: 10px;
   background: var(--surface-3);
   border-radius: var(--r-pill);
   overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 .upload-bar-fill {
   height: 100%;
@@ -304,4 +305,13 @@
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
   border-radius: var(--r-pill);
   transition: width var(--t-base) var(--ease);
+  box-shadow: 0 0 8px var(--accent-glow);
 }
+
+/* Scrape panel input row — better mobile stacking */
+@media (max-width: 600px) {
+  .upload-helpers .row { flex-direction: column; }
+  .upload-helpers .row .input { min-width: 100% !important; }
+  .upload-helpers .row .btn { width: 100%; }
+}
+
