@@ -25,7 +25,7 @@ export async function browse(_params, ctx) {
     allSeries = await fetchAllSeries({ limitTo: 500 });
   } catch (e) {
     console.error(e);
-    ctx.outlet.innerHTML = `<div class="container section">${emptyState({ icon: '⚠', title: 'Failed to load' })}</div>`;
+    ctx.outlet.innerHTML = `<div class="container section"><div class="empty-state"><div class="icon">📡</div><h3>Couldn't load series</h3><p style="color:var(--text-muted);">Check your connection and try again.</p><button class="btn btn-primary" onclick="location.reload()" style="margin-top:var(--s-4);">Retry</button></div></div>`;
     return { title: pageTitle('Browse') };
   }
 

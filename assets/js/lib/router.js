@@ -97,9 +97,18 @@ async function render(path) {
     outletEl.innerHTML = `
       <div class="container section">
         <div class="empty-state">
+          <div class="icon">⚠️</div>
           <h3>Something went wrong</h3>
-          <p>Try refreshing the page.</p>
-          <button class="btn btn-primary" onclick="location.reload()">Reload</button>
+          <p style="color: var(--text-muted); max-width: 40ch; margin: var(--s-2) auto var(--s-4);">
+            ${e.message?.includes('fetch') || e.message?.includes('network') || e.message?.includes('Failed')
+              ? 'Couldn\'t connect to the server. Check your internet and try again.'
+              : 'An unexpected error occurred. Try refreshing the page.'}
+          </p>
+          <div style="display: flex; gap: var(--s-3); justify-content: center; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="location.reload()">Retry</button>
+            <a href="/" class="btn btn-outline">Go Home</a>
+          </div>
+          <p style="font-size: var(--fs-xs); color: var(--text-faint); margin-top: var(--s-4);">${e.message || ''}</p>
         </div>
       </div>`;
   }

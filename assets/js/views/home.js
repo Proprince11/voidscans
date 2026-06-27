@@ -45,7 +45,14 @@ export async function home(_params, ctx) {
     console.error(e);
     ctx.outlet.innerHTML = html`
       <div class="container section">
-        ${emptyState({ icon: '⚠', title: 'Could not load', subtitle: 'Database connection failed. Try again in a moment.', cta: '<button class="btn btn-primary" onclick="location.reload()">Reload</button>' })}
+        <div class="empty-state">
+          <div class="icon">📡</div>
+          <h3>Couldn't load content</h3>
+          <p style="color: var(--text-muted); max-width: 36ch;">Check your internet connection and try again. If the problem persists, the server might be temporarily down.</p>
+          <div style="display: flex; gap: var(--s-3); justify-content: center; margin-top: var(--s-4);">
+            <button class="btn btn-primary" onclick="location.reload()">Retry</button>
+          </div>
+        </div>
       </div>
     `;
     return { title: pageTitle() };
