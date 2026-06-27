@@ -425,9 +425,11 @@ function wireUpShell(s) {
     if (Date.now() - last < 60_000) { toast('Please wait a minute before commenting again', 'error'); return; }
     if (text.length < 2 && !selectedGif) { toast('Comment too short', 'error'); return; }
     try {
-      await postComment(s.slug, { authorName: name, text });
+      const parentId = cText.dataset.replyTo || null;
+      await postComment(s.slug, { authorName: name, text, parentId });
       localStorage.setItem('vs:lastComment', String(Date.now()));
       cText.value = ''; counter.textContent = '0 / 1000';
+      delete cText.dataset.replyTo;
       selectedGif = ''; gifPreview.style.display = 'none'; gifImg.src = '';
       toast('Posted!', 'success');
       const list = await fetchComments(s.slug, 30);
@@ -587,9 +589,20 @@ function renderComments(s, list) {
     container.innerHTML = emptyState({ icon: '💬', title: 'Be the first to comment!' });
     return;
   }
-  container.innerHTML = list.map(c => {
+
+  // Group into threads: top-level + replies
+  const topLevel = list.filter(c => !c.parentId);
+  const replies = list.filter(c => c.parentId);
+  const replyMap = {};
+  for (const r of replies) {
+    if (!replyMap[r.parentId]) replyMap[r.parentId] = [];
+    replyMap[r.parentId].push(r);
+  }
+
+  container.innerHTML = topLevel.map(c => {
     const ts = c.createdAt?.toDate ? timeAgo(c.createdAt.toDate()) : '';
     const liked = hasLikedComment(c.id);
+    const childReplies = replyMap[c.id] || [];
     return `
       <article class="comment">
         <div class="comment-avatar" aria-hidden="true">${esc(avatarLetter(c.authorName))}</div>
@@ -603,12 +616,41 @@ function renderComments(s, list) {
             <button class="comment-action ${liked ? 'active' : ''}" data-like="${esc(c.id)}">
               👍 <span>${esc(c.likes || 0)}</span>
             </button>
+            <button class="comment-action" data-reply="${esc(c.id)}" data-reply-name="${esc(c.authorName || 'Anonymous')}">
+              ↩ Reply
+            </button>
           </div>
+          ${childReplies.length > 0 ? `
+            <div class="comment-replies">
+              ${childReplies.map(r => {
+                const rTs = r.createdAt?.toDate ? timeAgo(r.createdAt.toDate()) : '';
+                const rLiked = hasLikedComment(r.id);
+                return `
+                  <article class="comment comment-reply">
+                    <div class="comment-avatar comment-avatar-sm" aria-hidden="true">${esc(avatarLetter(r.authorName))}</div>
+                    <div class="comment-body">
+                      <div class="comment-head">
+                        <span class="comment-name">${esc(r.authorName || 'Anonymous')}</span>
+                        <span class="comment-time">${esc(rTs)}</span>
+                      </div>
+                      <div class="comment-text">${formatCommentText(r.text)}</div>
+                      <div class="comment-actions">
+                        <button class="comment-action ${rLiked ? 'active' : ''}" data-like="${esc(r.id)}">
+                          👍 <span>${esc(r.likes || 0)}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                `;
+              }).join('')}
+            </div>
+          ` : ''}
         </div>
       </article>
     `;
   }).join('');
 
+  // Like handlers
   container.querySelectorAll('[data-like]').forEach(b => {
     b.addEventListener('click', async () => {
       const id = b.dataset.like;
@@ -623,6 +665,23 @@ function renderComments(s, list) {
         toast('Could not like', 'error');
       }
     });
+  });
+
+  // Reply handlers
+  container.querySelectorAll('[data-reply]').forEach(b => {
+    b.addEventListener('click', () => {
+      const parentId = b.dataset.reply;
+      const parentName = b.dataset.replyName;
+      const cText = document.getElementById('cText');
+      if (cText) {
+        cText.value = `@${parentName} `;
+        cText.dataset.replyTo = parentId;
+        cText.focus();
+        cText.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  });
+}
   });
 }
 

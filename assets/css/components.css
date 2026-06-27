@@ -902,6 +902,21 @@ body.has-bottom-nav {
 @media (max-width: 480px) {
   .comment-gif { max-width: 160px; max-height: 150px; }
 }
+
+/* Threaded replies */
+.comment-replies {
+  margin-top: var(--s-3);
+  padding-left: var(--s-4);
+  border-left: 2px solid var(--border);
+}
+.comment-reply {
+  padding: var(--s-2) 0;
+}
+.comment-avatar-sm {
+  width: 28px !important;
+  height: 28px !important;
+  font-size: var(--fs-xs) !important;
+}
 .comment-actions {
   display: flex;
   gap: var(--s-2);

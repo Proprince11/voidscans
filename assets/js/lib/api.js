@@ -393,7 +393,7 @@ export async function fetchComments(slug, limitTo = 30) {
   });
 }
 
-export async function postComment(slug, { authorName, authorId = null, text, chapter = null }) {
+export async function postComment(slug, { authorName, authorId = null, text, chapter = null, parentId = null }) {
   const cleanText = String(text || '').trim();
   if (cleanText.length < 2 || cleanText.length > 1000) {
     throw new Error('Comment must be 2–1000 characters.');
@@ -403,6 +403,7 @@ export async function postComment(slug, { authorName, authorId = null, text, cha
     authorId,
     text: cleanText,
     chapter,
+    parentId: parentId || null,  // null = top-level comment, string = reply to this ID
     likes: 0,
     flagged: false,
     createdAt: serverTimestamp()
