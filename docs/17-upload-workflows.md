@@ -154,10 +154,103 @@ node bulk-import.mjs --series lookism \
 → Grabber GUI (Method 2). Visual, reliable, no token.
 
 **For initial bulk import (100+ chapters):**
-→ Local Import (Method 4) in batches of 100. Get fresh token each hour.
+→ Mega Grab + Mega Publish (Method 6). Runs overnight, publish next day.
 
 **For quick single chapter:**
 → Admin Panel (Method 1) with "Scrape from Webpage" helper.
+
+**Full automated daily workflow:**
+```bash
+node update-series.mjs        # Check for new chapters (5 seconds)
+node mega-grab.mjs --delay 100  # Grab everything new (runs in background)
+node publish-gui.mjs           # Open browser, paste token, publish all
+```
+
+---
+
+## Method 6: Mega Grab + Mega Publish (Recommended for Bulk)
+
+**Best for:** Initial import of 100-1000+ chapters across multiple series. Set up once, walk away.
+
+**Setup (one time):**
+```bash
+cd scripts
+node mega-grab.mjs    # Creates series.json template — edit it
+```
+
+Edit `series.json`:
+```json
+[
+  {
+    "slug": "lookism",
+    "pattern": "https://hivetoons.org/series/lookism/chapter-{N}",
+    "start": 1,
+    "end": 613,
+    "status": "ongoing"
+  }
+]
+```
+
+**Run the grabber (walk away):**
+```bash
+node mega-grab.mjs --delay 100 --concurrency 2
+```
+
+**Check for new chapters first:**
+```bash
+node update-series.mjs          # Auto-updates "end" in series.json
+node mega-grab.mjs --delay 100  # Only grabs new chapters (skips existing)
+```
+
+**Publish (when ready):**
+```bash
+node publish-gui.mjs    # Open localhost:3457, paste token, click Publish All
+# OR
+node mega-publish.mjs --token YOUR_TOKEN   # CLI version
+```
+
+**Options:**
+- `--delay 100` — ms between image uploads (100 is safe with alternating)
+- `--concurrency 2` — chapters processed simultaneously (default 2)
+
+**Output:** `mega-output/series-slug/ch-0001.json` per chapter (resumable).
+
+---
+
+## Method 7: Update Series (Auto-Detect New Chapters)
+
+**Best for:** Checking if new chapters are available without manually visiting source sites.
+
+```bash
+node update-series.mjs
+```
+
+Output:
+```
+  lookism: 613 → 620 ✓ (+7 new)
+  hero-x-demon-empress: skipped (completed)
+  solo-farming: up to date (131)
+```
+
+Run before `mega-grab` to ensure you're grabbing all available content.
+
+---
+
+## Method 8: Publish GUI (Browser-Based)
+
+**Best for:** Publishing without CLI/token fiddling. Visual progress.
+
+```bash
+node publish-gui.mjs    # Opens localhost:3457
+```
+
+1. Open http://localhost:3457
+2. See all grabbed chapters listed by series
+3. Paste your Firebase token
+4. Click "Publish All"
+5. Watch the progress bar fill up
+
+Skips already-published chapters automatically.
 
 ---
 

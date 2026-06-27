@@ -100,11 +100,15 @@ jayascans/
 
 | Tool | What it does | Best for |
 |---|---|---|
-| **Admin panel** (browser) | Manual: paste URLs or bulk-upload files | 1 chapter at a time |
+| **`mega-grab.mjs`** | Bulk grab all series (scrape + upload images, save locally) | Overnight bulk runs |
+| **`mega-publish.mjs`** | Publish all grabbed chapters to Firestore | After mega-grab finishes |
+| **`publish-gui.mjs`** | Browser GUI to publish mega-output (localhost:3457) | Visual one-click publish |
+| **`update-series.mjs`** | Auto-detect latest chapter numbers on sources | Run before mega-grab |
 | **`grabber-gui.mjs`** | Visual GUI: scan URL, pick images, upload, get links | Daily workflow with preview |
-| **`grab-chapter.mjs`** | CLI: scan + upload + save links to .txt | Quick single/batch without GUI |
+| **`grab-chapter.mjs`** | CLI: scan + upload + save links to .txt | Quick single/batch |
 | **`local-import.mjs`** | CLI: scan + upload + auto-publish to Firestore | Hands-off bulk (needs token) |
 | **`bulk-import.mjs`** | CLI: uses Worker API (faster but timeout risk) | Quick bulk if Worker handles it |
+| **Admin panel** (browser) | Manual: paste URLs or bulk-upload files | 1 chapter at a time |
 
 See **[docs/17-upload-workflows.md](./docs/17-upload-workflows.md)** for detailed usage of each.
 
