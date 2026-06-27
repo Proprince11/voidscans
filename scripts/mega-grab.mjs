@@ -152,7 +152,8 @@ async function scrapePage(url) {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       'Accept': 'text/html,application/xhtml+xml',
       'Referer': new URL(url).origin + '/'
-    }
+    },
+    signal: AbortSignal.timeout(15000) // 15s timeout
   });
   if (!res.ok) throw new Error(`${res.status}`);
   const html = await res.text();
@@ -204,7 +205,7 @@ async function toCatbox(blob, imageUrl) {
   const ext = blob.type === 'image/webp' ? 'webp' : (imageUrl.match(/\.(jpe?g|png|webp|gif|avif)/i)?.[1] || 'jpg');
   form.append('reqtype', 'fileupload');
   form.append('fileToUpload', blob, `page.${ext}`);
-  const res = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: form });
+  const res = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: form, signal: AbortSignal.timeout(30000) });
   if (!res.ok) throw new Error(`Catbox ${res.status}`);
   const text = (await res.text()).trim();
   if (!text.startsWith('https://files.catbox.moe/')) throw new Error(text.slice(0, 60));
@@ -216,7 +217,7 @@ async function toImgBB(blob) {
   const form = new FormData();
   form.append('key', IMGBB_KEY);
   form.append('image', buffer.toString('base64'));
-  const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: form });
+  const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: form, signal: AbortSignal.timeout(30000) });
   if (!res.ok) return null;
   const json = await res.json();
   return json.data?.image?.url || json.data?.url || null;
@@ -247,7 +248,8 @@ async function processChapter(slug, num, pageUrl) {
   for (let i = 0; i < images.length; i++) {
     try {
       const res = await fetch(images[i], {
-        headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': new URL(images[i]).origin + '/', 'Accept': 'image/*' }
+        headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': new URL(images[i]).origin + '/', 'Accept': 'image/*' },
+        signal: AbortSignal.timeout(20000)
       });
       if (!res.ok) throw new Error(`DL ${res.status}`);
       let blob = await res.blob();
@@ -259,7 +261,8 @@ async function processChapter(slug, num, pageUrl) {
       await sleep(2000);
       try {
         const res = await fetch(images[i], {
-          headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': new URL(images[i]).origin + '/', 'Accept': 'image/*' }
+          headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': new URL(images[i]).origin + '/', 'Accept': 'image/*' },
+          signal: AbortSignal.timeout(20000)
         });
         let blob = await res.blob();
         blob = await compress(blob, images[i]);
