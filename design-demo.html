@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JayaScans — Design Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Syne:wght@500;600;700;800&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #111111;
+  --surface: #2A2A2A;
+  --text: #FFFFFF;
+  --text-muted: #A1A1AA;
+  --accent: #FFFFFF;
+  --border: #2A2A2A;
+  --font-display: 'Syne', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-body); line-height: 1.6; }
+
+/* NAV */
+.nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; border-bottom: 1px solid var(--border); }
+.nav-brand { font-family: var(--font-display); font-weight: 800; font-size: 20px; letter-spacing: -0.02em; }
+.nav-brand span { color: var(--text-muted); font-weight: 500; }
+.nav-links { display: flex; gap: 32px; }
+.nav-links a { color: var(--text-muted); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s; }
+.nav-links a:hover { color: var(--text); }
+.nav-btn { padding: 8px 20px; border-radius: 8px; background: var(--text); color: var(--bg); font-size: 13px; font-weight: 600; text-decoration: none; }
+
+/* HERO */
+.hero { padding: 120px 40px 80px; max-width: 900px; }
+.hero-label { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 24px; }
+.hero h1 { font-family: var(--font-display); font-size: clamp(48px, 8vw, 72px); font-weight: 500; line-height: 1.04; letter-spacing: -0.02em; margin-bottom: 24px; }
+.hero p { font-size: 18px; color: var(--text-muted); max-width: 540px; line-height: 1.6; margin-bottom: 40px; }
+.hero-actions { display: flex; gap: 12px; }
+.hero-btn { padding: 14px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; transition: all 0.2s; }
+.hero-btn-primary { background: var(--text); color: var(--bg); }
+.hero-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,255,255,0.1); }
+.hero-btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.hero-btn-secondary:hover { border-color: var(--text-muted); }
+
+/* SECTION */
+.section { padding: 80px 40px; }
+.section-label { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 16px; }
+.section h2 { font-family: var(--font-display); font-size: 36px; font-weight: 700; margin-bottom: 40px; }
+
+/* CARD GRID */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.card { background: var(--surface); border-radius: 8px; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
+.card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.4); }
+.card-img { width: 100%; aspect-ratio: 2/3; background: #1a1a1a; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 13px; }
+.card-info { padding: 12px 14px; }
+.card-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-meta { font-size: 12px; color: var(--text-muted); }
+
+/* STATS */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin: 40px 0; }
+.stat { background: var(--surface); border-radius: 8px; padding: 20px; }
+.stat-value { font-family: var(--font-display); font-size: 32px; font-weight: 700; }
+.stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+/* UPDATE LIST */
+.update-list { display: flex; flex-direction: column; gap: 8px; }
+.update-item { display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: var(--surface); border-radius: 8px; transition: background 0.15s; }
+.update-item:hover { background: #333; }
+.update-thumb { width: 44px; height: 60px; background: #1a1a1a; border-radius: 4px; flex-shrink: 0; object-fit: cover; }
+.update-info { flex: 1; min-width: 0; }
+.update-title { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.update-ch { font-size: 12px; color: var(--text-muted); }
+
+/* FOOTER */
+.footer { padding: 60px 40px 40px; border-top: 1px solid var(--border); margin-top: 80px; }
+.footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+.footer-brand { font-family: var(--font-display); font-weight: 800; font-size: 18px; margin-bottom: 8px; }
+.footer-tagline { font-size: 14px; color: var(--text-muted); }
+.footer h4 { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+.footer a { display: block; color: var(--text-muted); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+.footer a:hover { color: var(--text); }
+.footer-bottom { font-size: 12px; color: #555; text-align: center; padding-top: 24px; border-top: 1px solid var(--border); }
+
+/* COMPARISON NOTE */
+.demo-note { position: fixed; top: 16px; right: 16px; background: #f0b941; color: #111; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 700; z-index: 999; }
+
+@media (max-width: 768px) {
+  .nav { padding: 16px 20px; }
+  .nav-links { display: none; }
+  .hero { padding: 60px 20px 40px; }
+  .section { padding: 40px 20px; }
+  .footer-grid { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="demo-note">⚡ DESIGN DEMO — Not live. Open in browser to preview.</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-brand">JAYA<span>SCANS</span></div>
+  <div class="nav-links">
+    <a href="#">Home</a>
+    <a href="#">Browse</a>
+    <a href="#">Library</a>
+    <a href="#">Search</a>
+  </div>
+  <a href="#" class="nav-btn">Sign In</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-label">[ Latest release ]</div>
+  <h1>Read manhwa, manga & manhua. Free forever.</h1>
+  <p>Premium reading experience with offline support, bookmarks, and the latest chapters in English.</p>
+  <div class="hero-actions">
+    <a href="#" class="hero-btn hero-btn-primary">Start Reading</a>
+    <a href="#" class="hero-btn hero-btn-secondary">Browse All →</a>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="section">
+  <div class="stats">
+    <div class="stat"><div class="stat-value">600+</div><div class="stat-label">Chapters available</div></div>
+    <div class="stat"><div class="stat-value">3</div><div class="stat-label">Active series</div></div>
+    <div class="stat"><div class="stat-value">0ms</div><div class="stat-label">Offline reading</div></div>
+    <div class="stat"><div class="stat-value">24/7</div><div class="stat-label">Free access</div></div>
+  </div>
+</section>
+
+<!-- LATEST UPDATES -->
+<section class="section">
+  <div class="section-label">[ Latest updates ]</div>
+  <h2>New Chapters</h2>
+  <div class="update-list">
+    <div class="update-item"><img class="update-thumb" src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86848-4CSItSclJUvi.jpg"><div class="update-info"><div class="update-title">Lookism</div><div class="update-ch">Chapter 613 · 2h ago</div></div></div>
+    <div class="update-item"><img class="update-thumb" src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b170093-OOvA6KTQnlxF.jpg"><div class="update-info"><div class="update-title">Hero X Demon Empress</div><div class="update-ch">Chapter 182 · 5h ago</div></div></div>
+    <div class="update-item"><img class="update-thumb" src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx166658-jbtqReVgxdqH.jpg"><div class="update-info"><div class="update-title">Solo Farming in the Tower</div><div class="update-ch">Chapter 131 · 1d ago</div></div></div>
+  </div>
+</section>
+
+<!-- POPULAR -->
+<section class="section">
+  <div class="section-label">[ Popular now ]</div>
+  <h2>Trending Series</h2>
+  <div class="card-grid">
+    <div class="card"><img class="card-img" src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86848-4CSItSclJUvi.jpg" style="object-fit:cover;"><div class="card-info"><div class="card-title">Lookism</div><div class="card-meta">Manhwa · Ongoing · Ch.613</div></div></div>
+    <div class="card"><img class="card-img" src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b170093-OOvA6KTQnlxF.jpg" style="object-fit:cover;"><div class="card-info"><div class="card-title">Hero X Demon Empress</div><div class="card-meta">Manhua · Completed · Ch.182</div></div></div>
+    <div class="card"><img class="card-img" src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx166658-jbtqReVgxdqH.jpg" style="object-fit:cover;"><div class="card-info"><div class="card-title">Solo Farming in the Tower</div><div class="card-meta">Manhwa · Ongoing · Ch.131</div></div></div>
+    <div class="card"><img class="card-img" src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx105398-b673Vg56CQnI.jpg" style="object-fit:cover;"><div class="card-info"><div class="card-title">Solo Leveling</div><div class="card-meta">Manhwa · Completed</div></div></div>
+    <div class="card"><img class="card-img" src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx132029-BQTF2VLMgG7y.jpg" style="object-fit:cover;"><div class="card-info"><div class="card-title">Omniscient Reader</div><div class="card-meta">Manhwa · Ongoing</div></div></div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand">JAYASCANS</div>
+      <div class="footer-tagline">Read first. Read free. Read at JayaScans.</div>
+    </div>
+    <div>
+      <h4>Browse</h4>
+      <a href="#">All Series</a>
+      <a href="#">Action</a>
+      <a href="#">Romance</a>
+      <a href="#">Fantasy</a>
+    </div>
+    <div>
+      <h4>Info</h4>
+      <a href="#">Library</a>
+      <a href="#">DMCA</a>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2026 JayaScans · Premium manga reading, free forever.</div>
+</footer>
+
+</body>
+</html>
