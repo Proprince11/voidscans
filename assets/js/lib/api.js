@@ -176,7 +176,25 @@ export async function fetchHomeSections() {
       return bt - at;
     })
     .slice(0, 12);
-  return { all, hero: heroSet, popular, newlyAdded, latest };
+
+  // Fetch recent chapters (last 4) for each series in Latest Updates
+  const latestWithChapters = await Promise.all(
+    latest.map(async (s) => {
+      try {
+        const chapters = await fetchChapters(s.slug);
+        return { ...s, recentChapters: chapters.slice(0, 4) };
+      } catch {
+        return { ...s, recentChapters: [] };
+      }
+    })
+  );
+
+  // Top series ranked by views (for popularity ranking)
+  const topSeries = [...all]
+    .sort((a, b) => (b.views || 0) - (a.views || 0))
+    .slice(0, 9);
+
+  return { all, hero: heroSet, popular, newlyAdded, latest: latestWithChapters, topSeries };
 }
 
 // =====================================================

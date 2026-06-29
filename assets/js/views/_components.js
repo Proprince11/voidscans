@@ -42,15 +42,42 @@ export function seriesCard(series, opts = {}) {
   `;
 }
 
-/** Compact "latest update" row. */
+/** Compact "latest update" row with inline chapter list.
+ *  If series.recentChapters is available (array of chapter objects),
+ *  shows up to 4 chapters with timestamps. Otherwise falls back to single latest.
+ */
 export function updateRow(series) {
   if (!series) return '';
-  const { slug, title, cover, latestChapter, latestChapterAt } = series;
-  const href = `/read/${encodeURIComponent(slug)}/${encodeURIComponent(latestChapter)}`;
+  const { slug, title, cover, latestChapter, latestChapterAt, recentChapters } = series;
   const seriesHref = `/series/${encodeURIComponent(slug)}`;
-  const ago = latestChapterAt
-    ? (latestChapterAt.toDate ? timeAgo(latestChapterAt.toDate()) : timeAgo(latestChapterAt))
-    : '';
+
+  // Build chapter links — prefer recentChapters array, fallback to single latest
+  let chaptersHtml = '';
+  if (Array.isArray(recentChapters) && recentChapters.length > 0) {
+    chaptersHtml = recentChapters.map(ch => {
+      const chHref = `/read/${encodeURIComponent(slug)}/${encodeURIComponent(ch.number)}`;
+      const ago = ch.createdAt
+        ? (ch.createdAt.toDate ? timeAgo(ch.createdAt.toDate()) : timeAgo(ch.createdAt))
+        : '';
+      const chTitle = ch.title ? ` - ${esc(ch.title)}` : '';
+      return `
+        <a href="${chHref}" class="update-ch-link">
+          <span><strong>Ch. ${esc(ch.number)}</strong>${chTitle}</span>
+          <span class="time">${esc(ago)}</span>
+        </a>`;
+    }).join('');
+  } else {
+    const href = `/read/${encodeURIComponent(slug)}/${encodeURIComponent(latestChapter)}`;
+    const ago = latestChapterAt
+      ? (latestChapterAt.toDate ? timeAgo(latestChapterAt.toDate()) : timeAgo(latestChapterAt))
+      : '';
+    chaptersHtml = `
+      <a href="${href}" class="update-ch-link">
+        <span><strong>Ch. ${esc(latestChapter)}</strong></span>
+        <span class="time">${esc(ago)}</span>
+      </a>`;
+  }
+
   return `
     <div class="update-item">
       <a href="${seriesHref}" aria-label="${esc(title)}">
@@ -60,13 +87,32 @@ export function updateRow(series) {
       <div class="update-meta">
         <a href="${seriesHref}" class="update-title">${esc(title)}</a>
         <div class="update-chapters">
-          <a href="${href}" class="update-ch-link">
-            <span><strong>Ch. ${esc(latestChapter)}</strong></span>
-            <span class="time">${esc(ago)}</span>
-          </a>
+          ${chaptersHtml}
         </div>
       </div>
     </div>
+  `;
+}
+
+/** Numbered popularity ranking item. */
+export function rankItem(series, rank) {
+  if (!series) return '';
+  const { slug, title, cover, type, views } = series;
+  const seriesHref = `/series/${encodeURIComponent(slug)}`;
+  const viewsStr = views >= 1000 ? `${(views / 1000).toFixed(1)}K` : String(views || 0);
+  return `
+    <a href="${seriesHref}" class="rank-item" aria-label="#${rank} ${esc(title)}">
+      <span class="rank-number">${rank}</span>
+      <img src="${esc(proxyImage(cover))}" alt="${esc(title)}" class="rank-thumb" loading="lazy" decoding="async"
+           onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
+      <div class="rank-info">
+        <div class="rank-title">${esc(title)}</div>
+        <div class="rank-meta">
+          <span>${esc((type || 'Manhwa').replace(/^./, c => c.toUpperCase()))}</span>
+          <span class="rank-views">👁 ${viewsStr}</span>
+        </div>
+      </div>
+    </a>
   `;
 }
 

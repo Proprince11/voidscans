@@ -687,11 +687,11 @@ body.has-bottom-nav {
 .update-item:hover { border-color: var(--accent); background: var(--surface-2); }
 
 .update-thumb {
-  width: 56px; height: 76px;
+  width: 56px; height: 80px;
   object-fit: cover;
   border-radius: var(--r-sm);
 }
-.update-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.update-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; justify-content: center; }
 .update-title {
   font-family: var(--font-display);
   font-weight: var(--fw-semibold);
@@ -712,9 +712,78 @@ body.has-bottom-nav {
   justify-content: space-between;
   gap: var(--s-2);
   padding: 2px 0;
+  text-decoration: none;
+  border-radius: var(--r-xs);
+  transition: color var(--t-fast);
 }
+.update-ch-link:hover { color: var(--accent); }
+.update-ch-link:hover strong { color: var(--text); }
 .update-ch-link strong { color: var(--accent); font-weight: var(--fw-semibold); }
 .update-ch-link .time { color: var(--text-muted); font-size: 11px; }
+
+/* =====================================================
+   POPULARITY RANKING (top series)
+   ===================================================== */
+.rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.rank-item {
+  display: grid;
+  grid-template-columns: 36px 44px 1fr;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color var(--t-fast), background var(--t-fast);
+}
+.rank-item:hover { border-color: var(--accent); background: var(--surface-2); }
+.rank-number {
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-xl);
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1;
+}
+.rank-item:nth-child(1) .rank-number { color: #ffd700; }
+.rank-item:nth-child(2) .rank-number { color: #c0c0c0; }
+.rank-item:nth-child(3) .rank-number { color: #cd7f32; }
+.rank-thumb {
+  width: 44px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: var(--r-sm);
+}
+.rank-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rank-title {
+  font-family: var(--font-display);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-sm);
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.rank-meta {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.rank-views { color: var(--text-soft); }
 
 /* =====================================================
    CHAPTER LIST (series page)

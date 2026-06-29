@@ -6,7 +6,7 @@ import { fetchHomeSections } from '../lib/api.js';
 import { getHistory } from '../lib/library.js';
 import { esc, html, proxyImage, setMeta } from '../lib/utils.js';
 import { skeletonGrid } from '../lib/ui.js';
-import { seriesCard, updateRow, genreStrip, emptyState, statusBadge } from './_components.js';
+import { seriesCard, updateRow, rankItem, genreStrip, emptyState, statusBadge } from './_components.js';
 import { SITE, pageTitle } from '../lib/site.config.js';
 
 export async function home(_params, ctx) {
@@ -58,7 +58,7 @@ export async function home(_params, ctx) {
     return { title: pageTitle() };
   }
 
-  const { hero: heroItems, popular, newlyAdded, latest, all } = sections;
+  const { hero: heroItems, popular, newlyAdded, latest, topSeries, all } = sections;
 
   // Build the "Continue Reading" strip from local + cloud history.
   // Looks up history items in the `all` series list to get cover/title.
@@ -165,6 +165,20 @@ export async function home(_params, ctx) {
           : `<div class="update-list">${latest.map(updateRow).join('')}</div>`}
       </div>
     </section>
+
+    ${topSeries.length > 0 ? html`
+    <section class="section cv-deferred" id="top-series">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Top Series</h2>
+          <a href="/browse?sort=popular" class="section-link">View all →</a>
+        </div>
+        <div class="rank-list">
+          ${topSeries.map((s, i) => rankItem(s, i + 1)).join('')}
+        </div>
+      </div>
+    </section>
+    ` : ''}
 
     <section class="section cv-deferred">
       <div class="container">
