@@ -1,0 +1,31 @@
+# Design Inspiration for JayaScans Redesign
+# Target: 10-25 year old manga readers
+# Goal: Award-winning first impression + fast/efficient functional pages
+
+## References (Awwwards winners)
+- https://www.awwwards.com/sites/balmoral
+- https://www.awwwards.com/sites/monolog
+- https://www.awwwards.com/sites/imperiale-bolgheri
+- https://www.awwwards.com/sites/artem-shcherbakov
+- https://www.awwwards.com/sites/bill-chien
+
+## Common traits to extract:
+- Massive typography as design element
+- Scroll-driven animations (parallax, reveals, transforms)
+- Cinematic full-bleed imagery
+- Custom cursor interactions
+- Smooth page transitions
+- Asymmetric/editorial layouts
+- Minimalism with intentional tension
+- Motion that feels alive
+
+## How to apply to a manga site:
+- HOME PAGE = the showpiece (cinematic, animated, mesmerizing)
+- BROWSE/SEARCH = efficient, fast, content-dense
+- READER = invisible UI, content-first
+- SERIES DETAIL = editorial, beautiful but functional
+- Keep navigation fast (2 clicks to chapter)
+
+## Also reference for functional layout:
+- VortexScans (inline chapter lists, popularity ranking, collections)
+- The AETHERIS demo in this repo (babyscans template)

@@ -2,22 +2,22 @@
   {
     "slug": "lookism",
     "pattern": "https://hivetoons.org/series/lookism/chapter-{N}",
-    "start": 11,
-    "end": 613,
+    "start": 613,
+    "end": 614,
     "status": "ongoing"
   },
   {
     "slug": "hero-x-demon-empress",
-    "pattern": "https://manhuaus.com/manga/hero-x-demon-queen/chapter-{N}",
-    "start": 53,
+    "pattern": "https://www.topmanhua.fan/manhua/hero-x-demon-queen/chapter-{N}",
+    "start": 120,
     "end": 182,
     "status": "completed"
   },
   {
     "slug": "solo-farming-in-the-tower",
     "pattern": "https://asurascans.com/comics/solo-farming-in-the-tower-fc4c7eba/chapter/{N}",
-    "start": 1,
-    "end": 131,
+    "start": 131,
+    "end": 132,
     "status": "ongoing"
   }
 ]

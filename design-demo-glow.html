@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JayaScans — Glow Theme Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080810;
+  --surface: #12121a;
+  --surface-2: #1a1a28;
+  --border: #1f1f30;
+  --text: #f0f0f8;
+  --text-muted: #8888a0;
+  --cyan: #06b6d4;
+  --purple: #a855f7;
+  --glow-cyan: rgba(6, 182, 212, 0.4);
+  --glow-purple: rgba(168, 85, 247, 0.4);
+  --gradient: linear-gradient(135deg, var(--cyan), var(--purple));
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; line-height: 1.6; overflow-x: hidden; }
+
+/* GLOW BUTTON */
+.btn-glow {
+  position: relative;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.3s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-glow::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 10px;
+  background: var(--gradient);
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s;
+  filter: blur(8px);
+}
+.btn-glow:hover::before { opacity: 1; }
+.btn-glow:hover { border-color: var(--cyan); box-shadow: 0 0 20px var(--glow-cyan), 0 0 40px var(--glow-purple); }
+
+.btn-glow-primary {
+  background: var(--gradient);
+  color: #fff;
+  border: none;
+  font-weight: 700;
+}
+.btn-glow-primary::before { opacity: 0.3; }
+.btn-glow-primary:hover::before { opacity: 0.7; }
+.btn-glow-primary:hover { box-shadow: 0 0 30px var(--glow-cyan), 0 0 60px var(--glow-purple); transform: translateY(-2px); }
+
+/* ANIMATED BORDER CARD */
+.card-glow {
+  position: relative;
+  background: var(--surface);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.card-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  padding: 1px;
+  background: conic-gradient(from var(--angle, 0deg), transparent 60%, var(--cyan), var(--purple), transparent 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.4s;
+  animation: spin-border 3s linear infinite;
+}
+.card-glow:hover::before { opacity: 1; }
+.card-glow:hover { transform: translateY(-4px); box-shadow: 0 8px 32px rgba(6, 182, 212, 0.15), 0 16px 48px rgba(168, 85, 247, 0.1); }
+
+@property --angle { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+@keyframes spin-border { to { --angle: 360deg; } }
+
+/* NAV */
+.nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--border); backdrop-filter: blur(12px); background: rgba(8, 8, 16, 0.8); position: sticky; top: 0; z-index: 100; }
+.nav-brand { font-family: 'Syne'; font-weight: 800; font-size: 20px; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.nav-links { display: flex; gap: 24px; }
+.nav-links a { color: var(--text-muted); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s; }
+.nav-links a:hover { color: var(--text); }
+
+/* HERO */
+.hero { padding: 100px 32px 60px; max-width: 800px; }
+.hero-label { font-family: 'JetBrains Mono'; font-size: 12px; color: var(--cyan); letter-spacing: 0.1em; margin-bottom: 16px; }
+.hero h1 { font-family: 'Syne'; font-size: clamp(36px, 6vw, 56px); font-weight: 800; line-height: 1.1; margin-bottom: 16px; }
+.hero h1 span { background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hero p { font-size: 16px; color: var(--text-muted); max-width: 500px; margin-bottom: 32px; }
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.hero-stats { display: flex; gap: 32px; margin-top: 48px; }
+.hero-stat-value { font-family: 'Syne'; font-size: 28px; font-weight: 700; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hero-stat-label { font-size: 12px; color: var(--text-muted); }
+
+/* SECTIONS */
+.section { padding: 60px 32px; }
+.section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+.section-label { font-family: 'JetBrains Mono'; font-size: 11px; color: var(--purple); letter-spacing: 0.1em; text-transform: uppercase; }
+.section-title { font-family: 'Syne'; font-size: 24px; font-weight: 700; }
+
+/* CARD GRID */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+.card-glow .card-img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
+.card-glow .card-info { padding: 12px 14px; }
+.card-glow .card-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+.card-glow .card-meta { font-size: 11px; color: var(--text-muted); display: flex; gap: 8px; align-items: center; }
+.card-glow .badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+.badge-ongoing { background: rgba(6, 182, 212, 0.15); color: var(--cyan); }
+.badge-completed { background: rgba(168, 85, 247, 0.15); color: var(--purple); }
+
+/* UPDATE LIST */
+.update-list { display: flex; flex-direction: column; gap: 8px; }
+.update-item { display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; transition: all 0.2s; cursor: pointer; text-decoration: none; color: inherit; }
+.update-item:hover { border-color: var(--cyan); box-shadow: 0 0 12px var(--glow-cyan); transform: translateX(4px); }
+.update-thumb { width: 44px; height: 60px; border-radius: 6px; object-fit: cover; }
+.update-info { flex: 1; }
+.update-title { font-weight: 600; font-size: 14px; }
+.update-ch { font-size: 12px; color: var(--text-muted); }
+.update-badge { font-size: 10px; padding: 3px 8px; border-radius: 4px; font-weight: 600; background: rgba(6, 182, 212, 0.12); color: var(--cyan); }
+.update-badge.hot { background: rgba(249, 115, 22, 0.12); color: #f97316; }
+.update-badge.new { background: rgba(168, 85, 247, 0.12); color: var(--purple); }
+.update-time { font-size: 11px; color: var(--text-muted); }
+
+/* FOOTER */
+.footer { padding: 40px 32px; border-top: 1px solid var(--border); margin-top: 60px; text-align: center; }
+.footer-brand { font-family: 'Syne'; font-weight: 800; font-size: 18px; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+.footer-tagline { font-size: 13px; color: var(--text-muted); }
+
+/* DEMO NOTE */
+.demo-note { position: fixed; top: 12px; right: 12px; background: var(--gradient); color: #fff; padding: 6px 14px; border-radius: 6px; font-size: 11px; font-weight: 700; z-index: 999; }
+
+@media (max-width: 600px) {
+  .nav { padding: 12px 16px; }
+  .nav-links { display: none; }
+  .hero { padding: 60px 16px 40px; }
+  .section { padding: 40px 16px; }
+  .hero-stats { gap: 16px; }
+  .card-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<div class="demo-note">⚡ GLOW THEME DEMO</div>
+
+<nav class="nav">
+  <div class="nav-brand">JAYASCANS</div>
+  <div class="nav-links">
+    <a href="#">Home</a>
+    <a href="#">Browse</a>
+    <a href="#">Library</a>
+  </div>
+  <a href="#" class="btn-glow" style="padding: 8px 16px; font-size: 13px;">Sign In</a>
+</nav>
+
+<section class="hero">
+  <div class="hero-label">// NOW READING</div>
+  <h1>Read manhwa & manga. <span>Free forever.</span></h1>
+  <p>Premium reading experience with offline support, bookmarks, and the latest chapters in English.</p>
+  <div class="hero-actions">
+    <a href="#" class="btn-glow btn-glow-primary">Start Reading</a>
+    <a href="#" class="btn-glow">Browse All →</a>
+  </div>
+  <div class="hero-stats">
+    <div><div class="hero-stat-value">600+</div><div class="hero-stat-label">Chapters</div></div>
+    <div><div class="hero-stat-value">3</div><div class="hero-stat-label">Series</div></div>
+    <div><div class="hero-stat-value">∞</div><div class="hero-stat-label">Free Access</div></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-header">
+    <div class="section-label">// latest</div>
+    <div class="section-title">New Chapters</div>
+  </div>
+  <div class="update-list">
+    <a href="#" class="update-item">
+      <img class="update-thumb" src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86848-4CSItSclJUvi.jpg">
+      <div class="update-info"><div class="update-title">Lookism</div><div class="update-ch">Ch. 613 — New Arc</div></div>
+      <span class="update-badge">LIVE</span>
+      <span class="update-time">2h ago</span>
+    </a>
+    <a href="#" class="update-item">
+      <img class="update-thumb" src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b170093-OOvA6KTQnlxF.jpg">
+      <div class="update-info"><div class="update-title">Hero X Demon Empress</div><div class="update-ch">Ch. 182 — Finale</div></div>
+      <span class="update-badge hot">HOT</span>
+      <span class="update-time">5h ago</span>
+    </a>
+    <a href="#" class="update-item">
+      <img class="update-thumb" src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx166658-jbtqReVgxdqH.jpg">
+      <div class="update-info"><div class="update-title">Solo Farming in the Tower</div><div class="update-ch">Ch. 131 — Harvest</div></div>
+      <span class="update-badge new">NEW</span>
+      <span class="update-time">1d ago</span>
+    </a>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-header">
+    <div class="section-label">// trending</div>
+    <div class="section-title">Popular Series</div>
+  </div>
+  <div class="card-grid">
+    <div class="card-glow"><img class="card-img" src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86848-4CSItSclJUvi.jpg"><div class="card-info"><div class="card-title">Lookism</div><div class="card-meta"><span class="badge badge-ongoing">Ongoing</span> Ch.613</div></div></div>
+    <div class="card-glow"><img class="card-img" src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b170093-OOvA6KTQnlxF.jpg"><div class="card-info"><div class="card-title">Hero X Demon Empress</div><div class="card-meta"><span class="badge badge-completed">Completed</span> Ch.182</div></div></div>
+    <div class="card-glow"><img class="card-img" src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx166658-jbtqReVgxdqH.jpg"><div class="card-info"><div class="card-title">Solo Farming</div><div class="card-meta"><span class="badge badge-ongoing">Ongoing</span> Ch.131</div></div></div>
+    <div class="card-glow"><img class="card-img" src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx105398-b673Vg56CQnI.jpg"><div class="card-info"><div class="card-title">Solo Leveling</div><div class="card-meta"><span class="badge badge-completed">Completed</span></div></div></div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="footer-brand">JAYASCANS</div>
+  <div class="footer-tagline">Read first. Read free. Read at JayaScans.</div>
+</footer>
+
+</body>
+</html>

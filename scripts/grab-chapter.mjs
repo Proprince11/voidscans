@@ -55,8 +55,25 @@ Options:
 }
 
 // =====================================================
-// SCRAPER
+// SCRAPER — with smart thumbnail filtering
 // =====================================================
+
+// Known manga reader container selectors
+const READER_CONTAINERS = [
+  'reading-content', 'chapter-content', 'reader-area', 'manga-reading',
+  'entry-content', 'chapter-pages', 'page-break', 'wp-manga-chapter-img',
+  'chapter-images', 'content-manga', 'reading-detail', 'panel-reading',
+  'chapter_content', 'manga_content', 'text-left', 'reader-content',
+  'c-blog-post', 'img-loading', 'chapter-reading', 'viewer-cnt',
+  'comic-page', 'manga-reader', 'chapter-viewer', 'read-container'
+];
+
+const EXCLUDE_SECTIONS = [
+  'related', 'sidebar', 'recommend', 'comment', 'footer', 'you-may',
+  'also-like', 'popular', 'trending', 'latest', 'header', 'nav',
+  'widget', 'breadcrumb', 'social', 'share', 'disqus', 'author'
+];
+
 async function scrapePage(url) {
   const res = await fetch(url, {
     headers: {
@@ -68,16 +85,224 @@ async function scrapePage(url) {
   if (!res.ok) throw new Error(`Page returned ${res.status}`);
   const html = await res.text();
 
+  // STEP 1: Try to extract images only from the reader container
+  let readerHtml = extractReaderSection(html);
+  const sourceHtml = readerHtml || html;
+
+  // STEP 2: Extract all candidate image URLs
+  const rawImages = extractImageUrls(sourceHtml, url);
+
+  // STEP 3: Apply keyword filter
+  let images = rawImages.filter(src => isChapterImage(src));
+
+  // STEP 4: Filter by inline dimensions
+  images = filterByDimensions(images, sourceHtml);
+
+  // STEP 5: Apply path-clustering
+  images = filterByPathClustering(images);
+
+  // STEP 6: Apply sequential filename detection
+  images = filterBySequentialNames(images);
+
+  // STEP 7: Verify image sizes via HEAD requests
+  images = await filterByFileSize(images);
+
+  return images;
+}
+
+function extractReaderSection(html) {
+  for (const selector of READER_CONTAINERS) {
+    const pattern = new RegExp(
+      `<(?:div|section|article)[^>]*(?:class|id)\\s*=\\s*["'][^"']*\\b${selector}\\b[^"']*["'][^>]*>([\\s\\S]*?)(?=<(?:div|section|aside)[^>]*(?:class|id)\\s*=\\s*["'][^"']*(?:${EXCLUDE_SECTIONS.join('|')})[^"']*["'])`,
+      'i'
+    );
+    const match = html.match(pattern);
+    if (match && match[1]) {
+      const imgCount = (match[1].match(/<img/gi) || []).length;
+      if (imgCount >= 3) return match[1];
+    }
+  }
+
+  // Strategy 2: Find between nav and related section
+  const navChapterPattern = /(?:chapter-nav|prev.*?next|nav-links|entry-header)[^>]*>[\s\S]*?<\/(?:div|nav)>/i;
+  const navMatch = html.match(navChapterPattern);
+  if (navMatch) {
+    const afterNav = html.slice(navMatch.index + navMatch[0].length);
+    const relatedPattern = new RegExp(`<(?:div|section|aside)[^>]*(?:class|id)\\s*=\\s*["'][^"']*(?:${EXCLUDE_SECTIONS.join('|')})[^"']*["']`, 'i');
+    const relatedMatch = afterNav.match(relatedPattern);
+    const readerBlock = relatedMatch ? afterNav.slice(0, relatedMatch.index) : afterNav;
+    const imgCount = (readerBlock.match(/<img/gi) || []).length;
+    if (imgCount >= 3) return readerBlock;
+  }
+
+  // Strategy 3: Find densest img cluster
+  const imgPositions = [];
+  const imgRe = /<img[^>]+>/gi;
+  let m2;
+  while ((m2 = imgRe.exec(html)) !== null) {
+    imgPositions.push(m2.index);
+  }
+  if (imgPositions.length >= 3) {
+    let bestStart = 0, bestEnd = html.length, bestCount = 0;
+    for (let i = 0; i < imgPositions.length; i++) {
+      for (let j = i + 2; j < imgPositions.length; j++) {
+        const count = j - i + 1;
+        const span = imgPositions[j] - imgPositions[i];
+        if (count > bestCount || (count === bestCount && span < (bestEnd - bestStart))) {
+          const avgGap = span / count;
+          if (avgGap < 3000) {
+            bestStart = imgPositions[i];
+            bestEnd = imgPositions[j] + 200;
+            bestCount = count;
+          }
+        }
+      }
+    }
+    if (bestCount >= 3) {
+      return html.slice(Math.max(0, bestStart - 100), Math.min(html.length, bestEnd + 100));
+    }
+  }
+
+  return null;
+}
+
+function extractImageUrls(html, baseUrl) {
   const images = [];
-  const imgRegex = /<img[^>]*?(?:src|data-src|data-original|data-lazy-src)\s*=\s*["']([^"']+)["'][^>]*>/gi;
+  const seen = new Set();
+  const re = /<img[^>]*?(?:src|data-src|data-original|data-lazy-src)\s*=\s*["']([^"']+)["'][^>]*>/gi;
   let m;
-  while ((m = imgRegex.exec(html)) !== null) {
-    const src = resolveUrl(m[1], url);
-    if (src && /\.(jpe?g|png|webp|gif|avif)(\?|$|#)/i.test(src) && isChapterImage(src)) {
+  while ((m = re.exec(html)) !== null) {
+    const src = resolveUrl(m[1], baseUrl);
+    if (src && /\.(jpe?g|png|webp|gif|avif)(\?|$|#)/i.test(src) && !seen.has(src)) {
+      seen.add(src);
       images.push(src);
     }
   }
   return images;
+}
+
+function filterByDimensions(images, html) {
+  if (images.length <= 3) return images;
+  const smallImages = new Set();
+  const MIN_DIM = 150;
+  for (const imgUrl of images) {
+    const escaped = imgUrl.slice(-60).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const tagPattern = new RegExp(`<img[^>]*${escaped}[^>]*>`, 'i');
+    const tagMatch = html.match(tagPattern);
+    if (!tagMatch) continue;
+    const tag = tagMatch[0];
+    const wMatch = tag.match(/\bwidth\s*=\s*["']?(\d+)/i);
+    const hMatch = tag.match(/\bheight\s*=\s*["']?(\d+)/i);
+    if (wMatch && hMatch) {
+      const w = parseInt(wMatch[1], 10);
+      const h = parseInt(hMatch[1], 10);
+      if (w < MIN_DIM && h < MIN_DIM) smallImages.add(imgUrl);
+    } else if (wMatch && parseInt(wMatch[1], 10) < 100) {
+      smallImages.add(imgUrl);
+    } else if (hMatch && parseInt(hMatch[1], 10) < 100) {
+      smallImages.add(imgUrl);
+    }
+  }
+  const filtered = images.filter(img => !smallImages.has(img));
+  return filtered.length > 0 ? filtered : images;
+}
+
+function filterByPathClustering(images) {
+  if (images.length <= 3) return images;
+  const pathMap = new Map();
+  for (const img of images) {
+    const base = img.replace(/\/[^/]+$/, '');
+    if (!pathMap.has(base)) pathMap.set(base, []);
+    pathMap.get(base).push(img);
+  }
+  let largestGroup = [];
+  for (const [, group] of pathMap) {
+    if (group.length > largestGroup.length) largestGroup = group;
+  }
+  if (largestGroup.length >= images.length * 0.4 && largestGroup.length >= 3) {
+    return largestGroup;
+  }
+  // Secondary: group by domain + first 3 path segments
+  const domainMap = new Map();
+  for (const img of images) {
+    try {
+      const u = new URL(img);
+      const segments = u.pathname.split('/').filter(Boolean).slice(0, 3).join('/');
+      const key = u.hostname + '/' + segments;
+      if (!domainMap.has(key)) domainMap.set(key, []);
+      domainMap.get(key).push(img);
+    } catch {}
+  }
+  let bestDomainGroup = [];
+  for (const [, group] of domainMap) {
+    if (group.length > bestDomainGroup.length) bestDomainGroup = group;
+  }
+  if (bestDomainGroup.length >= images.length * 0.4 && bestDomainGroup.length >= 3) {
+    return bestDomainGroup;
+  }
+  return images;
+}
+
+function filterBySequentialNames(images) {
+  if (images.length <= 3) return images;
+  const numbered = [];
+  for (const img of images) {
+    const filename = img.split('/').pop().split('?')[0].replace(/\.[^.]+$/, '');
+    const numMatch = filename.match(/^(\d+)$/);
+    if (numMatch) numbered.push({ url: img, num: parseInt(numMatch[1], 10) });
+  }
+  if (numbered.length >= images.length * 0.6 && numbered.length >= 3) {
+    numbered.sort((a, b) => a.num - b.num);
+    return numbered.map(n => n.url);
+  }
+  const prefixNumbered = [];
+  for (const img of images) {
+    const filename = img.split('/').pop().split('?')[0].replace(/\.[^.]+$/, '');
+    const numMatch = filename.match(/(?:^|[-_])(\d{1,4})$/);
+    if (numMatch) prefixNumbered.push({ url: img, num: parseInt(numMatch[1], 10) });
+  }
+  if (prefixNumbered.length >= images.length * 0.6 && prefixNumbered.length >= 3) {
+    prefixNumbered.sort((a, b) => a.num - b.num);
+    return prefixNumbered.map(n => n.url);
+  }
+  return images;
+}
+
+async function filterByFileSize(images) {
+  if (images.length <= 3) return images;
+  const sizeChecks = await Promise.allSettled(
+    images.map(async (imgUrl) => {
+      try {
+        const res = await fetch(imgUrl, {
+          method: 'HEAD',
+          headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': new URL(imgUrl).origin + '/' },
+          signal: AbortSignal.timeout(8000)
+        });
+        const size = parseInt(res.headers.get('content-length') || '0', 10);
+        return { url: imgUrl, size, ok: res.ok };
+      } catch { return { url: imgUrl, size: 0, ok: false }; }
+    })
+  );
+  const withSizes = sizeChecks.filter(r => r.status === 'fulfilled').map(r => r.value);
+  const validSizes = withSizes.filter(s => s.ok && s.size > 0);
+  if (validSizes.length < images.length * 0.5) return images;
+
+  const sizes = validSizes.map(s => s.size).sort((a, b) => a - b);
+  const median = sizes[Math.floor(sizes.length / 2)];
+  const q1 = sizes[Math.floor(sizes.length * 0.25)];
+  const MIN_ABSOLUTE = 15 * 1024;
+  const threshold = Math.max(Math.min(MIN_ABSOLUTE, q1 * 0.5), median * 0.1);
+
+  const filtered = [];
+  const removed = [];
+  for (const img of images) {
+    const info = withSizes.find(s => s.url === img);
+    if (!info || !info.ok || info.size === 0) filtered.push(img);
+    else if (info.size >= threshold) filtered.push(img);
+    else removed.push(img);
+  }
+  if (removed.length > images.length * 0.4) return images;
+  return filtered.length > 0 ? filtered : images;
 }
 
 function resolveUrl(src, base) {
@@ -92,11 +317,20 @@ function isChapterImage(url) {
     'logo', 'avatar', 'icon', 'favicon', 'banner', '/ad/', '/ads/',
     'emoji', 'emote', '/theme/', '/emotes/', 'featured', 'thumbnail',
     'discord', 'iconify', 'social', 'watermark', 'brand', 'logo-end',
-    '/upload/20'
+    'gravatar', 'manga-genre', 'manga-tag', '/thumb-', 'cover-',
+    '-cover', '/cover/', '/covers/', '/poster/', 'poster-',
+    '/widget/', '/badges/', '/rating/', '/star', '/flag/',
+    '/smilies/', '/plugins/', '/avatar/', 'spinner', 'loading',
+    'placeholder', '/button/', 'arrow', 'close-btn', '/nav/',
+    '150x150', '110x150', '75x75', '100x100', '200x200', '300x200',
+    '-110x150', '-75x106', '-175x238', '-193x278'
   ];
   if (exclude.some(p => lower.includes(p))) return false;
+  // Exclude WordPress thumbnail suffixes like image-150x150.jpg
+  if (/[-_]\d{2,3}x\d{2,3}\.\w+$/.test(lower)) return false;
   const filename = lower.split('/').pop().split('?')[0].replace(/\.[^.]+$/, '');
-  const shortNames = ['like', 'love', 'laugh', 'wow', 'cry', 'angry', 'sad', 'happy'];
+  const shortNames = ['like', 'love', 'laugh', 'wow', 'cry', 'angry', 'sad', 'happy',
+    'share', 'reply', 'comment', 'star', 'rating', 'vote', 'bookmark'];
   if (shortNames.includes(filename)) return false;
   return true;
 }
