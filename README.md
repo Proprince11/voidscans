@@ -7,20 +7,49 @@ A premium manhwa, manga & manhua reading platform. Free forever, zero-budget hos
 ```
 Stack:    Vanilla JS SPA  ·  Cloudflare Pages  ·  Firebase Firestore  ·  Cloudflare R2
 Cost:     $0/month (free tier) → ~$10/year (custom domain)
-Targets:  Mobile-first, sub-1s LCP, PWA installable, offline reading
+Targets:  Mobile-first, sub-3s FCP, PWA installable, offline reading
+SEO:      100/100 Lighthouse  ·  JSON-LD  ·  Auto sitemap + RSS
 ```
 
 ## Features
 
-- 🏠 **Premium home** — Hero slider, latest updates, popular grid, genre filters, new arrivals
+- 🏠 **Premium home** — Hero slider, latest updates, popular grid, genre filters, new arrivals, continue reading
 - 📚 **Browse / Search / Genre** — Filter by type, status, sort by popular/new/updated, ranked client-side search
 - 📖 **Series detail** — Rating, 5 emoji reactions, share, bookmark, comments, related series, alt titles, genre pills
 - 🎨 **Premium reader** — Fit-width / fit-height / zoom modes, scroll progress bar, keyboard nav, swipe gestures, settings drawer, scroll position memory, auto chapter precaching
-- 📂 **Library** — Bookmarks (Reading / Completed / Plan to Read / Dropped), reading history, status changes, all stored in IndexedDB
-- 🛠 **Full-CRUD admin** — Dashboard stats, series form with cover preview + genre toggles, chapter form with drag-reorder + image previews, comments moderation, settings
+- 📂 **Library** — Bookmarks (Reading / Completed / Plan to Read / Dropped), reading history, status changes, all stored in IndexedDB with cloud sync
+- 👤 **User accounts** — Email/password + Google sign-in, library/history sync, user profiles
+- 🛠 **Full-CRUD admin** — Dashboard stats, series form with cover preview + genre toggles, chapter form with drag-reorder + image previews, comments moderation, tools, settings (ads, branding, integrations)
 - 📱 **PWA** — Installable, offline reading, service worker chapter cache
-- ⚡ **Edge cache Worker** — Optional Cloudflare Worker reduces Firestore reads 8×
+- ⚡ **Edge cache Worker** — Optional Cloudflare Worker reduces Firestore reads 8×, proxies images for faster LCP
 - 🔍 **SEO-ready** — Per-route titles + descriptions, Open Graph + Twitter cards, canonical URLs, JSON-LD (Book/Chapter/WebSite/Organization), auto sitemap, RSS
+- 📄 **Legal pages** — Privacy Policy, Terms of Service, About, Contact, DMCA (all routed)
+- 🍪 **Cookie consent** — Non-intrusive banner, localStorage-dismissed
+- 🎨 **Themes** — Dark, light, sepia (admin-configurable default)
+- 💰 **Ad slots** — Admin-configurable header, footer, mid-chapter, sidebar (supports any network)
+
+## Performance
+
+| Metric (Mobile) | Score |
+|---|---|
+| **SEO** | 100 ✅ |
+| **Best Practices** | 92 |
+| **Accessibility** | 89 |
+| **Performance** | 67 (FCP: 2.7s, LCP: 8.3s*) |
+
+\* LCP is limited by external image hosts (catbox.moe). Cover images are proxied through edge cache for same-origin delivery. Chapter images load lazily below the fold.
+
+### Performance optimizations applied
+- Zero-framework vanilla JS (0ms TBT)
+- Code-split views via dynamic `import()` (only loads what's needed)
+- Preconnect hints for all external data/image domains
+- Cover images routed through same-origin proxy (edge-cached)
+- Google Fonts loaded async with `media="print"` trick
+- Above-fold hero image: `fetchpriority="high"` + `loading="eager"`
+- All other images: `loading="lazy"` + `decoding="async"`
+- Service worker with 3-tier cache strategy
+- CSS-only skeleton loading states (no JS flicker)
+- Security + cache headers via `_headers` file
 
 ## Quick start
 
@@ -62,6 +91,7 @@ node grant-admin.mjs you@example.com
 | [workers/main/README.md](./workers/main/README.md) | Main Worker API endpoints (scrape, upload, proxy, RSS, sitemap). |
 | [docs/16-automation-architecture.md](./docs/16-automation-architecture.md) | Automation pipeline design, storage comparison, hosting recs. |
 | [docs/17-upload-workflows.md](./docs/17-upload-workflows.md) | **All ways to upload chapters** — quick reference. |
+| [docs/19-post-launch-checklist.md](./docs/19-post-launch-checklist.md) | **Post-launch TODO** — analytics, Search Console, ads, social, monitoring. |
 | [DMCA.md](./DMCA.md) | Takedown policy. |
 | [CHANGELOG.md](./CHANGELOG.md) | Version history. |
 

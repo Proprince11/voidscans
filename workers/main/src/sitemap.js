@@ -8,7 +8,12 @@ import { listDocs, tsToDate } from './firestore.js';
 const STATIC_URLS = [
   { loc: '/',         priority: 1.0, changefreq: 'daily' },
   { loc: '/browse',   priority: 0.9, changefreq: 'daily' },
-  { loc: '/search',   priority: 0.5, changefreq: 'monthly' }
+  { loc: '/search',   priority: 0.5, changefreq: 'monthly' },
+  { loc: '/about',    priority: 0.4, changefreq: 'monthly' },
+  { loc: '/contact',  priority: 0.4, changefreq: 'monthly' },
+  { loc: '/privacy',  priority: 0.3, changefreq: 'yearly' },
+  { loc: '/terms',    priority: 0.3, changefreq: 'yearly' },
+  { loc: '/dmca',     priority: 0.3, changefreq: 'yearly' }
 ];
 
 const GENRES = [

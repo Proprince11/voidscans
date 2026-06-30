@@ -6,6 +6,9 @@
   <meta name="theme-color" content="#0a0a0c">
   <meta name="color-scheme" content="dark">
 
+  <!-- Google Search Console verification (replace YOUR_CODE with your actual code) -->
+  <!-- <meta name="google-site-verification" content="YOUR_CODE_HERE"> -->
+
   <title>JayaScans — Read Manhwa, Manga & Manhua Online Free</title>
   <meta name="description" content="Read manhwa, manga and manhua online for free on JayaScans. Premium reader with bookmarks, library, offline reading, and the latest chapters in English.">
   <link rel="canonical" href="https://jayascans.online/">
@@ -16,14 +19,14 @@
   <meta property="og:title" content="JayaScans — Read Manhwa, Manga & Manhua Online Free">
   <meta property="og:description" content="Premium reading experience for manhwa, manga and manhua. Free forever, with offline support.">
   <meta property="og:url" content="https://jayascans.online/">
-  <meta property="og:image" content="/assets/images/logo.svg">
+  <meta property="og:image" content="https://jayascans.online/assets/images/og-default.png">
   <meta property="og:locale" content="en_US">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="JayaScans — Read Manhwa, Manga & Manhua">
   <meta name="twitter:description" content="Read manhwa, manga & manhua online. Free forever.">
-  <meta name="twitter:image" content="/assets/images/logo.svg">
+  <meta name="twitter:image" content="https://jayascans.online/assets/images/og-default.png">
 
   <!-- Icons & PWA -->
   <link rel="icon" type="image/svg+xml" href="/assets/images/favicon.svg">
@@ -36,6 +39,20 @@
   <!-- Font preconnect -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Preconnect to external image hosts (reduces DNS/TLS time for hero covers) -->
+  <link rel="preconnect" href="https://files.catbox.moe" crossorigin>
+  <link rel="preconnect" href="https://s4.anilist.co" crossorigin>
+  <link rel="preconnect" href="https://i.ibb.co" crossorigin>
+  <link rel="dns-prefetch" href="https://files.catbox.moe">
+  <link rel="dns-prefetch" href="https://s4.anilist.co">
+  <link rel="dns-prefetch" href="https://i.ibb.co">
+
+  <!-- Preconnect to cache API (data fetches) and Firebase -->
+  <link rel="preconnect" href="https://jayascans-cache.isthe.workers.dev" crossorigin>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+  <link rel="dns-prefetch" href="https://jayascans-cache.isthe.workers.dev">
+  <link rel="dns-prefetch" href="https://firestore.googleapis.com">
   <!-- Load Google Fonts asynchronously (non-render-blocking).
        The preload hint fetches early; the actual stylesheet uses the
        media="print" trick to avoid FOIT/FOUT render-blocking. -->
@@ -162,7 +179,8 @@
     }
   </script>
 
-  <!-- Cloudflare Web Analytics (free, no cookies, privacy-friendly) -->
+  <!-- Cloudflare Web Analytics (free, no cookies, privacy-friendly)
+       Get your token: Cloudflare Dashboard → Analytics & Logs → Web Analytics → Sites → Add Site → Copy token -->
   <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": ""}'></script>
 </body>
 </html>

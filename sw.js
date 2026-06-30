@@ -16,7 +16,7 @@
 // - Auto-pause on tab switch + keyboard focus
 // - Respects prefers-reduced-motion
 // (v3.5.2 from PR #23 series recommendations is included in this branch via merge)
-const CACHE_VERSION = 'v3.5.3';
+const CACHE_VERSION = 'v3.5.6';
 const SHELL_CACHE   = `shell-${CACHE_VERSION}`;
 const ASSET_CACHE   = `asset-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `images-${CACHE_VERSION}`;
@@ -69,6 +69,11 @@ const WARM_URLS = [
   '/assets/js/views/library.js',
   '/assets/js/views/profile.js',
   '/assets/js/views/notFound.js',
+  '/assets/js/views/privacy.js',
+  '/assets/js/views/terms.js',
+  '/assets/js/views/about.js',
+  '/assets/js/views/contact.js',
+  '/assets/js/views/dmca.js',
   '/assets/images/icon.svg'
 ];
 

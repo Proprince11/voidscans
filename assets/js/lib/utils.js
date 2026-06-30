@@ -182,8 +182,10 @@ export function icon(name, size = 20) {
 
 
 /** Route image through same-origin proxy for edge caching.
- *  ONLY used for chapter page images in the reader (large, worth caching).
- *  Cover thumbnails and other images load directly (fast enough, saves Worker load). */
+ *  Used for cover thumbnails, hero images, and other small images that
+ *  appear above-the-fold. Proxying them makes them same-origin (no extra
+ *  DNS/TLS), and the Cloudflare CDN caches them at the edge.
+ *  Chapter page images use proxyReaderImage() separately. */
 export function proxyImage(url) {
   if (!url || typeof url !== 'string') return url;
   if (url.startsWith('/api/')) return url;
@@ -192,8 +194,8 @@ export function proxyImage(url) {
   try {
     const u = new URL(url);
     if (u.origin === location.origin) return url;
+    return `/api/proxy-image?url=${encodeURIComponent(url)}`;
   } catch { return url; }
-  return url;
 }
 
 /** Proxy specifically for reader pages — routes through Cloudflare edge cache.
