@@ -198,17 +198,11 @@ export function proxyImage(url) {
   } catch { return url; }
 }
 
-/** Proxy specifically for reader pages — routes through Cloudflare edge cache.
- *  Call this ONLY for chapter page images in the reader view. */
+/** Load chapter page images directly from external hosts.
+ *  These are large, below-the-fold, and lazy-loaded — no need to proxy.
+ *  The browser handles them fine with its own cache. */
 export function proxyReaderImage(url) {
-  if (!url || typeof url !== 'string') return url;
-  if (url.startsWith('/api/')) return url;
-  if (url.startsWith('data:'))  return url;
-  try {
-    const u = new URL(url);
-    if (u.origin === location.origin) return url;
-    return `/api/proxy-image?url=${encodeURIComponent(url)}`;
-  } catch { return url; }
+  return url;
 }
 
 // =====================================================
