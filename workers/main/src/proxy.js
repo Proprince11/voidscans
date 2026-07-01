@@ -52,6 +52,8 @@ const PROXY_ALLOWED_HOSTS = [
   'i.imgur.com',
   'storage.hivetoon.com',
   'cdn.hivetoon.com',
+  's4.anilist.co',
+  'media.kitsu.app',
   'pub-' // R2 public URLs (https://pub-XXXXX.r2.dev/...)
 ];
 
@@ -63,6 +65,8 @@ function isHostAllowed(hostname) {
     if (allowed === 'pub-' && h.startsWith('pub-') && h.endsWith('.r2.dev')) return true;
     // Allow any mangadex.network subdomain (CDN nodes change)
     if (h.endsWith('.mangadex.network')) return true;
+    // Allow any anilist.co subdomain
+    if (h.endsWith('.anilist.co') || h === 'anilist.co') return true;
   }
   return false;
 }

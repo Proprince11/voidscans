@@ -363,7 +363,7 @@ function mountCookieBanner() {
     <p class="cookie-banner-text">
       We use localStorage and IndexedDB to save your reading preferences and library.
       No tracking cookies are used.
-      <a href="/privacy">Learn more</a>
+      <a href="/privacy">Privacy Policy</a>
     </p>
     <div class="cookie-banner-actions">
       <button class="btn btn-primary btn-sm" data-accept>Got it</button>

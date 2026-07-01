@@ -89,7 +89,7 @@ export async function home(_params, ctx) {
           <div class="hero-bg" style="background-image: url('${esc(proxyImage(s.cover))}');"></div>
           <div class="hero-content">
             <div class="hero-cover">
-              <img src="${esc(proxyImage(s.cover))}" alt="${esc(s.title)}" loading="${i === 0 ? 'eager' : 'lazy'}" decoding="async"${i === 0 ? ' fetchpriority="high"' : ''}>
+              <img src="${esc(proxyImage(s.cover))}" alt="${esc(s.title)}" loading="eager" decoding="async" fetchpriority="${i === 0 ? 'high' : 'auto'}">
             </div>
             <div class="hero-meta">
               <div class="badges">
