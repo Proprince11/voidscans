@@ -1,5 +1,6 @@
 // =====================================================
 // View: Home — hero slider, latest updates carousel, popular, new
+// Updated: 2025 redesign — carousel, genre grid, articles
 // =====================================================
 
 import { fetchHomeSections, fetchArticles } from '../lib/api.js';
