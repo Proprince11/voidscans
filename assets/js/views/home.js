@@ -1,12 +1,12 @@
 // =====================================================
-// View: Home — hero slider, latest updates, popular, new
+// View: Home — hero slider, latest updates carousel, popular, new
 // =====================================================
 
-import { fetchHomeSections } from '../lib/api.js';
+import { fetchHomeSections, fetchArticles } from '../lib/api.js';
 import { getHistory } from '../lib/library.js';
 import { esc, html, proxyImage, setMeta } from '../lib/utils.js';
 import { skeletonGrid } from '../lib/ui.js';
-import { seriesCard, updateRow, rankItem, genreStrip, emptyState, statusBadge } from './_components.js';
+import { seriesCard, updateCard, rankItem, genreGrid, articleCard, emptyState, statusBadge } from './_components.js';
 import { SITE, pageTitle } from '../lib/site.config.js';
 
 export async function home(_params, ctx) {
@@ -25,8 +25,8 @@ export async function home(_params, ctx) {
     <section class="section">
       <div class="container">
         <div class="section-header"><h2 class="section-title">Latest Updates</h2></div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--s-3);">
-          ${[0,0,0,0,0,0].map(() => `<div class="skel" style="height:90px; border-radius:var(--r-md);"></div>`).join('')}
+        <div style="display:flex; gap:var(--s-3); overflow:hidden;">
+          ${[0,0,0,0,0].map(() => `<div class="skel" style="width:120px;aspect-ratio:2/3;border-radius:var(--r-md);flex-shrink:0;"></div>`).join('')}
         </div>
       </div>
     </section>
@@ -48,7 +48,7 @@ export async function home(_params, ctx) {
         <div class="empty-state">
           <div class="icon">📡</div>
           <h3>Couldn't load content</h3>
-          <p style="color: var(--text-muted); max-width: 36ch;">Check your internet connection and try again. If the problem persists, the server might be temporarily down.</p>
+          <p style="color: var(--text-muted); max-width: 36ch;">Check your internet connection and try again.</p>
           <div style="display: flex; gap: var(--s-3); justify-content: center; margin-top: var(--s-4);">
             <button class="btn btn-primary" onclick="location.reload()">Retry</button>
           </div>
@@ -60,8 +60,7 @@ export async function home(_params, ctx) {
 
   const { hero: heroItems, popular, newlyAdded, latest, topSeries, all } = sections;
 
-  // Build the "Continue Reading" strip from local + cloud history.
-  // Looks up history items in the `all` series list to get cover/title.
+  // Continue Reading strip
   let continueReading = [];
   try {
     const history = await getHistory({ limit: 30 });
@@ -70,16 +69,21 @@ export async function home(_params, ctx) {
     for (const h of history) {
       if (seen.has(h.seriesId)) continue;
       const meta = seriesBySlug.get(h.seriesId);
-      if (!meta) continue; // series may have been deleted
+      if (!meta) continue;
       seen.add(h.seriesId);
-      continueReading.push({
-        ...meta,
-        lastReadChapter: h.chapter,
-        readAt: h.readAt
-      });
+      continueReading.push({ ...meta, lastReadChapter: h.chapter, readAt: h.readAt });
       if (continueReading.length >= 6) break;
     }
-  } catch (e) { /* ignore — strip just won't render */ }
+  } catch (e) { /* ignore */ }
+
+  // Latest Articles for homepage section (featured first, max 3)
+  let latestArticles = [];
+  try {
+    const allArticles = await fetchArticles({ limitTo: 10 });
+    const featured = allArticles.filter(a => a.featured);
+    const nonFeatured = allArticles.filter(a => !a.featured);
+    latestArticles = [...featured, ...nonFeatured].slice(0, 3);
+  } catch (e) { /* ignore — section just won't render */ }
 
   // Build hero slider
   const heroHtml = heroItems.length === 0 ? '' : html`
@@ -89,7 +93,9 @@ export async function home(_params, ctx) {
           <div class="hero-bg" style="background-image: url('${esc(proxyImage(s.cover))}');"></div>
           <div class="hero-content">
             <div class="hero-cover">
-              <img src="${esc(proxyImage(s.cover))}" alt="${esc(s.title)}" loading="eager" decoding="async" fetchpriority="${i === 0 ? 'high' : 'auto'}">
+              <a href="/series/${encodeURIComponent(s.slug)}" aria-label="View ${esc(s.title)}" tabindex="-1">
+                <img src="${esc(proxyImage(s.cover))}" alt="${esc(s.title)}" loading="eager" decoding="async" fetchpriority="${i === 0 ? 'high' : 'auto'}">
+              </a>
             </div>
             <div class="hero-meta">
               <div class="badges">
@@ -97,7 +103,7 @@ export async function home(_params, ctx) {
                 ${s.hot ? `<span class="badge badge-hot">HOT</span>` : ''}
                 ${s.new ? `<span class="badge badge-new">NEW</span>` : ''}
               </div>
-              <h1 class="hero-title">${esc(s.title)}</h1>
+              <h1 class="hero-title"><a href="/series/${encodeURIComponent(s.slug)}" style="color:inherit;text-decoration:none;">${esc(s.title)}</a></h1>
               <div class="hero-genres">
                 ${(s.genres || []).slice(0, 4).map(g => `<span class="tag-pill">${esc(g)}</span>`).join('')}
               </div>
@@ -162,7 +168,12 @@ export async function home(_params, ctx) {
         </div>
         ${latest.length === 0
           ? emptyState({ icon: '📚', title: 'No updates yet', subtitle: 'Add your first series in the admin panel.' })
-          : `<div class="update-list">${latest.map(updateRow).join('')}</div>`}
+          : `<div class="updates-carousel-wrap" id="updates-carousel-wrap">
+              <div class="updates-carousel" id="updates-carousel" role="list">
+                ${latest.map(s => updateCard(s)).join('')}
+              </div>
+            </div>
+            <div class="updates-carousel-dots" id="updates-carousel-dots"></div>`}
       </div>
     </section>
 
@@ -185,9 +196,23 @@ export async function home(_params, ctx) {
         <div class="section-header">
           <h2 class="section-title">Browse by Genre</h2>
         </div>
-        ${genreStrip()}
+        ${genreGrid()}
       </div>
     </section>
+
+    ${latestArticles.length > 0 ? html`
+    <section class="section cv-deferred" id="latest-articles">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Latest Articles</h2>
+          <a href="/articles" class="section-link">View all →</a>
+        </div>
+        <div class="article-listing-grid">
+          ${latestArticles.map(a => articleCard(a)).join('')}
+        </div>
+      </div>
+    </section>
+    ` : ''}
 
     <section class="section cv-deferred">
       <div class="container">
@@ -195,13 +220,13 @@ export async function home(_params, ctx) {
           <h2 class="section-title">Popular Now</h2>
           <a href="/browse?sort=popular" class="section-link">View all →</a>
         </div>
-        ${popular.length === 0
+        ${popular.length < 4
           ? emptyState({ icon: '⭐', title: 'No series yet', cta: '<a href="/admin" class="btn btn-primary">Open Admin</a>' })
-          : `<div class="card-grid">${popular.map((s, i) => seriesCard(s, { eager: i < 6, priority: i === 0 })).join('')}</div>`}
+          : `<div class="card-grid">${popular.slice(0, 12).map((s, i) => seriesCard(s, { eager: i < 6, priority: i === 0 })).join('')}</div>`}
       </div>
     </section>
 
-    ${newlyAdded.length > 0 ? html`
+    ${newlyAdded.length >= 4 ? html`
     <section class="section cv-deferred">
       <div class="container">
         <div class="section-header">
@@ -214,11 +239,10 @@ export async function home(_params, ctx) {
     ` : ''}
   `;
 
-  // Hero slider behavior
-  const cleanup = setupHeroSlider();
+  const heroCleanup = setupHeroSlider();
+  const carouselCleanup = setupCarousel();
+  const cleanup = () => { heroCleanup(); carouselCleanup(); };
 
-  // Per-route SEO meta — home page reset, picks up the WebSite + Organization
-  // JSON-LD already in index.html.
   setMeta({
     title: `${SITE.name} — Read Manhwa, Manga & Manhua Online Free`,
     description: `Read manhwa, manga and manhua online for free on ${SITE.name}. ${SITE.tagline}`,
@@ -232,6 +256,105 @@ export async function home(_params, ctx) {
   };
 }
 
+// =====================================================
+// Latest Updates Carousel
+// =====================================================
+function setupCarousel() {
+  const wrap = document.getElementById('updates-carousel-wrap');
+  const carousel = document.getElementById('updates-carousel');
+  const dotsEl  = document.getElementById('updates-carousel-dots');
+  if (!wrap || !carousel) return () => {};
+
+  const cards = [...carousel.querySelectorAll('.update-card')];
+  if (!cards.length) return () => {};
+
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+  function cardW() { return (cards[0]?.offsetWidth || 120) + 12; }
+  function visibleCount() { return Math.max(1, Math.floor(carousel.clientWidth / cardW())); }
+  function totalGroups() { return Math.ceil(cards.length / visibleCount()); }
+
+  function renderDots() {
+    if (!dotsEl) return;
+    const g = totalGroups();
+    if (g <= 1) { dotsEl.innerHTML = ''; return; }
+    dotsEl.innerHTML = Array.from({ length: g }, (_, i) =>
+      `<button class="updates-carousel-dot${i === 0 ? ' active' : ''}" data-idx="${i}" aria-label="Group ${i + 1}"></button>`
+    ).join('');
+    dotsEl.querySelectorAll('.updates-carousel-dot').forEach(d => {
+      d.addEventListener('click', () => { goToGroup(Number(d.dataset.idx)); pauseAndResume(); });
+    });
+  }
+
+  function goToGroup(idx) {
+    carousel.scrollTo({ left: idx * visibleCount() * cardW(), behavior: 'smooth' });
+    updateActiveDot(idx);
+  }
+
+  function currentGroupIdx() {
+    return Math.round(carousel.scrollLeft / (visibleCount() * cardW()));
+  }
+
+  function updateActiveDot(idx) {
+    dotsEl?.querySelectorAll('.updates-carousel-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+  }
+
+  renderDots();
+
+  // Staggered entrance (IntersectionObserver)
+  if (!reducedMotion) {
+    const io = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        cards.forEach((c, i) => { c.style.animationDelay = `${i * 60}ms`; });
+        io.disconnect();
+      }
+    }, { threshold: 0.1 });
+    io.observe(wrap);
+  }
+
+  // Don't auto-rotate when all cards fit or reduced motion
+  if (reducedMotion || cards.length <= visibleCount()) return () => {};
+
+  let timer = null;
+  let pauseTimer = null;
+  let groupIdx = 0;
+
+  function advance() {
+    groupIdx = (groupIdx + 1) % totalGroups();
+    goToGroup(groupIdx);
+  }
+
+  function pauseAndResume() {
+    clearInterval(timer); timer = null;
+    clearTimeout(pauseTimer);
+    pauseTimer = setTimeout(startRotation, 8000);
+  }
+
+  function startRotation() {
+    clearInterval(timer);
+    timer = setInterval(advance, 4000);
+  }
+
+  carousel.addEventListener('scroll', () => updateActiveDot(currentGroupIdx()), { passive: true });
+  carousel.addEventListener('touchstart', pauseAndResume, { passive: true });
+
+  function onVisibility() {
+    if (document.visibilityState === 'visible') startRotation();
+    else { clearInterval(timer); timer = null; }
+  }
+  document.addEventListener('visibilitychange', onVisibility);
+
+  startRotation();
+  return () => {
+    clearInterval(timer);
+    clearTimeout(pauseTimer);
+    document.removeEventListener('visibilitychange', onVisibility);
+  };
+}
+
+// =====================================================
+// Hero Slider (unchanged from original)
+// =====================================================
 function setupHeroSlider() {
   const hero = document.getElementById('hero');
   if (!hero) return () => {};
@@ -241,10 +364,8 @@ function setupHeroSlider() {
   const next   = hero.querySelector('.hero-arrow.next');
   if (slides.length <= 1) return () => {};
 
-  // Respect users who explicitly asked for reduced motion — disable auto-rotate
-  // for them but keep manual controls fully functional.
   const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  const ROTATE_MS = 5000; // 5s per slide — feels dynamic without being frantic
+  const ROTATE_MS = 5000;
 
   let idx = 0;
   let timer = null;
@@ -284,7 +405,6 @@ function setupHeroSlider() {
     setActiveDotProgress(0);
   }
 
-  // Pause when tab isn't visible — saves CPU + state
   function onVisibility() {
     if (document.visibilityState === 'visible') start();
     else stop();
@@ -293,14 +413,12 @@ function setupHeroSlider() {
 
   hero.addEventListener('mouseenter', stop);
   hero.addEventListener('mouseleave', start);
-  // Pause on focus-within for keyboard users
   hero.addEventListener('focusin', stop);
   hero.addEventListener('focusout', start);
   prev?.addEventListener('click', () => { go(idx - 1); start(); });
   next?.addEventListener('click', () => { go(idx + 1); start(); });
   dots.forEach(d => d.addEventListener('click', () => { go(Number(d.dataset.idx)); start(); }));
 
-  // Touch swipe
   let sx = 0;
   hero.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; stop(); }, { passive: true });
   hero.addEventListener('touchend', (e) => {

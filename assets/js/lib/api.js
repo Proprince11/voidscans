@@ -609,3 +609,131 @@ export async function submitReport({ seriesSlug, chapter = null, reason, details
   const ref = await addDoc(collection(db, 'reports'), payload);
   return ref.id;
 }
+
+// =====================================================
+// ARTICLES — /articles/{slug} collection
+// blocks field stored as JSON string (Firestore nested array limitation)
+// =====================================================
+
+const TTL_ARTICLES_LIST = 5 * 60 * 1000;  // 5 min
+const TTL_ARTICLES_SLUG = 2 * 60 * 1000;  // 2 min
+
+function normalizeArticle(raw, fallbackId = '') {
+  if (!raw) return null;
+  let blocks = [];
+  try { blocks = JSON.parse(raw.blocks || '[]'); } catch { blocks = []; }
+  return {
+    id: fallbackId,
+    slug: raw.slug || fallbackId,
+    title: raw.title || '',
+    excerpt: raw.excerpt || '',
+    blocks,
+    coverImage: raw.coverImage || '',
+    category: raw.category || 'editorial',
+    tags: Array.isArray(raw.tags) ? raw.tags : [],
+    author: raw.author || '',
+    publishedAt: raw.publishedAt || null,
+    updatedAt: raw.updatedAt || null,
+    published: !!raw.published,
+    views: Number(raw.views) || 0,
+    featured: !!raw.featured,
+  };
+}
+
+/** Fetch published articles, ordered by publishedAt desc.
+ *  Admin callers may pass { publishedOnly: false } to fetch all (drafts + published).
+ */
+export async function fetchArticles({ limitTo = 12, category = null, startAfter: startAfterDoc = null, publishedOnly = true } = {}) {
+  const cacheKey = `articles:all:${limitTo}:${category || ''}:${publishedOnly}`;
+  // Only cache the first page (no startAfterDoc) to avoid cache collisions
+  if (!startAfterDoc) {
+    const hit = cacheGet(cacheKey);
+    if (hit !== null) return hit;
+  }
+  let q = collection(db, 'articles');
+  const constraints = [];
+  if (publishedOnly) constraints.push(where('published', '==', true));
+  if (category) constraints.push(where('category', '==', category));
+  constraints.push(orderBy('publishedAt', 'desc'));
+  constraints.push(limit(limitTo));
+  if (startAfterDoc) constraints.push(startAfter(startAfterDoc));
+  q = query(q, ...constraints);
+  const snap = await getDocs(q);
+  const articles = snap.docs.map(d => normalizeArticle(d.data(), d.id));
+  if (!startAfterDoc) cacheSet(cacheKey, articles, TTL_ARTICLES_LIST);
+  return articles;
+}
+
+/** Fetch a single article by slug. Returns null if not found. */
+export async function fetchArticleBySlug(slug) {
+  if (!slug) return null;
+  return memoFetch(`articles:slug:${slug}`, TTL_ARTICLES_SLUG, async () => {
+    const q = query(collection(db, 'articles'), where('slug', '==', slug), limit(1));
+    const snap = await getDocs(q);
+    if (snap.empty) return null;
+    return normalizeArticle(snap.docs[0].data(), snap.docs[0].id);
+  });
+}
+
+/** Fetch all articles (admin: published + drafts). */
+export async function fetchAllArticles() {
+  return fetchArticles({ limitTo: 200, publishedOnly: false });
+}
+
+/** Create a new article. Uses slug as doc ID. Serializes blocks to JSON string. */
+export async function createArticle(data) {
+  const slug = data.slug || slugify(data.title || 'untitled');
+  const payload = {
+    slug,
+    title: String(data.title || '').trim(),
+    excerpt: String(data.excerpt || '').slice(0, 160),
+    blocks: JSON.stringify(Array.isArray(data.blocks) ? data.blocks : []),
+    coverImage: data.coverImage || '',
+    category: data.category || 'editorial',
+    tags: Array.isArray(data.tags) ? data.tags : [],
+    author: String(data.author || '').trim(),
+    published: !!data.published,
+    featured: !!data.featured,
+    views: 0,
+    publishedAt: data.published ? serverTimestamp() : null,
+    updatedAt: serverTimestamp(),
+  };
+  await setDoc(doc(db, 'articles', slug), payload);
+  cacheBust('articles:');
+  return slug;
+}
+
+/** Partially update an existing article. Re-serializes blocks if present. */
+export async function updateArticle(slug, patch) {
+  if (!slug) throw new Error('slug required');
+  const fixed = { ...patch, updatedAt: serverTimestamp() };
+  if (Array.isArray(patch.blocks)) fixed.blocks = JSON.stringify(patch.blocks);
+  if (patch.excerpt) fixed.excerpt = String(patch.excerpt).slice(0, 160);
+  // If flipping to published and no publishedAt, set it now
+  if (patch.published === true) fixed.publishedAt = serverTimestamp();
+  await updateDoc(doc(db, 'articles', slug), fixed);
+  cacheBust('articles:');
+  cacheBust(`articles:slug:${slug}`);
+}
+
+/** Delete an article by slug. */
+export async function deleteArticle(slug) {
+  if (!slug) throw new Error('slug required');
+  await deleteDoc(doc(db, 'articles', slug));
+  cacheBust('articles:');
+  cacheBust(`articles:slug:${slug}`);
+}
+
+/** Increment article view count. Session-deduplicated — counts once per session. */
+export async function trackArticleView(slug) {
+  if (!slug) return;
+  const key = `article:${slug}`;
+  if (alreadyViewed(key)) return;
+  markViewed(key);
+  try {
+    await updateDoc(doc(db, 'articles', slug), { views: increment(1) });
+    cacheBust(`articles:slug:${slug}`);
+  } catch (e) {
+    console.debug('trackArticleView skipped:', e?.code || e?.message);
+  }
+}

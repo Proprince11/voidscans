@@ -11,6 +11,7 @@ import { chaptersAdmin } from './admin/chapters.js';
 import { commentsAdmin } from './admin/comments.js';
 import { toolsAdmin } from './admin/tools.js';
 import { settingsAdmin } from './admin/settings.js';
+import { articlesAdmin } from './admin/articles.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -77,6 +78,7 @@ const TABS = {
   series:    seriesAdmin,
   chapters:  chaptersAdmin,
   comments:  commentsAdmin,
+  articles:  articlesAdmin,
   tools:     toolsAdmin,
   settings:  settingsAdmin
 };

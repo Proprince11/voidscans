@@ -27,7 +27,6 @@ export function seriesCard(series, opts = {}) {
       <div class="card-img-wrap">
         <img src="${cover_}" alt="${esc(title)}" class="card-img" loading="${loadingAttr}" decoding="async"${priorityAttr}
              onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
-        ${status ? `<div class="card-badge">${statusBadge(status)}</div>` : ''}
         ${hot ? `<div class="card-badge card-badge-right"><span class="badge badge-hot">HOT</span></div>` : ''}
         ${isNew && !hot ? `<div class="card-badge card-badge-right"><span class="badge badge-new">NEW</span></div>` : ''}
         ${latestChapter > 0 ? `<div class="card-chapter">Ch. ${esc(latestChapter)}</div>` : ''}
@@ -35,6 +34,7 @@ export function seriesCard(series, opts = {}) {
       <div class="card-info">
         <div class="card-title">${esc(title)}</div>
         <div class="card-meta">
+          ${status ? statusBadge(status) : ''}
           <span>${esc((type || 'Manhwa').replace(/^./, c => c.toUpperCase()))}</span>
         </div>
       </div>
@@ -94,6 +94,38 @@ export function updateRow(series) {
   `;
 }
 
+/** Single carousel card for the Latest Updates horizontal carousel.
+ *  Renders a portrait cover card with title overlay and chapter badge.
+ *  Clicking the card navigates to the series detail page.
+ *  Clicking the chapter badge navigates to the chapter reader.
+ *  If no cover, shows a shimmer placeholder.
+ */
+export function updateCard(series) {
+  if (!series) return '';
+  const { slug, title, cover, latestChapter } = series;
+  const seriesHref = `/series/${encodeURIComponent(slug)}`;
+  const chapterHref = latestChapter > 0
+    ? `/read/${encodeURIComponent(slug)}/${encodeURIComponent(latestChapter)}`
+    : null;
+  const cover_ = cover ? esc(proxyImage(cover)) : '';
+  return `
+    <div class="update-card" role="listitem">
+      <a href="${seriesHref}" aria-label="${esc(title)}" class="update-card-link">
+        ${cover_
+          ? `<img src="${cover_}" alt="${esc(title)}" class="update-card-img" loading="lazy" decoding="async"
+               onerror="this.style.display='none'; this.nextElementSibling && (this.nextElementSibling.style.display='block');">`
+          : ''}
+        ${!cover_ ? `<div class="update-card-shimmer skel"></div>` : ''}
+        <div class="update-card-title">${esc(title)}</div>
+      </a>
+      ${chapterHref ? `
+        <a href="${chapterHref}" class="update-card-chapter" aria-label="Ch. ${esc(latestChapter)} of ${esc(title)}">
+          Ch.${esc(latestChapter)}
+        </a>` : ''}
+    </div>
+  `;
+}
+
 /** Numbered popularity ranking item. */
 export function rankItem(series, rank) {
   if (!series) return '';
@@ -135,6 +167,83 @@ export function genreStrip(active = '') {
         return `<a href="${href}" class="tag-pill ${isActive}">${g === '' ? 'All' : esc(g)}</a>`;
       }).join('')}
     </div>
+  `;
+}
+
+/** Genre icon map — used by genreGrid() for the homepage tile grid.
+ *  The existing genreStrip() uses tag pills and is preserved for browse/series pages.
+ */
+export const GENRE_ICONS = {
+  'All':          '📚',
+  'Action':       '⚔️',
+  'Adventure':    '🗺️',
+  'Comedy':       '😂',
+  'Drama':        '🎭',
+  'Fantasy':      '🧙',
+  'Romance':      '💕',
+  'Martial Arts': '🥋',
+  'School Life':  '🏫',
+  'Sci-Fi':       '🚀',
+  'Horror':       '👻',
+  'Mystery':      '🔍',
+  'Slice of Life':'☕',
+  'Supernatural': '👁️',
+  'Isekai':       '🌀',
+  'Tragedy':      '💔',
+  'Sports':       '🏆',
+  'Mecha':        '🤖',
+  'Historical':   '🏯',
+  'Psychological':'🧠',
+  'Thriller':     '🔪',
+};
+
+/** Genre tile grid for the homepage Browse by Genre section.
+ *  Returns a .genre-grid div with .genre-tile anchors (emoji + label).
+ *  The existing genreStrip() is preserved and used on browse/series pages.
+ */
+export function genreGrid() {
+  const items = ['All', ...GENRES];
+  if (!items.length) return '';
+  return `
+    <div class="genre-grid" role="list" aria-label="Browse by genre">
+      ${items.map(g => {
+        const slug = g === 'All' ? '' : g.toLowerCase().replace(/\s+/g, '-');
+        const href = g === 'All' ? '/browse' : `/genre/${encodeURIComponent(slug)}`;
+        const icon = GENRE_ICONS[g] || '📖';
+        return `
+          <a href="${href}" class="genre-tile" role="listitem" aria-label="${esc(g)}">
+            <span class="genre-tile-icon" aria-hidden="true">${icon}</span>
+            <span class="genre-tile-label">${esc(g)}</span>
+          </a>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+/** Article card for the homepage "Latest Articles" section and the /articles listing page.
+ *  Renders a horizontal card with cover, category badge, title, excerpt, and date.
+ */
+export function articleCard(article) {
+  if (!article) return '';
+  const { slug, title, excerpt, category, coverImage, publishedAt } = article;
+  const href = `/articles/${encodeURIComponent(slug)}`;
+  const dateStr = publishedAt?.toDate
+    ? publishedAt.toDate().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    : (publishedAt ? new Date(publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '');
+  const imgHtml = coverImage
+    ? `<img src="${esc(coverImage)}" alt="${esc(title)}" class="article-card-img" loading="lazy" decoding="async"
+           onerror="this.parentElement.classList.add('no-image'); this.remove();">`
+    : '';
+  return `
+    <a href="${href}" class="article-card" aria-label="${esc(title)}">
+      <div class="article-card-cover${coverImage ? '' : ' no-image'}">${imgHtml}</div>
+      <div class="article-card-body">
+        <span class="badge badge-accent">${esc(category || '')}</span>
+        <h3 class="article-card-title">${esc(title)}</h3>
+        <p class="article-card-excerpt">${esc(excerpt || '')}</p>
+        <time class="article-card-date">${esc(dateStr)}</time>
+      </div>
+    </a>
   `;
 }
 

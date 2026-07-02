@@ -37,6 +37,8 @@ const about   = lazy(() => import('./views/about.js'));
 const contact = lazy(() => import('./views/contact.js'));
 const dmca    = lazy(() => import('./views/dmca.js'));
 const notFound = lazy(() => import('./views/notFound.js'));
+const articles = lazy(() => import('./views/articles.js'));
+const article  = lazy(() => import('./views/article.js').then(m => ({ default: m.article })));
 
 // =====================================================
 // SITE SETTINGS — load once at boot, then apply branding + ads.
@@ -77,6 +79,8 @@ router.register('/terms',                  terms);
 router.register('/about',                  about);
 router.register('/contact',                contact);
 router.register('/dmca',                   dmca);
+router.register('/articles/:slug',         article);
+router.register('/articles',               articles);
 router.register('*',                       notFound);
 
 // =====================================================
@@ -332,6 +336,7 @@ function mountFooter() {
         <div>
           <h4>Info</h4>
           <ul>
+            <li><a href="/articles">Articles</a></li>
             <li><a href="/about">About</a></li>
             <li><a href="/contact">Contact</a></li>
             <li><a href="/privacy">Privacy Policy</a></li>
