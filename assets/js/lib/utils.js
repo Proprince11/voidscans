@@ -194,7 +194,10 @@ export function proxyImage(url) {
   try {
     const u = new URL(url);
     if (u.origin === location.origin) return url;
-    return `/api/proxy-image?url=${encodeURIComponent(url)}`;
+    // Only proxy if cacheApi is configured and reachable
+    // Return original URL directly — browser handles external images fine
+    // and the proxy can cause blank images if the Worker is down
+    return url;
   } catch { return url; }
 }
 
