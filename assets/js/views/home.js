@@ -191,12 +191,27 @@ export async function home(_params, ctx) {
     </section>
     ` : ''}
 
+    ${newlyAdded.length >= 4 ? html`
     <section class="section cv-deferred">
       <div class="container">
         <div class="section-header">
-          <h2 class="section-title">Browse by Genre</h2>
+          <h2 class="section-title">New Arrivals</h2>
+          <a href="/browse?sort=new" class="section-link">View all →</a>
         </div>
-        ${genreGrid()}
+        <div class="card-grid">${newlyAdded.slice(0, 12).map((s, i) => seriesCard(s, { eager: i < 6 })).join('')}</div>
+      </div>
+    </section>
+    ` : ''}
+
+    <section class="section cv-deferred">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Popular Now</h2>
+          <a href="/browse?sort=popular" class="section-link">View all →</a>
+        </div>
+        ${popular.length < 4
+          ? emptyState({ icon: '⭐', title: 'No series yet', cta: '<a href="/admin" class="btn btn-primary">Open Admin</a>' })
+          : `<div class="card-grid">${popular.slice(0, 12).map((s, i) => seriesCard(s, { eager: i < 6, priority: i === 0 })).join('')}</div>`}
       </div>
     </section>
 
@@ -217,26 +232,11 @@ export async function home(_params, ctx) {
     <section class="section cv-deferred">
       <div class="container">
         <div class="section-header">
-          <h2 class="section-title">Popular Now</h2>
-          <a href="/browse?sort=popular" class="section-link">View all →</a>
+          <h2 class="section-title">Browse by Genre</h2>
         </div>
-        ${popular.length < 4
-          ? emptyState({ icon: '⭐', title: 'No series yet', cta: '<a href="/admin" class="btn btn-primary">Open Admin</a>' })
-          : `<div class="card-grid">${popular.slice(0, 12).map((s, i) => seriesCard(s, { eager: i < 6, priority: i === 0 })).join('')}</div>`}
+        ${genreGrid()}
       </div>
     </section>
-
-    ${newlyAdded.length >= 4 ? html`
-    <section class="section cv-deferred">
-      <div class="container">
-        <div class="section-header">
-          <h2 class="section-title">New Arrivals</h2>
-          <a href="/browse?sort=new" class="section-link">View all →</a>
-        </div>
-        <div class="card-grid">${newlyAdded.slice(0, 12).map((s, i) => seriesCard(s, { eager: i < 6 })).join('')}</div>
-      </div>
-    </section>
-    ` : ''}
   `;
 
   const heroCleanup = setupHeroSlider();
