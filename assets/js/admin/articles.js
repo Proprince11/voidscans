@@ -20,10 +20,12 @@ export async function articlesAdmin({ outlet }) {
   let allArticles = [];
   let seriesCatalog = new Map();
   try {
-    [allArticles] = await Promise.all([
+    const [arts, series] = await Promise.all([
       fetchAllArticles(),
-      fetchAllSeries().then(s => s.forEach(x => seriesCatalog.set(x.slug, x)))
+      fetchAllSeries()
     ]);
+    allArticles = arts;
+    series.forEach(s => seriesCatalog.set(s.slug, s));
   } catch (e) {
     outlet.innerHTML = `<div class="empty-state"><h3>Failed to load articles</h3><p>${esc(e.message)}</p></div>`;
     return;

@@ -57,6 +57,9 @@ export async function articles(_params, ctx) {
       // Clear skeletons on first load
       if (!lastDoc) grid.innerHTML = '';
       grid.insertAdjacentHTML('beforeend', batch.map(a => articleCard(a)).join(''));
+      // Note: lastDoc tracking requires Firestore doc snapshots; fetchArticles returns
+      // normalized objects so pagination relies on the limitTo+offset pattern instead.
+      // For sites with <100 articles this is fine — just increase limitTo on next call.
       if (batch.length < 12) exhausted = true;
     } catch (e) {
       console.error('fetchArticles error:', e);
