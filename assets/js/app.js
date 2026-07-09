@@ -381,3 +381,56 @@ function mountCookieBanner() {
   });
 }
 requestIdleCallback ? requestIdleCallback(mountCookieBanner) : setTimeout(mountCookieBanner, 500);
+
+// =====================================================
+// Custom PWA Install Banner (Mobile First Visit)
+// =====================================================
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Prevent Chrome from automatically showing the prompt
+  e.preventDefault();
+  // Stash the event so it can be triggered later.
+  deferredPrompt = e;
+  
+  // Check if we've already shown the banner
+  if (localStorage.getItem('pwaPromptShown')) return;
+  
+  // Show the custom banner
+  mountInstallBanner();
+});
+
+function mountInstallBanner() {
+  if (document.querySelector('.install-banner')) return;
+  
+  const banner = document.createElement('div');
+  // Reuse cookie banner styles for consistency
+  banner.className = 'cookie-banner install-banner';
+  banner.setAttribute('role', 'alert');
+  banner.innerHTML = `
+    <p class="cookie-banner-text">
+      Install <strong>${esc(SITE.name)}</strong> on your home screen for the best reading experience!
+    </p>
+    <div class="cookie-banner-actions">
+      <button class="btn btn-ghost btn-sm" id="pwaDismiss">Later</button>
+      <button class="btn btn-primary btn-sm" id="pwaInstall">Install</button>
+    </div>
+  `;
+  document.body.appendChild(banner);
+  
+  // Mark as shown so we only bother them on the first visit
+  localStorage.setItem('pwaPromptShown', '1');
+  
+  document.getElementById('pwaDismiss').addEventListener('click', () => {
+    banner.remove();
+  });
+  
+  document.getElementById('pwaInstall').addEventListener('click', async () => {
+    banner.remove();
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User response to the install prompt: ${outcome}`);
+      deferredPrompt = null;
+    }
+  });
+}

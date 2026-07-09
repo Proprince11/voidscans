@@ -13,7 +13,7 @@ import {
 import {
   isInLibrary, addToLibrary, removeFromLibrary,
   hasReacted, markReacted, hasRated, markRated,
-  hasLikedComment, markCommentLiked, getReadChapters
+  hasLikedComment, markCommentLiked, getReadChapters, getProgress
 } from '../lib/library.js';
 import { getProfile } from '../lib/account.js';
 import { isAdmin } from '../lib/auth.js';
@@ -319,6 +319,26 @@ function wireUpShell(s) {
   document.getElementById('readFirstBtn')?.addEventListener('click', () => {
     navigate(`/read/${encodeURIComponent(s.slug)}/1`);
   });
+
+  // "Continue Reading" — if user has saved progress, update the CTA button
+  if (s.latestChapter > 0) {
+    getReadChapters(s.slug).then(readSet => {
+      if (!readSet.size) return;
+      const highestRead = Math.max(...readSet);
+      const btn = document.getElementById('readLatestBtn');
+      if (!btn) return;
+      if (highestRead >= s.latestChapter) {
+        // They've read everything — keep "Read Latest" but change label to indicate caught up
+        btn.textContent = `✓ Caught Up · Ch.${s.latestChapter}`;
+      } else {
+        // They left off mid-series — show Continue
+        const nextChapter = highestRead + 1;
+        btn.textContent = `▶ Continue Ch.${nextChapter}`;
+        btn.title = 'Continue where you left off';
+        btn.onclick = () => navigate(`/read/${encodeURIComponent(s.slug)}/${nextChapter}`);
+      }
+    }).catch(() => {});
+  }
 
   // Share
   document.getElementById('shareBtn')?.addEventListener('click', async () => {

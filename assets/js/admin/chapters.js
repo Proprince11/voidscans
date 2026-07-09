@@ -207,6 +207,14 @@ https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
           </label>
         </div>
 
+        <div class="field" style="margin-bottom: var(--s-3);">
+          <label class="field-label" for="ch-publish-at">⏰ Schedule Publish (optional)</label>
+          <input class="input" id="ch-publish-at" type="datetime-local"
+            value="${ch?.publishAt ? new Date(ch.publishAt).toISOString().slice(0,16) : ''}"
+            style="max-width: 280px;">
+          <span class="field-hint" style="margin-top: var(--s-1); display:block;">If set, this chapter will be saved as a Draft and automatically published at the selected date/time. Leave blank to publish now (or manually).</span>
+        </div>
+
         <div class="row gap-3" style="margin-top: var(--s-5);">
           <button type="submit" class="btn btn-primary" id="saveBtn">${id ? 'Save Changes' : 'Publish Chapter'}</button>
           <button type="button" class="btn btn-ghost" id="cancelBtn">Cancel</button>
@@ -499,7 +507,10 @@ https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
       const number = Number($f('#ch-num').value);
       const title = $f('#ch-title').value.trim();
       const pages = getPages();
-      const published = $f('#ch-published').checked;
+      const publishAtVal = $f('#ch-publish-at')?.value;
+      const publishAt = publishAtVal ? new Date(publishAtVal).getTime() : null;
+      // If a schedule is set, force draft (it's not live yet)
+      const published = publishAt ? false : $f('#ch-published').checked;
       if (!number) { toast('Chapter number required', 'error'); return; }
       if (pages.length === 0) { toast('Add at least one page', 'error'); return; }
 
@@ -507,12 +518,14 @@ https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
       $f('#saveBtn').textContent = 'Saving…';
       try {
         if (id) {
-          await updateChapter(id, { number, title, pages, published });
-          toast('Updated', 'success');
+          await updateChapter(id, { number, title, pages, published, publishAt });
+          toast(publishAt ? `Scheduled for ${new Date(publishAt).toLocaleString()}` : 'Updated', 'success');
         } else {
-          await createChapter({ seriesSlug: selectedSlug, number, title, pages, published });
-          // Only fire Discord announcement if publishing immediately
-          if (published) {
+          await createChapter({ seriesSlug: selectedSlug, number, title, pages, published, publishAt });
+          // Toast feedback
+          if (publishAt) {
+            toast(`Chapter ${number} scheduled for ${new Date(publishAt).toLocaleString()}`, 'info');
+          } else if (published) {
             toast(`Chapter ${number} published`, 'success');
           } else {
             toast(`Chapter ${number} saved as draft`, 'info');

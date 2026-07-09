@@ -21,6 +21,7 @@ import { handleUpload, handleStorageInfo } from './upload.js';
 import { handleProxyImage, handleMangaDexProxy } from './proxy.js';
 import { handleSitemap } from './sitemap.js';
 import { handleGlobalRss, handleSeriesRss } from './rss.js';
+import { queryDocs } from './firestore.js';
 
 const FIREBASE_PROJECT_ID = 'voidscans-6c66b';
 
@@ -240,5 +241,81 @@ export default {
       console.error('Worker error:', err);
       return cors(Response.json({ ok: false, error: 'Internal server error' }, { status: 500 }));
     }
+  },
+
+  // =====================================================
+  // SCHEDULED — Cron trigger (hourly) for auto-publishing.
+  // Set in wrangler.jsonc: [triggers] crons = ["0 * * * *"]
+  //
+  // What it does: Finds all chapters where:
+  //   published === false  AND  publishAt <= Date.now()
+  // Then flips published = true, clears publishAt, fires Discord webhook.
+  //
+  // Cost: 24 cron triggers/day vs 100,000 free on Cloudflare Workers.
+  //       Essentially free forever.
+  // =====================================================
+  async scheduled(_event, env, ctx) {
+    ctx.waitUntil(runScheduledPublish(env));
   }
 };
+
+async function runScheduledPublish(env) {
+  const projectId = env.FIREBASE_PROJECT_ID;
+  const now = Date.now();
+
+  let draftChapters = [];
+  try {
+    // Query chapters where published == false
+    draftChapters = await queryDocs(
+      projectId, 'chapters',
+      [{ field: 'published', op: 'EQUAL', value: { booleanValue: false } }],
+      null, 100
+    );
+  } catch (e) {
+    console.error('[scheduler] Failed to fetch drafts:', e.message);
+    return;
+  }
+
+  const { patchDoc } = await import('./firestore.js');
+
+  // Filter down to only chapters whose scheduledPublish time has passed
+  const toPublish = draftChapters.filter(c => c.publishAt && Number(c.publishAt) <= now);
+
+  if (!toPublish.length) {
+    console.log(`[scheduler] No chapters due for publishing. Checked ${draftChapters.length} drafts.`);
+    return;
+  }
+
+  console.log(`[scheduler] Publishing ${toPublish.length} scheduled chapter(s)…`);
+
+  const baseUrl = (env.PUBLIC_BASE_URL || 'https://voidscans.pages.dev').replace(/\/$/, '');
+  const discordWebhook = env.DISCORD_WEBHOOK_URL;
+
+  for (const ch of toPublish) {
+    try {
+      // 1. Flip to published in Firestore
+      await patchDoc(projectId, 'chapters', ch._id, { published: true, publishAt: null }, env);
+      console.log(`[scheduler] Published chapter ${ch.chapterNum} of ${ch.seriesSlug}`);
+
+      // 2. Fire Discord webhook if configured
+      if (discordWebhook) {
+        const chapterUrl = `${baseUrl}/read/${ch.seriesSlug}/${ch.chapterNum}`;
+        await fetch(discordWebhook, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            embeds: [{
+              title: `📖 ${ch.seriesSlug} — Chapter ${ch.chapterNum}${ch.title ? `: ${ch.title}` : ''} is now live!`,
+              url: chapterUrl,
+              color: 0x7c3aed,
+              footer: { text: 'Auto-published by scheduler' }
+            }]
+          })
+        }).catch(e => console.warn('[scheduler] Discord webhook failed:', e.message));
+      }
+    } catch (e) {
+      console.error(`[scheduler] Failed to publish chapter ${ch.chapterNum} of ${ch.seriesSlug}:`, e.message);
+    }
+  }
+}
+

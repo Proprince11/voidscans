@@ -129,6 +129,7 @@ export function normalizeChapter(raw, fallbackId = '') {
     views: Number(r.views) || 0,
     // published: missing field means published (backward-compat)
     published: r.published !== false,
+    publishAt: r.publishAt || null,
     createdAt: r.createdAt || null
   };
 }
@@ -308,7 +309,7 @@ export async function fetchChapter(slug, number) {
   });
 }
 
-export async function createChapter({ seriesSlug, number, title = '', pages = [], published = true }) {
+export async function createChapter({ seriesSlug, number, title = '', pages = [], published = true, publishAt = null }) {
   const ch = {
     seriesSlug,
     chapterNum: Number(number),
@@ -317,6 +318,8 @@ export async function createChapter({ seriesSlug, number, title = '', pages = []
     published: !!published,
     createdAt: serverTimestamp()
   };
+  // Store publishAt as a unix timestamp (ms) — the Cron Worker reads this
+  if (publishAt) ch.publishAt = Number(publishAt);
   const ref = await addDoc(collection(db, 'chapters'), ch);
 
   // Update series.latestChapter & latestChapterAt without overwriting createdAt
