@@ -207,7 +207,6 @@ export async function home(_params, ctx) {
       </div>
     </section>
     ` : ''}
-
     <section class="section cv-deferred">
       <div class="container">
         <div class="section-header">

@@ -199,22 +199,18 @@ export const GENRE_ICONS = {
   'Thriller':     '🔪',
 };
 
-/** Genre tile grid for the homepage Browse by Genre section.
- *  Returns a .genre-grid div with .genre-tile anchors (emoji + label).
- */
+/** Genre chip cluster for the homepage. */
 export function genreGrid() {
   const items = ['All', ...GENRES];
   if (!items.length) return '';
   return `
-    <div class="genre-grid" role="list" aria-label="Browse by genre">
+    <div class="genre-chip-cluster" role="list" aria-label="Browse by genre">
       ${items.map(g => {
         const slug = g === 'All' ? 'all' : g.toLowerCase().replace(/\s+/g, '-');
         const href = g === 'All' ? '/browse' : `/genre/${encodeURIComponent(slug)}`;
-        const icon = GENRE_ICONS[g] || '📖';
         return `
-          <a href="${href}" class="genre-tile genre-${esc(slug)}" role="listitem" aria-label="${esc(g)}">
-            <span class="genre-tile-label">${esc(g)}</span>
-            <span class="genre-tile-icon" aria-hidden="true">${icon}</span>
+          <a href="${href}" class="genre-chip" role="listitem">
+            ${esc(g)}
           </a>`;
       }).join('')}
     </div>
