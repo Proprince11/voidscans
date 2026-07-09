@@ -14,13 +14,8 @@ export async function home(_params, ctx) {
   // Initial frame: skeleton
   ctx.outlet.innerHTML = html`
     <section class="hero" style="background: var(--surface-1);">
-      <div class="hero-content">
-        <div class="skel" style="aspect-ratio:2/3; width:160px; border-radius:var(--r-md);"></div>
-        <div class="stack gap-3">
-          <div class="skel skel-line long" style="height:32px;"></div>
-          <div class="skel skel-line short"></div>
-          <div class="skel skel-line long"></div>
-        </div>
+      <div class="hero-content centered-hero">
+        <div class="skel" style="width: 90vw; max-width: 480px; aspect-ratio: 1/1; border-radius: var(--r-lg);"></div>
       </div>
     </section>
     <section class="section">
@@ -92,30 +87,13 @@ export async function home(_params, ctx) {
       ${heroItems.map((s, i) => `
         <div class="hero-slide ${i === 0 ? 'active' : ''}" data-idx="${i}">
           <div class="hero-bg" style="background-image: url('${esc(proxyImage(s.cover))}');"></div>
-          <div class="hero-content">
-            <div class="hero-cover">
-              <a href="/series/${encodeURIComponent(s.slug)}" aria-label="View ${esc(s.title)}" tabindex="-1">
-                <img src="${esc(proxyImage(s.cover))}" alt="${esc(s.title)}" loading="eager" decoding="async" fetchpriority="${i === 0 ? 'high' : 'auto'}">
-              </a>
-            </div>
-            <div class="hero-meta">
-              <div class="badges">
-                ${statusBadge(s.status)}
-                ${s.hot ? `<span class="badge badge-hot">HOT</span>` : ''}
-                ${s.new ? `<span class="badge badge-new">NEW</span>` : ''}
+          <div class="hero-content centered-hero">
+            <a href="/series/${encodeURIComponent(s.slug)}" aria-label="View ${esc(s.title)}" tabindex="-1" class="hero-card-link">
+              <img src="${esc(proxyImage(s.cover))}" alt="${esc(s.title)}" class="hero-card-img" loading="eager" decoding="async" fetchpriority="${i === 0 ? 'high' : 'auto'}">
+              <div class="hero-card-overlay">
+                <h1 class="hero-title-centered">${esc(s.title)}</h1>
               </div>
-              <h1 class="hero-title"><a href="/series/${encodeURIComponent(s.slug)}" style="color:inherit;text-decoration:none;">${esc(s.title)}</a></h1>
-              <div class="hero-genres">
-                ${(s.genres || []).slice(0, 4).map(g => `<span class="tag-pill">${esc(g)}</span>`).join('')}
-              </div>
-              <p class="hero-desc">${esc(s.description || '')}</p>
-              <div class="hero-actions">
-                <a href="/series/${encodeURIComponent(s.slug)}" class="btn btn-primary">View Details</a>
-                ${s.latestChapter > 0
-                  ? `<a href="/read/${encodeURIComponent(s.slug)}/${s.latestChapter}" class="btn btn-outline">Read Latest · Ch.${s.latestChapter}</a>`
-                  : ''}
-              </div>
-            </div>
+            </a>
           </div>
         </div>
       `).join('')}
