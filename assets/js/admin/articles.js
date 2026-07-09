@@ -6,6 +6,7 @@
 import { fetchAllArticles, createArticle, updateArticle, deleteArticle, fetchAllSeries } from '../lib/api.js';
 import { esc } from '../lib/utils.js';
 import { toast } from '../lib/ui.js';
+import { adminFetch } from '../lib/auth.js';
 import { renderBlocks } from '../views/article.js';
 
 const CATEGORIES = ['recommendations', 'news', 'editorial', 'announcements'];
@@ -125,7 +126,13 @@ function renderEditor(outlet, article, seriesCatalog) {
         </div>
         <div class="field">
           <label class="field-label">Cover Image URL</label>
-          <input id="f-cover" class="input" type="url" value="${esc(article?.coverImage || '')}" placeholder="https://files.catbox.moe/...">
+          <div class="row gap-2" style="align-items: center;">
+            <input id="f-cover" class="input" type="url" value="${esc(article?.coverImage || '')}" placeholder="https://files.catbox.moe/..." style="flex: 1;">
+            <label class="btn btn-secondary" style="margin: 0; cursor: pointer; white-space: nowrap;">
+              📁 Upload
+              <input type="file" id="f-cover-upload" accept="image/*" style="display: none;">
+            </label>
+          </div>
         </div>
         <div class="field">
           <label class="field-label">Category *</label>
@@ -188,6 +195,40 @@ function renderEditor(outlet, article, seriesCatalog) {
   titleEl.addEventListener('input', () => {
     if (isNew) slugEl.value = slugify(titleEl.value);
   });
+
+  // ============================================================
+  // COVER UPLOAD
+  // ============================================================
+  const coverUpload = outlet.querySelector('#f-cover-upload');
+  if (coverUpload) {
+    coverUpload.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const btn = coverUpload.closest('.btn');
+      const origText = btn.innerHTML;
+      btn.innerHTML = 'Uploading…';
+      btn.style.pointerEvents = 'none';
+      
+      try {
+        const fd = new FormData();
+        fd.append('file', file, file.name);
+        fd.append('series', slugEl.value || 'new-article'); // We reuse the 'series' folder field on R2 as a generic folder name
+        const res = await adminFetch('/api/upload', { method: 'POST', body: fd });
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || 'upload failed');
+        
+        outlet.querySelector('#f-cover').value = json.url;
+        toast('Cover uploaded to R2', 'success');
+      } catch (err) {
+        console.error(err);
+        toast('Cover upload failed: ' + err.message, 'error');
+      } finally {
+        btn.innerHTML = origText;
+        btn.style.pointerEvents = 'auto';
+        coverUpload.value = ''; // reset
+      }
+    });
+  }
 
   // Block builder rendering
   function renderBlockList() {

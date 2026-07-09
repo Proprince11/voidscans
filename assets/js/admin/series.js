@@ -4,6 +4,7 @@ import {
 } from '../lib/api.js';
 import { esc, html, slugify, timeAgo, proxyImage } from '../lib/utils.js';
 import { toast, confirmModal, spinner } from '../lib/ui.js';
+import { adminFetch } from '../lib/auth.js';
 import { GENRES } from '../views/_components.js';
 import { importFromMangaDex, importFromAniList } from './import.js';
 
