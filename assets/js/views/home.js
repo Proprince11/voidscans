@@ -15,7 +15,7 @@ export async function home(_params, ctx) {
   ctx.outlet.innerHTML = html`
     <section class="hero" style="background: var(--surface-1);">
       <div class="hero-content centered-hero">
-        <div class="skel" style="width: 90vw; max-width: 480px; aspect-ratio: 1/1; border-radius: var(--r-lg);"></div>
+        <div class="skel" style="width: 90vw; max-width: 320px; aspect-ratio: 2/3; border-radius: var(--r-lg);"></div>
       </div>
     </section>
     <section class="section">

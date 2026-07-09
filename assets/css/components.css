@@ -524,8 +524,8 @@ body.has-bottom-nav {
   position: relative;
   display: block;
   width: 90vw;
-  max-width: 480px;
-  aspect-ratio: 1 / 1;
+  max-width: 320px;
+  aspect-ratio: 2 / 3;
   border-radius: var(--r-lg);
   overflow: hidden;
   box-shadow: 0 10px 40px rgba(0,0,0,0.5);
