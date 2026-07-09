@@ -831,44 +831,84 @@ body.reader-mode {
 .genre-tile {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--s-2);
-  min-height: 64px;
-  padding: var(--s-3) var(--s-2);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  align-items: flex-start;
+  justify-content: flex-start;
+  min-height: 100px;
+  padding: var(--s-3);
   border-radius: var(--r-md);
   text-decoration: none;
-  color: var(--text);
-  transition: border-color var(--t-fast), transform var(--t-fast);
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
   cursor: pointer;
-  text-align: center;
+  background: var(--surface-3); /* Fallback */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
+
 @media (hover: hover) {
   .genre-tile:hover {
-    border-color: var(--accent);
-    transform: translateY(-2px);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+  }
+  .genre-tile:hover .genre-tile-icon {
+    transform: rotate(20deg) scale(1.15) translate(4px, -4px);
   }
 }
+
 .genre-tile:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid #fff;
   outline-offset: 2px;
 }
+
 .genre-tile:focus:not(:focus-visible) { outline: none; }
 
+.genre-tile-label {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 800;
+  text-align: left;
+  line-height: var(--lh-snug);
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  z-index: 2;
+}
+
 .genre-tile-icon {
-  font-size: 1.5rem;
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  font-size: 3.5rem;
   line-height: 1;
   display: block;
+  transform: rotate(15deg);
+  opacity: 0.8;
+  filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.3));
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 1;
 }
-.genre-tile-label {
-  font-size: 14px;
-  font-weight: var(--fw-semibold);
-  text-align: center;
-  line-height: var(--lh-snug);
-  color: var(--text-soft);
-}
+
+/* Specific Genre Gradients */
+.genre-all { background: linear-gradient(135deg, #1f2937, #111827); }
+.genre-action { background: linear-gradient(135deg, #ef4444, #991b1b); }
+.genre-adventure { background: linear-gradient(135deg, #10b981, #047857); }
+.genre-comedy { background: linear-gradient(135deg, #f59e0b, #b45309); }
+.genre-drama { background: linear-gradient(135deg, #8b5cf6, #5b21b6); }
+.genre-fantasy { background: linear-gradient(135deg, #6366f1, #3730a3); }
+.genre-romance { background: linear-gradient(135deg, #ec4899, #be185d); }
+.genre-martial-arts { background: linear-gradient(135deg, #f97316, #c2410c); }
+.genre-school-life { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.genre-sci-fi { background: linear-gradient(135deg, #06b6d4, #0e7490); }
+.genre-horror { background: linear-gradient(135deg, #3f3f46, #18181b); }
+.genre-mystery { background: linear-gradient(135deg, #64748b, #334155); }
+.genre-slice-of-life { background: linear-gradient(135deg, #84cc16, #4d7c0f); }
+.genre-supernatural { background: linear-gradient(135deg, #a855f7, #7e22ce); }
+.genre-isekai { background: linear-gradient(135deg, #14b8a6, #0f766e); }
+.genre-tragedy { background: linear-gradient(135deg, #e11d48, #9f1239); }
+.genre-sports { background: linear-gradient(135deg, #f43f5e, #be123c); }
+.genre-mecha { background: linear-gradient(135deg, #71717a, #3f3f46); }
+.genre-historical { background: linear-gradient(135deg, #d97706, #92400e); }
+.genre-psychological { background: linear-gradient(135deg, #8b5cf6, #4c1d95); }
+.genre-thriller { background: linear-gradient(135deg, #dc2626, #7f1d1d); }
 
 /* =====================================================
    ARTICLE LISTING PAGE (/articles)

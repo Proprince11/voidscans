@@ -135,13 +135,15 @@ export function rankItem(series, rank) {
   return `
     <a href="${seriesHref}" class="rank-item" aria-label="#${rank} ${esc(title)}">
       <span class="rank-number">${rank}</span>
-      <img src="${esc(proxyImage(cover))}" alt="${esc(title)}" class="rank-thumb" loading="lazy" decoding="async"
-           onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
+      <div class="rank-thumb-wrap">
+        <img src="${esc(proxyImage(cover))}" alt="${esc(title)}" class="rank-thumb" loading="lazy" decoding="async"
+             onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
+      </div>
       <div class="rank-info">
         <div class="rank-title">${esc(title)}</div>
         <div class="rank-meta">
-          <span>${esc((type || 'Manhwa').replace(/^./, c => c.toUpperCase()))}</span>
-          <span class="rank-views">👁 ${viewsStr}</span>
+          <span style="color: var(--accent); font-weight: 500;">${esc((type || 'Manhwa').replace(/^./, c => c.toUpperCase()))}</span>
+          <span class="rank-views" style="opacity: 0.7;">👁 ${viewsStr}</span>
         </div>
       </div>
     </a>
@@ -199,7 +201,6 @@ export const GENRE_ICONS = {
 
 /** Genre tile grid for the homepage Browse by Genre section.
  *  Returns a .genre-grid div with .genre-tile anchors (emoji + label).
- *  The existing genreStrip() is preserved and used on browse/series pages.
  */
 export function genreGrid() {
   const items = ['All', ...GENRES];
@@ -207,13 +208,13 @@ export function genreGrid() {
   return `
     <div class="genre-grid" role="list" aria-label="Browse by genre">
       ${items.map(g => {
-        const slug = g === 'All' ? '' : g.toLowerCase().replace(/\s+/g, '-');
+        const slug = g === 'All' ? 'all' : g.toLowerCase().replace(/\s+/g, '-');
         const href = g === 'All' ? '/browse' : `/genre/${encodeURIComponent(slug)}`;
         const icon = GENRE_ICONS[g] || '📖';
         return `
-          <a href="${href}" class="genre-tile" role="listitem" aria-label="${esc(g)}">
-            <span class="genre-tile-icon" aria-hidden="true">${icon}</span>
+          <a href="${href}" class="genre-tile genre-${esc(slug)}" role="listitem" aria-label="${esc(g)}">
             <span class="genre-tile-label">${esc(g)}</span>
+            <span class="genre-tile-icon" aria-hidden="true">${icon}</span>
           </a>`;
       }).join('')}
     </div>
