@@ -111,6 +111,8 @@ export function normalizeSeries(raw, fallbackId = '') {
     featured: !!r.featured,
     hot: !!r.hot,
     new: !!r.new,
+    // published: missing field means published (backward-compat with old docs that have no field)
+    published: r.published !== false,
     createdAt: r.createdAt || null,
     updatedAt: r.updatedAt || null
   };
@@ -125,6 +127,8 @@ export function normalizeChapter(raw, fallbackId = '') {
     title: r.title || '',
     pages: Array.isArray(r.images) ? r.images : (Array.isArray(r.pages) ? r.pages : []),
     views: Number(r.views) || 0,
+    // published: missing field means published (backward-compat)
+    published: r.published !== false,
     createdAt: r.createdAt || null
   };
 }
@@ -132,15 +136,25 @@ export function normalizeChapter(raw, fallbackId = '') {
 // =====================================================
 // SERIES READS
 // =====================================================
-export async function fetchAllSeries({ limitTo = 200 } = {}) {
-  return memoFetch(`series:all:${limitTo}`, TTL.series, async () => {
-    // Try edge cache first (avoids Firestore read)
-    const cached = await cachedApiGet('/api/series');
-    if (cached && Array.isArray(cached)) return cached.slice(0, limitTo);
-    // Fallback to direct Firestore
+/**
+ * Fetch all series.
+ * @param {object} opts
+ * @param {number} [opts.limitTo=200]
+ * @param {boolean} [opts.includeUnpublished=false] - Pass true in admin panel to also get drafts.
+ */
+export async function fetchAllSeries({ limitTo = 200, includeUnpublished = false } = {}) {
+  const cacheKey = `series:all:${limitTo}:${includeUnpublished}`;
+  return memoFetch(cacheKey, TTL.series, async () => {
+    // Edge cache only for public requests (admin always hits Firestore for freshness)
+    if (!includeUnpublished) {
+      const cached = await cachedApiGet('/api/series');
+      if (cached && Array.isArray(cached)) return cached.slice(0, limitTo);
+    }
     const q = query(collection(db, 'series'), orderBy('createdAt', 'desc'), limit(limitTo));
     const snap = await getDocs(q);
-    return snap.docs.map(d => normalizeSeries(d.data(), d.id));
+    const all = snap.docs.map(d => normalizeSeries(d.data(), d.id));
+    // Filter out drafts unless caller explicitly asked for them
+    return includeUnpublished ? all : all.filter(s => s.published !== false);
   });
 }
 
@@ -218,6 +232,7 @@ export async function createSeries(data) {
     featured: !!data.featured,
     hot: !!data.hot,
     new: data.new === undefined ? true : !!data.new,
+    published: data.published !== undefined ? !!data.published : true,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   };
@@ -248,20 +263,28 @@ export async function deleteSeries(docId, slug) {
 // =====================================================
 // CHAPTERS
 // =====================================================
-export async function fetchChapters(slug) {
+/**
+ * Fetch chapters for a series.
+ * @param {string} slug
+ * @param {object} [opts]
+ * @param {boolean} [opts.includeUnpublished=false] - Pass true in admin panel to also see draft chapters.
+ */
+export async function fetchChapters(slug, { includeUnpublished = false } = {}) {
   if (!slug) return [];
-  return memoFetch(`chapters:${slug}`, TTL.chapters, async () => {
-    // Try edge cache first
-    const cached = await cachedApiGet(`/api/chapters/${encodeURIComponent(slug)}`);
-    if (cached && Array.isArray(cached)) return cached;
-    // Fallback to direct Firestore
+  const cacheKey = `chapters:${slug}:${includeUnpublished}`;
+  return memoFetch(cacheKey, TTL.chapters, async () => {
+    if (!includeUnpublished) {
+      const cached = await cachedApiGet(`/api/chapters/${encodeURIComponent(slug)}`);
+      if (cached && Array.isArray(cached)) return cached;
+    }
     const q = query(
       collection(db, 'chapters'),
       where('seriesSlug', '==', slug),
       orderBy('chapterNum', 'desc')
     );
     const snap = await getDocs(q);
-    return snap.docs.map(d => normalizeChapter(d.data(), d.id));
+    const all = snap.docs.map(d => normalizeChapter(d.data(), d.id));
+    return includeUnpublished ? all : all.filter(c => c.published !== false);
   });
 }
 
@@ -285,12 +308,13 @@ export async function fetchChapter(slug, number) {
   });
 }
 
-export async function createChapter({ seriesSlug, number, title = '', pages = [] }) {
+export async function createChapter({ seriesSlug, number, title = '', pages = [], published = true }) {
   const ch = {
     seriesSlug,
     chapterNum: Number(number),
     title,
     images: pages.filter(Boolean),
+    published: !!published,
     createdAt: serverTimestamp()
   };
   const ref = await addDoc(collection(db, 'chapters'), ch);
@@ -325,6 +349,18 @@ export async function updateChapter(chapterDocId, patch) {
 export async function deleteChapter(chapterDocId, seriesSlug) {
   await deleteDoc(doc(db, 'chapters', chapterDocId));
   cacheBust(`chapters:${seriesSlug}`);
+}
+
+/** Toggle a series between published (visible) and draft (hidden). Admin only. */
+export async function updateSeriesPublished(docId, published) {
+  await updateDoc(doc(db, 'series', docId), { published: !!published, updatedAt: serverTimestamp() });
+  cacheBust('series:');
+}
+
+/** Toggle a chapter between published (visible) and draft (hidden). Admin only. */
+export async function updateChapterPublished(chapterDocId, published) {
+  await updateDoc(doc(db, 'chapters', chapterDocId), { published: !!published });
+  cacheBust('chapters:');
 }
 
 // =====================================================

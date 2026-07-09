@@ -1,6 +1,6 @@
 // Admin: Series CRUD
 import {
-  fetchAllSeries, createSeries, updateSeries, deleteSeries, fetchSeriesBySlug
+  fetchAllSeries, createSeries, updateSeries, deleteSeries, fetchSeriesBySlug, updateSeriesPublished
 } from '../lib/api.js';
 import { esc, html, slugify, timeAgo, proxyImage } from '../lib/utils.js';
 import { toast, confirmModal, spinner } from '../lib/ui.js';
@@ -12,7 +12,7 @@ const STATUSES = ['ongoing', 'completed', 'hiatus', 'dropped'];
 
 export async function seriesAdmin({ outlet }) {
   let series = [];
-  try { series = await fetchAllSeries({ limitTo: 500 }); }
+  try { series = await fetchAllSeries({ limitTo: 500, includeUnpublished: true }); }
   catch (e) { outlet.innerHTML = `<p>Failed to load: ${esc(e.message)}</p>`; return; }
 
   let filterText = '';
@@ -36,19 +36,19 @@ export async function seriesAdmin({ outlet }) {
       <div class="admin-card">
         ${filtered.length === 0 ? `<p class="text-muted">No matches.</p>` : `
           <table class="admin-table">
-            <thead><tr><th></th><th>Title</th><th>Type</th><th>Status</th><th>Latest</th><th>Genres</th><th class="actions"></th></tr></thead>
+            <thead><tr><th></th><th>Title</th><th>Type</th><th>Status</th><th>Latest</th><th>Visibility</th><th class="actions"></th></tr></thead>
             <tbody>
               ${filtered.map(s => `
-                <tr>
+                <tr class="${s.published ? '' : 'row-draft'}">
                   <td><img class="admin-row-thumb" src="${esc(proxyImage(s.cover))}" alt="" loading="lazy"></td>
                   <td><strong>${esc(s.title)}</strong><br><small class="text-muted">/${esc(s.slug)}</small></td>
                   <td>${esc(s.type)}</td>
                   <td><span class="badge badge-${esc(s.status)}">${esc(s.status)}</span></td>
                   <td>${s.latestChapter > 0 ? 'Ch.' + esc(s.latestChapter) : '—'}</td>
                   <td>
-                    <div class="row gap-1" style="flex-wrap:wrap;">
-                      ${(s.genres || []).slice(0, 3).map(g => `<span class="tag-pill" style="font-size:11px;padding:2px 6px;">${esc(g)}</span>`).join('')}
-                    </div>
+                    <button class="pub-toggle ${s.published ? 'pub-toggle--live' : 'pub-toggle--draft'}" data-pub="${esc(s.id)}" data-pub-val="${s.published ? '1' : '0'}" title="Click to ${s.published ? 'hide (set to Draft)' : 'publish (make Live)'}">
+                      ${s.published ? '🟢 Live' : '🔴 Draft'}
+                    </button>
                   </td>
                   <td class="actions">
                     <a href="/series/${esc(s.slug)}" target="_blank" rel="noopener" class="icon-btn btn-sm" title="View">
@@ -75,6 +75,22 @@ export async function seriesAdmin({ outlet }) {
       render();
     });
     outlet.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openForm(b.dataset.edit)));
+    outlet.querySelectorAll('[data-pub]').forEach(b => b.addEventListener('click', async () => {
+      const isLive = b.dataset.pubVal === '1';
+      const newVal = !isLive;
+      b.disabled = true;
+      b.textContent = '…';
+      try {
+        await updateSeriesPublished(b.dataset.pub, newVal);
+        toast(newVal ? '🟢 Published' : '🔴 Set to Draft', 'success');
+        series = await fetchAllSeries({ limitTo: 500, includeUnpublished: true });
+        render();
+      } catch (e) {
+        toast('Toggle failed: ' + e.message, 'error');
+        b.disabled = false;
+        b.textContent = isLive ? '🟢 Live' : '🔴 Draft';
+      }
+    }));
     outlet.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
       const ok = await confirmModal({
         title: `Delete "${b.dataset.title}"?`,
@@ -137,7 +153,13 @@ export async function seriesAdmin({ outlet }) {
 
         <div class="field">
           <label class="field-label" for="f-cover">Cover Image URL *</label>
-          <input class="input" id="f-cover" type="url" required value="${esc(s?.cover || '')}" placeholder="https://r2.../cover.jpg">
+          <div class="row gap-2" style="align-items: center;">
+            <input class="input" id="f-cover" type="url" required value="${esc(s?.cover || '')}" placeholder="https://r2.../cover.jpg" style="flex: 1;">
+            <label class="btn btn-secondary" style="margin: 0; cursor: pointer; white-space: nowrap;">
+              📁 Upload
+              <input type="file" id="f-cover-upload" accept="image/*" style="display: none;">
+            </label>
+          </div>
         </div>
         <img id="f-cover-preview" src="${esc(proxyImage(s?.cover) || '')}" alt="" style="max-width: 160px; aspect-ratio: 2/3; object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--border); display: ${s?.cover ? 'block' : 'none'}; margin-bottom: var(--s-4);" onerror="this.style.display='none';">
 
@@ -205,6 +227,16 @@ export async function seriesAdmin({ outlet }) {
           <label class="row gap-2"><input type="checkbox" id="f-new" ${(s?.new ?? !id) ? 'checked' : ''}> New</label>
         </div>
 
+        <div class="field" style="padding: var(--s-4); background: var(--surface-2); border-radius: var(--r-md); border: 2px solid ${(s?.published ?? true) ? 'var(--success, #22c55e)' : 'var(--warning, #f59e0b)'}; margin-top: var(--s-3);">
+          <label class="row gap-3" style="cursor: pointer; align-items: center;">
+            <input type="checkbox" id="f-published" ${(s?.published ?? true) ? 'checked' : ''} style="width: 18px; height: 18px;">
+            <span>
+              <strong id="f-pub-label">${(s?.published ?? true) ? '🟢 Published — visible to all readers' : '🔴 Draft — hidden from readers'}</strong><br>
+              <span class="field-hint" style="margin-top: 2px; display: block;">Toggle off to hide this series without deleting it.</span>
+            </span>
+          </label>
+        </div>
+
         <div class="row gap-3" style="margin-top: var(--s-5);">
           <button type="submit" class="btn btn-primary" id="saveBtn">${id ? 'Save Changes' : 'Create Series'}</button>
           <button type="button" class="btn btn-ghost" id="cancelBtn">Cancel</button>
@@ -216,6 +248,41 @@ export async function seriesAdmin({ outlet }) {
 
     $f('#backBtn').addEventListener('click', render);
     $f('#cancelBtn').addEventListener('click', render);
+
+    // ============================================================
+    // COVER UPLOAD
+    // ============================================================
+    const coverUpload = $f('#f-cover-upload');
+    if (coverUpload) {
+      coverUpload.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const btn = coverUpload.closest('.btn');
+        const origText = btn.innerHTML;
+        btn.innerHTML = 'Uploading…';
+        btn.style.pointerEvents = 'none';
+        
+        try {
+          const fd = new FormData();
+          fd.append('file', file, file.name);
+          fd.append('series', $f('#f-slug').value || 'new-series');
+          const res = await adminFetch('/api/upload', { method: 'POST', body: fd });
+          const json = await res.json();
+          if (!json.ok) throw new Error(json.error || 'upload failed');
+          
+          $f('#f-cover').value = json.url;
+          $f('#f-cover').dispatchEvent(new Event('input')); // update preview
+          toast('Cover uploaded to R2', 'success');
+        } catch (err) {
+          console.error(err);
+          toast('Cover upload failed: ' + err.message, 'error');
+        } finally {
+          btn.innerHTML = origText;
+          btn.style.pointerEvents = 'auto';
+          coverUpload.value = ''; // reset
+        }
+      });
+    }
 
     // ============================================================
     // IMPORT widget — only on the "New Series" form (not edit)
@@ -346,7 +413,8 @@ export async function seriesAdmin({ outlet }) {
         description: $f('#f-desc').value.trim(),
         featured: $f('#f-featured').checked,
         hot: $f('#f-hot').checked,
-        new: $f('#f-new').checked
+        new: $f('#f-new').checked,
+        published: $f('#f-published').checked
       };
 
       $f('#saveBtn').disabled = true;

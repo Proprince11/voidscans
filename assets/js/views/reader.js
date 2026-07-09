@@ -19,7 +19,7 @@ import { SITE, pageTitle } from '../lib/site.config.js';
 import { getSettings } from '../lib/settings.js';
 import { applyBranding } from '../lib/branding.js';
 import { navigate } from '../lib/router.js';
-import { onAuthChange } from '../lib/auth.js';
+import { onAuthChange, getUser, isAdmin } from '../lib/auth.js';
 import { buildRecommendations, buildLatestUpdates } from './_components.js';
 
 export async function reader(params, ctx) {
@@ -54,6 +54,21 @@ export async function reader(params, ctx) {
     return { title: pageTitle('Not found') };
   }
 
+  // Draft gate: if chapter is not published, non-admins see a locked message.
+  if (ch.published === false && !isAdmin()) {
+    ctx.outlet.innerHTML = html`
+      <div class="container section">
+        <div class="empty-state">
+          <div class="icon">🔒</div>
+          <h3>Chapter not available yet</h3>
+          <p>This chapter is still being prepared. Please check back soon!</p>
+          <a href="/series/${esc(slug)}" class="btn btn-primary">Back to series</a>
+        </div>
+      </div>
+    `;
+    return { title: pageTitle('Coming Soon') };
+  }
+
   // Sort chapters ascending for nav purposes
   const sorted = [...allChapters].sort((a, b) => a.number - b.number);
   const idx = sorted.findIndex(c => c.number === num);
@@ -65,6 +80,17 @@ export async function reader(params, ctx) {
 
   // Build view
   ctx.outlet.innerHTML = renderReader(s, ch, prev, next, sorted, prefs);
+
+  // Inject draft banner at top for admin if chapter is not published
+  if (ch.published === false && isAdmin()) {
+    const banner = document.createElement('div');
+    banner.innerHTML = `
+      <div style="background: var(--warning, #f59e0b); color: #000; text-align: center; padding: var(--s-3); font-weight: 600; font-size: var(--fs-sm); position: sticky; top: 0; z-index: 100;">
+        🔴 DRAFT CHAPTER — Hidden from readers. Go to <a href="/admin#chapters" style="color:#000; text-decoration:underline;">Admin → Chapters</a> to publish it.
+      </div>
+    `;
+    ctx.outlet.insertBefore(banner.firstElementChild, ctx.outlet.firstChild);
+  }
 
   // Inject JSON-LD chapter schema for SEO
   injectChapterJsonLd(s, ch);
@@ -591,6 +617,7 @@ function injectChapterJsonLd(s, ch) {
 // =====================================================
 async function loadChapterComments(s, ch) {
   const list = document.getElementById('chCommentList');
+  const formSlot = document.getElementById('chCommentForm');
   if (!list) return;
 
   let items = [];
@@ -601,39 +628,89 @@ async function loadChapterComments(s, ch) {
     return;
   }
 
-  // Pre-fill name from profile
-  const profile = getProfile();
-  const nameInput = document.getElementById('chcName');
-  if (profile?.displayName && nameInput && !nameInput.value) {
-    nameInput.value = profile.displayName;
+  // ── AUTH GATE ───────────────────────────────────────────────────────────
+  // Re-render the comment form whenever auth state changes.
+  // Signed-out  → show a polite "sign in to comment" prompt.
+  // Signed-in   → show the real form with name locked to account.
+  // This prevents bots and anonymous spam from writing to Firestore.
+  function renderCommentForm(user) {
+    if (!formSlot) return;
+
+    if (!user) {
+      // Signed-out state — show sign-in prompt instead of form
+      formSlot.innerHTML = `
+        <div style="
+          background: var(--surface-1);
+          border: 1px solid var(--border);
+          border-radius: var(--r-md);
+          padding: var(--s-5);
+          text-align: center;
+          color: var(--text-muted);
+          font-size: var(--fs-sm);
+        ">
+          <p style="margin-bottom: var(--s-3); font-size: var(--fs-base); color: var(--text);">Join the conversation</p>
+          <p style="margin-bottom: var(--s-4);">Sign in to post a comment. It only takes a second.</p>
+          <button class="btn btn-primary" id="chcSignInBtn">Sign In to Comment</button>
+        </div>
+      `;
+      document.getElementById('chcSignInBtn')?.addEventListener('click', () => {
+        import('../lib/ui.js').then(m => m.openAuthModal({ initialTab: 'signin' }));
+      });
+      return;
+    }
+
+    // Signed-in state — show the real form
+    const displayName = user.displayName || getProfile()?.displayName || user.email?.split('@')[0] || 'Reader';
+    formSlot.innerHTML = `
+      <div class="field-row">
+        <input type="text" class="input" id="chcName" value="${esc(displayName)}" readonly
+          style="background: var(--surface-2); cursor: default; opacity: 0.8;"
+          title="Commenting as ${esc(displayName)}">
+        <div></div>
+      </div>
+      <textarea class="textarea" id="chcText" placeholder="What did you think of this chapter? (2–1000 chars)" maxlength="1000"></textarea>
+      <div class="row gap-3" style="margin-top: var(--s-2); align-items: center;">
+        <span class="field-hint" id="chcCounter">0 / 1000</span>
+        <span class="nav-spacer"></span>
+        <button class="btn btn-primary" id="chcSubmit">Post Comment</button>
+      </div>
+    `;
+
+    const txt = document.getElementById('chcText');
+    const counter = document.getElementById('chcCounter');
+    txt?.addEventListener('input', () => {
+      counter.textContent = `${txt.value.length} / 1000`;
+    });
+
+    document.getElementById('chcSubmit')?.addEventListener('click', async () => {
+      const name = displayName;
+      const text = txt?.value.trim() || '';
+      const last = Number(localStorage.getItem('vs:lastComment') || 0);
+      if (Date.now() - last < 60_000) { toast('Please wait a minute before commenting again', 'error'); return; }
+      if (text.length < 2) { toast('Comment too short', 'error'); return; }
+      try {
+        const currentUser = getUser();
+        await postComment(s.slug, {
+          authorName: name,
+          authorId: currentUser?.uid || null,
+          text,
+          chapter: Number(ch.number)
+        });
+        localStorage.setItem('vs:lastComment', String(Date.now()));
+        txt.value = ''; counter.textContent = '0 / 1000';
+        toast('Posted!', 'success');
+        const fresh = await fetchChapterComments(s.slug, ch.number, 30);
+        paintChapterComments(s, fresh);
+      } catch (e) {
+        console.error(e);
+        toast(e.message || 'Could not post', 'error');
+      }
+    });
   }
 
-  // Counter
-  const txt = document.getElementById('chcText');
-  const counter = document.getElementById('chcCounter');
-  txt?.addEventListener('input', () => {
-    counter.textContent = `${txt.value.length} / 1000`;
-  });
-
-  // Submit
-  document.getElementById('chcSubmit')?.addEventListener('click', async () => {
-    const name = nameInput?.value.trim() || 'Anonymous';
-    const text = txt.value.trim();
-    const last = Number(localStorage.getItem('vs:lastComment') || 0);
-    if (Date.now() - last < 60_000) { toast('Please wait a minute before commenting again', 'error'); return; }
-    if (text.length < 2) { toast('Comment too short', 'error'); return; }
-    try {
-      await postComment(s.slug, { authorName: name, text, chapter: Number(ch.number) });
-      localStorage.setItem('vs:lastComment', String(Date.now()));
-      txt.value = ''; counter.textContent = '0 / 1000';
-      toast('Posted!', 'success');
-      const fresh = await fetchChapterComments(s.slug, ch.number, 30);
-      paintChapterComments(s, fresh);
-    } catch (e) {
-      console.error(e);
-      toast(e.message || 'Could not post', 'error');
-    }
-  });
+  // Initial render + reactively update when user signs in/out
+  renderCommentForm(getUser());
+  onAuthChange((user) => renderCommentForm(user));
 
   paintChapterComments(s, items);
 }

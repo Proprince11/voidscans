@@ -56,10 +56,12 @@ export async function handleGlobalRss(request, env) {
   const seriesBySlug = new Map();
   for (const s of series) seriesBySlug.set(s.slug || s._id, s);
 
-  const items = chapters.map(c => {
-    const meta = seriesBySlug.get(c.seriesSlug);
-    if (!meta) return null;
-    return {
+  const items = chapters
+    .filter(c => c.published !== false)
+    .map(c => {
+      const meta = seriesBySlug.get(c.seriesSlug);
+      if (!meta || meta.published === false) return null;
+      return {
       title: `${meta.title} — Chapter ${c.chapterNum}${c.title ? `: ${c.title}` : ''}`,
       link: `${baseUrl}/read/${c.seriesSlug}/${c.chapterNum}`,
       guid: `${c.seriesSlug}-${c.chapterNum}`,
@@ -94,7 +96,7 @@ export async function handleSeriesRss(request, env, slug) {
     [{ field: 'slug', op: 'EQUAL', value: { stringValue: slug } }],
     null, 1
   );
-  if (!seriesArr.length) return new Response('Series not found', { status: 404 });
+  if (!seriesArr.length || seriesArr[0].published === false) return new Response('Series not found', { status: 404 });
   const s = seriesArr[0];
 
   const chapters = await queryDocs(
@@ -104,14 +106,16 @@ export async function handleSeriesRss(request, env, slug) {
     50
   );
 
-  const items = chapters.map(c => ({
-    title: `Chapter ${c.chapterNum}${c.title ? `: ${c.title}` : ''}`,
-    link: `${baseUrl}/read/${slug}/${c.chapterNum}`,
-    guid: `${slug}-${c.chapterNum}`,
-    date: c.createdAt,
-    description: c.title || `Chapter ${c.chapterNum} of ${s.title}`,
-    image: s.cover
-  }));
+  const items = chapters
+    .filter(c => c.published !== false)
+    .map(c => ({
+      title: `Chapter ${c.chapterNum}${c.title ? `: ${c.title}` : ''}`,
+      link: `${baseUrl}/read/${slug}/${c.chapterNum}`,
+      guid: `${slug}-${c.chapterNum}`,
+      date: c.createdAt,
+      description: c.title || `Chapter ${c.chapterNum} of ${s.title}`,
+      image: s.cover
+    }));
 
   const xml = rssWrap({
     title: `${s.title} — JayaScans`,

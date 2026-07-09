@@ -4,7 +4,7 @@ Everything YOU (the human) need to do manually. Code changes are already done �
 
 ---
 
-## ✅ Already Done (by Kiro)
+## ✅ Already Done (by Kiro / Antigravity)
 
 - [x] Privacy Policy page (`/privacy`)
 - [x] Terms of Service page (`/terms`)
@@ -14,11 +14,13 @@ Everything YOU (the human) need to do manually. Code changes are already done �
 - [x] Footer updated with all legal links (Privacy, Terms, About, Contact, DMCA)
 - [x] Footer updated with social link icons (Discord, Twitter/X, Telegram) — auto-renders when you fill `site.config.js`
 - [x] Cookie/privacy consent banner (auto-dismissed, localStorage-persisted)
-- [x] OG image meta tags updated to reference `/assets/images/og-default.png` (you need to create the image)
+- [x] OG image meta tags updated to reference `/assets/images/og-default.png`
+- [x] **OG share image generated & committed** → `assets/images/og-default.png` ✅ (done by Antigravity)
 - [x] Google Search Console verification meta tag placeholder added to `index.html`
 - [x] Cloudflare Analytics instruction comment added
 - [x] Routes registered for all new pages
 - [x] CSS for legal pages, about, contact, footer social icons, cookie banner
+- [x] **🔐 JWT security vulnerability patched** → `workers/main/src/index.js` now verifies RS256 signatures via Firebase public keys — forged admin tokens are no longer possible ✅ (done by Antigravity)
 
 ---
 
@@ -73,21 +75,9 @@ Everything YOU (the human) need to do manually. Code changes are already done �
 
 ---
 
-### Step 4: Create OG Share Image
+### ~~Step 4: Create OG Share Image~~ ✅ DONE
 
-| | |
-|---|---|
-| **Where** | Canva (canva.com) or Figma or Photoshop |
-| **What** | Create a 1200×630 PNG |
-
-Design suggestions:
-- Background: dark (`#0a0a0c` or a gradient from dark to slightly lighter)
-- Text: "JAYASCANS" in your display font (Syne) with the gold accent (`#f0b941`)
-- Subtitle: "Read Manhwa, Manga & Manhua Online Free" in white/light text
-- Optional: add a few manga cover thumbnails arranged in a grid or fanned out
-- Save as `og-default.png`
-- Place at: `assets/images/og-default.png` in your repo
-- Push to deploy
+> **Completed by Antigravity.** The OG image has been generated and committed to `assets/images/og-default.png`. It shows the JAYASCANS branding on a dark premium background with manga-style artwork. No further action needed — just push to deploy.
 
 ---
 

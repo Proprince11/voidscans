@@ -366,7 +366,7 @@ function setupHeroSlider() {
   if (slides.length <= 1) return () => {};
 
   const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  const ROTATE_MS = 5000;
+  const ROTATE_MS = 3000;
 
   let idx = 0;
   let timer = null;

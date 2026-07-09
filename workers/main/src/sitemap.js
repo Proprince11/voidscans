@@ -31,12 +31,14 @@ export async function handleSitemap(request, env) {
   try { series = await listDocs(projectId, 'series', { pageSize: 500 }); }
   catch (e) { /* fall through with empty array */ }
 
-  const seriesUrls = series.map(s => ({
-    loc: `/series/${s.slug || s._id}`,
-    priority: 0.8,
-    changefreq: 'weekly',
-    lastmod: s.updatedAt || s.createdAt
-  }));
+  const seriesUrls = series
+    .filter(s => s.published !== false)
+    .map(s => ({
+      loc: `/series/${s.slug || s._id}`,
+      priority: 0.8,
+      changefreq: 'weekly',
+      lastmod: s.updatedAt || s.createdAt
+    }));
 
   const genreUrls = GENRES.map(g => ({
     loc: `/genre/${g}`,

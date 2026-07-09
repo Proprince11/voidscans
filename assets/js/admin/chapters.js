@@ -1,7 +1,7 @@
 // Admin: Chapters CRUD with drag-reorder pages + image preview
 import {
   fetchAllSeries, fetchChapters, fetchChapter,
-  createChapter, updateChapter, deleteChapter
+  createChapter, updateChapter, deleteChapter, updateChapterPublished
 } from '../lib/api.js';
 import { esc, html, timeAgo, proxyImage } from '../lib/utils.js';
 import { toast, confirmModal, spinner } from '../lib/ui.js';
@@ -29,7 +29,7 @@ export async function chaptersAdmin({ outlet }) {
   let editingId = null;
 
   async function loadChapters() {
-    chapters = await fetchChapters(selectedSlug);
+    chapters = await fetchChapters(selectedSlug, { includeUnpublished: true });
     chapters.sort((a, b) => b.number - a.number);
   }
 
@@ -51,15 +51,19 @@ export async function chaptersAdmin({ outlet }) {
       <div class="admin-card">
         ${chapters.length === 0 ? `<p class="text-muted">No chapters yet for this series.</p>` : `
           <table class="admin-table">
-            <thead><tr><th>Ch</th><th>Title</th><th>Pages</th><th>Created</th><th class="actions"></th></tr></thead>
+            <thead><tr><th>Ch</th><th>Title</th><th>Pages</th><th>Created</th><th>Status</th><th class="actions"></th></tr></thead>
             <tbody>
               ${chapters.map(c => `
-                <tr>
+                <tr class="${c.published ? '' : 'row-draft'}">
                   <td><strong>${esc(c.number)}</strong></td>
                   <td>${esc(c.title || '—')}</td>
                   <td class="text-muted">${esc(c.pages.length)}</td>
                   <td class="text-muted">${esc(c.createdAt?.toDate ? timeAgo(c.createdAt.toDate()) : '—')}</td>
-                  <td class="actions">
+                  <td>
+                    <button class="pub-toggle ${c.published ? 'pub-toggle--live' : 'pub-toggle--draft'}" data-ch-pub="${esc(c.id)}" data-ch-pub-val="${c.published ? '1' : '0'}" title="Click to ${c.published ? 'set to Draft (hide)' : 'Publish (make Live)'}">
+                      ${c.published ? '🟢 Live' : '🔴 Draft'}
+                    </button>
+                  </td>
                     <a href="/read/${esc(selectedSlug)}/${esc(c.number)}" target="_blank" rel="noopener" class="icon-btn btn-sm" title="View">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     </a>
@@ -83,6 +87,21 @@ export async function chaptersAdmin({ outlet }) {
       await render();
     });
 
+    outlet.querySelectorAll('[data-ch-pub]').forEach(b => b.addEventListener('click', async () => {
+      const isLive = b.dataset.chPubVal === '1';
+      const newVal = !isLive;
+      b.disabled = true;
+      b.textContent = '…';
+      try {
+        await updateChapterPublished(b.dataset.chPub, newVal);
+        toast(newVal ? '🟢 Chapter published' : '🔴 Chapter set to Draft', 'success');
+        await render();
+      } catch (e) {
+        toast('Toggle failed: ' + e.message, 'error');
+        b.disabled = false;
+        b.textContent = isLive ? '🟢 Live' : '🔴 Draft';
+      }
+    }));
     document.getElementById('newChBtn').addEventListener('click', () => openForm(null));
     outlet.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openForm(b.dataset.edit)));
     outlet.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
@@ -176,6 +195,16 @@ https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
         <div class="field">
           <label class="field-label">Page Preview · Drag to reorder · Click × to remove</label>
           <div class="image-preview-grid" id="ch-preview"></div>
+        </div>
+
+        <div class="row gap-3" style="margin-top: var(--s-3); padding: var(--s-4); background: var(--surface-2); border-radius: var(--r-md); border: 2px solid ${(ch?.published ?? true) ? 'var(--success, #22c55e)' : 'var(--warning, #f59e0b)'}; margin-bottom: var(--s-3);">
+          <label class="row gap-3" style="cursor: pointer; align-items: center; flex: 1;">
+            <input type="checkbox" id="ch-published" ${(ch?.published ?? true) ? 'checked' : ''} style="width: 18px; height: 18px;">
+            <span>
+              <strong>${(ch?.published ?? true) ? '🟢 Published — visible to readers' : '🔴 Draft — hidden from readers'}</strong><br>
+              <span class="field-hint" style="margin-top: 2px; display: block;">Uncheck to save as draft (you can publish later).</span>
+            </span>
+          </label>
         </div>
 
         <div class="row gap-3" style="margin-top: var(--s-5);">
@@ -470,6 +499,7 @@ https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
       const number = Number($f('#ch-num').value);
       const title = $f('#ch-title').value.trim();
       const pages = getPages();
+      const published = $f('#ch-published').checked;
       if (!number) { toast('Chapter number required', 'error'); return; }
       if (pages.length === 0) { toast('Add at least one page', 'error'); return; }
 
@@ -477,24 +507,30 @@ https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
       $f('#saveBtn').textContent = 'Saving…';
       try {
         if (id) {
-          await updateChapter(id, { number, title, pages });
+          await updateChapter(id, { number, title, pages, published });
           toast('Updated', 'success');
         } else {
-          await createChapter({ seriesSlug: selectedSlug, number, title, pages });
-          toast(`Chapter ${number} published`, 'success');
-          // Fire Discord webhook (admin Settings → Integrations → Discord)
-          // Failures are non-blocking — log and move on.
-          const seriesMeta = allSeries.find(s => s.slug === selectedSlug);
-          announceChapter({
-            seriesTitle: seriesMeta?.title || selectedSlug,
-            seriesSlug: selectedSlug,
-            chapterNum: number,
-            chapterTitle: title,
-            coverUrl: seriesMeta?.cover || ''
-          }).then(r => {
-            if (r?.ok) toast('Posted to Discord', 'info', 2500);
-            else if (r?.error) console.warn('Discord webhook:', r.error);
-          });
+          await createChapter({ seriesSlug: selectedSlug, number, title, pages, published });
+          // Only fire Discord announcement if publishing immediately
+          if (published) {
+            toast(`Chapter ${number} published`, 'success');
+          } else {
+            toast(`Chapter ${number} saved as draft`, 'info');
+          }
+          // Fire Discord webhook only when publishing immediately (not for drafts)
+          if (published) {
+            const seriesMeta = allSeries.find(s => s.slug === selectedSlug);
+            announceChapter({
+              seriesTitle: seriesMeta?.title || selectedSlug,
+              seriesSlug: selectedSlug,
+              chapterNum: number,
+              chapterTitle: title,
+              coverUrl: seriesMeta?.cover || ''
+            }).then(r => {
+              if (r?.ok) toast('Posted to Discord', 'info', 2500);
+              else if (r?.error) console.warn('Discord webhook:', r.error);
+            });
+          }
         }
         await render();
       } catch (err) {

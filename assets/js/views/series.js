@@ -16,6 +16,7 @@ import {
   hasLikedComment, markCommentLiked, getReadChapters
 } from '../lib/library.js';
 import { getProfile } from '../lib/account.js';
+import { isAdmin } from '../lib/auth.js';
 import { esc, html, timeAgo, avatarLetter, compactNum, proxyImage, setMeta, truncate } from '../lib/utils.js';
 import { spinner, toast, share, confirmModal } from '../lib/ui.js';
 import { seriesCard, statusBadge, emptyState } from './_components.js';
@@ -46,8 +47,34 @@ export async function series(params, ctx) {
     return { title: pageTitle('Not found') };
   }
 
+  // Draft gate: non-admins see a coming-soon page; admins see a draft banner.
+  if (s.published === false) {
+    if (!isAdmin()) {
+      ctx.outlet.innerHTML = `<div class="container section">${emptyState({
+        icon: '🚧',
+        title: 'Coming Soon',
+        subtitle: 'This series isn\'t available yet. Check back soon!',
+        cta: '<a href="/browse" class="btn btn-primary">Browse all series</a>'
+      })}</div>`;
+      return { title: pageTitle('Coming Soon') };
+    }
+    // Admin sees the page but with a prominent draft banner
+    // (injected at top of shell after render)
+  }
+
   // Render shell first (instant), then enrich progressively
   ctx.outlet.innerHTML = renderShell(s);
+
+  // Inject draft banner at top for admin if series is not published
+  if (s.published === false && isAdmin()) {
+    const banner = document.createElement('div');
+    banner.innerHTML = `
+      <div style="background: var(--warning, #f59e0b); color: #000; text-align: center; padding: var(--s-3); font-weight: 600; font-size: var(--fs-sm); position: sticky; top: 0; z-index: 100;">
+        🔴 DRAFT — This series is hidden from readers. Go to <a href="/admin#series" style="color:#000; text-decoration:underline;">Admin → Series</a> to publish it.
+      </div>
+    `;
+    ctx.outlet.insertBefore(banner.firstElementChild, ctx.outlet.firstChild);
+  }
 
   // Inject JSON-LD structured data for SEO
   injectJsonLd(s);

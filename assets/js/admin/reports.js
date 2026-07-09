@@ -16,7 +16,7 @@ export async function reports({ outlet, navigate }) {
 
   // Load series first
   let allSeries = [];
-  try { allSeries = await fetchAllSeries({ limitTo: 500 }); }
+  try { allSeries = await fetchAllSeries({ limitTo: 500, includeUnpublished: true }); }
   catch (e) {
     outlet.innerHTML = `<header class="admin-header"><h1>Reports</h1></header><div class="empty-state"><h3>Failed to load</h3><p>${esc(e.message)}</p></div>`;
     return;
@@ -42,7 +42,7 @@ export async function reports({ outlet, navigate }) {
         fetchReactions(s.slug).catch(() => ({})),
         fetchRating(s.slug).catch(() => ({ average: 0, total: 0, distribution: [0,0,0,0,0] })),
         fetchComments(s.slug, 100).catch(() => []),
-        fetchChapters(s.slug).catch(() => [])
+        fetchChapters(s.slug, { includeUnpublished: true }).catch(() => [])
       ]);
       const reactionTotal = Object.values(reactions || {}).reduce((a, b) => a + (Number(b) || 0), 0);
       return {

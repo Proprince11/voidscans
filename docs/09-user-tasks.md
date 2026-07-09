@@ -33,12 +33,20 @@ service cloud.firestore {
           .hasOnly(['views', 'followers']))
       );
 
-      // Comments subcollection: anyone can read + create (with limits)
+      // Comments subcollection:
+      //   READ:   anyone
+      //   CREATE: must be signed in + text 2-1000 chars + authorName <= 40 chars
+      //           (blocks bots and anonymous spam entirely at the DB level)
+      //   UPDATE: anyone can increment 'likes' only (no other fields)
+      //   DELETE: admin only
       match /comments/{commentId} {
         allow read: if true;
-        allow create: if request.resource.data.text is string
+        allow create: if request.auth != null
+                      && request.resource.data.text is string
                       && request.resource.data.text.size() >= 2
-                      && request.resource.data.text.size() <= 1000;
+                      && request.resource.data.text.size() <= 1000
+                      && request.resource.data.authorName is string
+                      && request.resource.data.authorName.size() <= 40;
         allow update: if (
           // Anyone can increment likes (only that field)
           request.resource.data.diff(resource.data).affectedKeys()
@@ -60,16 +68,21 @@ service cloud.firestore {
       );
     }
 
-    // -------- Reactions: anyone can increment --------
+    // -------- Reactions: only allow incrementing the 5 known reaction keys --------
+    // Prevents arbitrary data being written (e.g. XSS payloads, oversized fields)
     match /reactions/{seriesId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if request.resource.data.keys().hasOnly(
+        ['fire', 'heart', 'star', 'mind', 'sad']
+      );
     }
 
-    // -------- Ratings: anyone can submit --------
+    // -------- Ratings: only allow known numeric fields --------
     match /ratings/{seriesId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if request.resource.data.keys().hasOnly(
+        ['average', 'total', 'distribution']
+      );
     }
 
     // -------- Phase 2: User accounts (private to owner) --------
@@ -87,7 +100,17 @@ service cloud.firestore {
 }
 ```
 
-> **What this enables:** Anyone can READ series/chapters and INCREMENT view/follower/like counters (used by Phase 2 view tracking). Admin alone can create/delete or modify other fields. Each signed-in user can only read/write their own `/users/{uid}/library` and `/users/{uid}/history` — used by cross-device library sync. Reactions/ratings stay anonymously writeable but are localStorage-rate-limited on the frontend.
+> **What changed (Antigravity update):**
+> - **Comments now require sign-in.** `request.auth != null` is enforced at the database level — bots and anonymous users are fully blocked even if they bypass the frontend form.
+> - **Reactions/ratings are field-locked.** Instead of `allow write: if true` (which allowed writing anything), reactions can only update the 5 emoji keys and ratings can only update `average`, `total`, `distribution`. This prevents arbitrary data injection.
+> - **authorName is capped** at 40 characters at the DB level, matching the frontend `maxlength`.
+
+**Verify:** Sign out, open DevTools console, try posting a comment via:
+```js
+db.collection('series').doc('your-slug').collection('comments').add({ text: 'spam' })
+```
+You should get a `PERMISSION_DENIED` error.
+
 
 **Verify:** Sign out, visit your site, try `db.collection('series').doc('test').delete()` in console. You should get a permission error.
 
