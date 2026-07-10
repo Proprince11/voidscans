@@ -141,11 +141,18 @@ export async function home(_params, ctx) {
       <!-- Responsive CSS overrides for mobile -->
       <style>
         @media (max-width: 768px) {
-          #hero .hero-poster { display: none !important; }
-          #hero .hero-arrow { display: none !important; }
+          #hero { height: 85vh !important; min-height: 600px !important; }
+          #hero .hero-content { flex-direction: column-reverse !important; justify-content: flex-end !important; gap: 25px !important; padding-top: 50px !important; }
+          #hero .hero-poster { display: flex !important; width: 100% !important; justify-content: center !important; }
+          #hero .hero-poster > a, #hero .hero-poster > div { height: 280px !important; width: 186px !important; transform: none !important; }
           #hero .hero-info { align-items: center; text-align: center; }
-          #hero > div:first-child > div:nth-child(1) { width: 100% !important; right: 0 !important; top: -10% !important; opacity: 0.5 !important; }
-          #hero > div:first-child > div:nth-child(2) { background: linear-gradient(to top, var(--bg) 0%, rgba(10,10,12,0.8) 50%, transparent 100%) !important; }
+          #hero .hero-info h2 { font-size: 2rem !important; }
+          #hero .hero-info p { -webkit-line-clamp: 3 !important; font-size: 15px !important; }
+          #hero .hero-arrow { display: none !important; }
+          #hero .hero-nav { justify-content: center !important; left: 0 !important; bottom: 20px !important; }
+          /* Slide Backgrounds */
+          .hero-slide > div:nth-child(1) { width: 100% !important; right: 0 !important; top: -10% !important; opacity: 0.4 !important; }
+          .hero-slide > div:nth-child(2) { background: linear-gradient(to top, var(--bg) 0%, rgba(10,10,12,0.9) 60%, transparent 100%) !important; }
         }
         #hero .hero-arrow:hover { background: rgba(255,255,255,0.1) !important; }
       </style>
