@@ -85,7 +85,7 @@ export async function home(_params, ctx) {
   const heroHtml = heroItems.length === 0 ? '' : html`
     <section class="hero" id="hero" style="height: 60vh; min-height: 500px; max-height: 700px; position:relative; overflow:hidden; background: var(--bg); display: block;">
       ${heroItems.slice(0, 5).map((s, i) => `
-        <div class="hero-slide ${i === 0 ? 'active' : ''}" style="position: absolute; inset: 0; transition: opacity 0.6s ease-in-out; opacity: ${i === 0 ? 1 : 0}; z-index: ${i === 0 ? 2 : 1}; display: flex; align-items: center; justify-content: center;">
+        <div class="hero-slide ${i === 0 ? 'active' : ''}" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
           
           <!-- Cinematic Background Glow / Abstract Art -->
           <div style="position:absolute; top:-20%; right:-10%; width:70vw; height:140%; background-image:url('${esc(proxyImage(s.cover))}'); background-size:cover; background-position: center; filter:blur(60px); opacity:0.3; mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%); -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%); z-index: 1;"></div>
