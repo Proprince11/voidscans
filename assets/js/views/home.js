@@ -142,14 +142,24 @@ export async function home(_params, ctx) {
       <style>
         @media (max-width: 768px) {
           #hero .hero-poster { display: none !important; }
+          #hero .hero-arrow { display: none !important; }
           #hero .hero-info { align-items: center; text-align: center; }
           #hero > div:first-child > div:nth-child(1) { width: 100% !important; right: 0 !important; top: -10% !important; opacity: 0.5 !important; }
           #hero > div:first-child > div:nth-child(2) { background: linear-gradient(to top, var(--bg) 0%, rgba(10,10,12,0.8) 50%, transparent 100%) !important; }
         }
+        #hero .hero-arrow:hover { background: rgba(255,255,255,0.1) !important; }
       </style>
 
       ${heroItems.length > 1 ? `
         <!-- Navigation Controls -->
+        <button class="hero-arrow prev" aria-label="Previous" style="position:absolute; left: 20px; top: 50%; transform: translateY(-50%); z-index:10; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; backdrop-filter: blur(10px); transition: all 0.2s;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        
+        <button class="hero-arrow next" aria-label="Next" style="position:absolute; right: 20px; top: 50%; transform: translateY(-50%); z-index:10; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; backdrop-filter: blur(10px); transition: all 0.2s;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+
         <div class="hero-nav" style="position:absolute; bottom:30px; left:5%; z-index:10; display:flex; gap:10px; align-items:center; width: 100%; justify-content: flex-start;">
           ${heroItems.slice(0, 5).map((_, i) => `
             <button class="hero-dot ${i === 0 ? 'active' : ''}" data-idx="${i}" aria-label="Slide ${i + 1}" style="width: 40px; height: 4px; border-radius: 2px; border:none; background: rgba(255,255,255,0.2); cursor:pointer; padding:0; position:relative; overflow:hidden; transition: width 0.3s;">
