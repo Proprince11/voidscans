@@ -141,7 +141,7 @@ export async function home(_params, ctx) {
       <!-- Responsive CSS overrides for mobile -->
       <style>
         @media (max-width: 768px) {
-          #hero { height: 100vh !important; min-height: 550px !important; max-height: 850px !important; }
+          #hero { height: 65vh !important; min-height: 480px !important; max-height: 650px !important; }
           #hero .hero-content { flex-direction: column-reverse !important; justify-content: center !important; gap: 20px !important; padding: 0 5% 40px 5% !important; margin: 0 auto !important; }
           #hero .hero-poster { display: flex !important; width: 100% !important; justify-content: center !important; }
           #hero .hero-poster > a, #hero .hero-poster > div { height: 220px !important; width: 146px !important; transform: none !important; }
