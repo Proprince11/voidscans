@@ -27,6 +27,7 @@ export function seriesCard(series, opts = {}) {
       <div class="card-img-wrap">
         <img src="${cover_}" alt="${esc(title)}" class="card-img" loading="${loadingAttr}" decoding="async"${priorityAttr}
              onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
+        <div class="card-top-scrim"></div>
         ${hot ? `<div class="card-badge card-badge-right"><span class="badge badge-hot">HOT</span></div>` : ''}
         ${isNew && !hot ? `<div class="card-badge card-badge-right"><span class="badge badge-new">NEW</span></div>` : ''}
         ${latestChapter > 0 ? `<div class="card-chapter">Ch. ${esc(latestChapter)}</div>` : ''}
@@ -116,6 +117,7 @@ export function updateCard(series) {
                onerror="this.style.display='none'; this.nextElementSibling && (this.nextElementSibling.style.display='block');">`
           : ''}
         ${!cover_ ? `<div class="update-card-shimmer skel"></div>` : ''}
+        <div class="card-top-scrim"></div>
         <div class="update-card-title">${esc(title)}</div>
       </a>
       ${chapterHref ? `

@@ -77,8 +77,13 @@ const BACKENDS = {
 };
 
 /** Build the ordered, availability-filtered failover chain. */
-function buildChain(env) {
-  const primary = String(env.STORAGE_PRIMARY || 'catbox').toLowerCase();
+function buildChain(env, target = null) {
+  let primary = String(env.STORAGE_PRIMARY || 'catbox').toLowerCase();
+  
+  if (target === 'r2') primary = 'r2';
+  else if (target === 'catbox') primary = 'catbox';
+  else if (target === 'imgbb') primary = 'imgbb';
+
   // Default order favours Catbox (lossless + DMCA-safe), then ImgBB backup.
   // R2 only joins the chain when explicitly chosen as primary.
   let order;
@@ -89,8 +94,8 @@ function buildChain(env) {
 }
 
 /** Upload a file through the failover chain. Returns { url, backend }. */
-async function uploadFile(env, file, suggestedKey) {
-  const chain = buildChain(env);
+async function uploadFile(env, file, suggestedKey, target = null) {
+  const chain = buildChain(env, target);
   if (!chain.length) throw new Error('No storage backend available');
   let lastErr;
   for (const name of chain) {
@@ -130,6 +135,7 @@ export async function handleUpload(request, env) {
   try {
     const fd = await request.formData();
     const file = fd.get('file');
+    const target = fd.get('target');
     const seriesSlug = String(fd.get('series') || 'misc').replace(/[^a-z0-9-]/gi, '-');
     const chapterNum = String(fd.get('chapter') || '').replace(/[^0-9.]/g, '');
     if (!(file instanceof File) && !(file instanceof Blob)) {
@@ -150,7 +156,7 @@ export async function handleUpload(request, env) {
     const key = chapterNum
       ? `chapters/${seriesSlug}/${chapterNum}/${safeName}`
       : `uploads/${Date.now()}-${safeName}`;
-    const { url, backend } = await uploadFile(env, file, key);
+    const { url, backend } = await uploadFile(env, file, key, target);
     return Response.json({ ok: true, url, name: file.name, backend });
   } catch (err) {
     return Response.json({ ok: false, error: err.message }, { status: 500 });
@@ -164,6 +170,7 @@ export async function handleBulkUpload(request, env) {
   try {
     const fd = await request.formData();
     const files = fd.getAll('files');
+    const target = fd.get('target');
     const seriesSlug = String(fd.get('series') || 'misc').replace(/[^a-z0-9-]/gi, '-');
     const chapterNum = String(fd.get('chapter') || '').replace(/[^0-9.]/g, '');
     if (!files.length) {
@@ -179,7 +186,7 @@ export async function handleBulkUpload(request, env) {
         const key = chapterNum
           ? `chapters/${seriesSlug}/${chapterNum}/${padded}-${safeName}`
           : `uploads/${Date.now()}-${padded}-${safeName}`;
-        const { url, backend } = await uploadFile(env, file, key);
+        const { url, backend } = await uploadFile(env, file, key, target);
         results.push({ ok: true, name: file.name, url, backend });
       } catch (err) {
         results.push({ ok: false, name: file.name, error: err.message });

@@ -64,6 +64,7 @@ export async function chaptersAdmin({ outlet }) {
                       ${c.published ? '🟢 Live' : '🔴 Draft'}
                     </button>
                   </td>
+                  <td class="actions">
                     <a href="/read/${esc(selectedSlug)}/${esc(c.number)}" target="_blank" rel="noopener" class="icon-btn btn-sm" title="View">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     </a>
@@ -331,6 +332,7 @@ https://r2.cdn/page3.webp">${esc((ch?.pages || []).join('\n'))}</textarea>
           fd.append('file', file, file.name);
           fd.append('series', selectedSlug);
           fd.append('chapter', String($f('#ch-num').value || ''));
+          fd.append('target', 'catbox');
           const res = await adminFetch('/api/upload', { method: 'POST', body: fd });
           const json = await res.json();
           if (!json.ok) throw new Error(json.error || 'upload failed');

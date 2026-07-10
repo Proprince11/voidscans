@@ -81,31 +81,79 @@ export async function home(_params, ctx) {
     latestArticles = [...featured, ...nonFeatured].slice(0, 3);
   } catch (e) { /* ignore — section just won't render */ }
 
-  // Build hero slider
+  // Netflix-style Billboard Hero Slider
   const heroHtml = heroItems.length === 0 ? '' : html`
-    <section class="hero" id="hero">
-      ${heroItems.map((s, i) => `
-        <div class="hero-slide ${i === 0 ? 'active' : ''}" data-idx="${i}">
-          <div class="hero-bg" style="background-image: url('${esc(proxyImage(s.cover))}');"></div>
-          <div class="hero-content centered-hero">
-            <a href="/series/${encodeURIComponent(s.slug)}" aria-label="View ${esc(s.title)}" tabindex="-1" class="hero-card-link">
-              <img src="${esc(proxyImage(s.cover))}" alt="${esc(s.title)}" class="hero-card-img" loading="eager" decoding="async" fetchpriority="${i === 0 ? 'high' : 'auto'}">
-              <div class="hero-card-overlay">
-                <h1 class="hero-title-centered">${esc(s.title)}</h1>
+    <section class="hero" id="hero" style="height: 60vh; min-height: 500px; max-height: 700px; position:relative; overflow:hidden; background: var(--bg); display: block;">
+      ${heroItems.slice(0, 5).map((s, i) => `
+        <div class="hero-slide ${i === 0 ? 'active' : ''}" style="position: absolute; inset: 0; transition: opacity 0.6s ease-in-out; opacity: ${i === 0 ? 1 : 0}; z-index: ${i === 0 ? 2 : 1}; display: flex; align-items: center; justify-content: center;">
+          
+          <!-- Cinematic Background Glow / Abstract Art -->
+          <div style="position:absolute; top:-20%; right:-10%; width:70vw; height:140%; background-image:url('${esc(proxyImage(s.cover))}'); background-size:cover; background-position: center; filter:blur(60px); opacity:0.3; mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%); -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%); z-index: 1;"></div>
+          
+          <!-- Left-to-Right Dark Gradient for Text Legibility -->
+          <div style="position:absolute; inset:0; background: linear-gradient(to right, var(--bg) 10%, rgba(10,10,12,0.8) 50%, transparent 100%); z-index: 2; pointer-events:none;"></div>
+
+          <div class="hero-content" style="position: relative; z-index: 3; display: flex; flex-direction: row; align-items: center; justify-content: center; height: 100%; width: 100%; padding: 40px 5%; max-width: 1400px; margin: 0 auto; gap: clamp(40px, 8vw, 120px);">
+            
+            <!-- Left Info Area -->
+            <div class="hero-info" style="flex: 1; max-width: 650px; display: flex; flex-direction: column; gap: 20px;">
+              
+              <!-- Badges -->
+              <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <span style="background: var(--accent); color: #fff; padding: 4px 12px; border-radius: 4px; font-weight: 800; font-size: 12px; letter-spacing: 1px; text-transform: uppercase;">Top Pick</span>
+                ${s.latestChapter ? `<span style="color: #aaa; font-weight: 600; font-size: 14px; letter-spacing: 0.5px;">CHAPTER ${esc(s.latestChapter)}</span>` : ''}
               </div>
-            </a>
+
+              <!-- Title -->
+              <h2 style="font-family: var(--font-display); font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 900; line-height: 1.05; color: #fff; margin: 0; text-transform: uppercase; letter-spacing: -1px; text-shadow: 0 4px 12px rgba(0,0,0,0.5);">${esc(s.title)}</h2>
+              
+              <!-- Synopsis -->
+              ${s.synopsis ? `<p style="font-size: 17px; color: #bbb; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin: 0;">${esc(s.synopsis)}</p>` : ''}
+              
+              <!-- Action Buttons -->
+              <div style="display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap;">
+                <a href="/series/${encodeURIComponent(s.slug)}" class="btn btn-primary" style="padding: 14px 36px; font-size: 16px; font-weight: 800; border-radius: 6px; display: flex; align-items: center; gap: 10px; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 15px rgba(var(--accent-rgb), 0.4);">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                  READ NOW
+                </a>
+                <a href="/series/${encodeURIComponent(s.slug)}" class="btn" style="padding: 14px 28px; font-size: 16px; font-weight: 600; border-radius: 6px; background: rgba(255,255,255,0.1); color: #fff; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 8px; transition: background 0.2s;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                  Details
+                </a>
+              </div>
+            </div>
+
+            <!-- Right Poster Area -->
+            <div class="hero-poster" style="flex-shrink: 0; display: flex; justify-content: flex-end; align-items: center; perspective: 1000px;">
+              <a href="/series/${encodeURIComponent(s.slug)}" style="display: block; width: clamp(220px, 28vw, 380px); aspect-ratio: 2/3; border-radius: 12px; overflow: hidden; box-shadow: -20px 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.1); transform: rotateY(-15deg) rotateX(5deg); transition: transform 0.4s ease, box-shadow 0.4s ease;" onmouseover="this.style.transform='rotateY(0deg) rotateX(0deg) scale(1.05)'; this.style.boxShadow='0 30px 60px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.2)';" onmouseout="this.style.transform='rotateY(-15deg) rotateX(5deg)'; this.style.boxShadow='-20px 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.1)';">
+                <img src="${esc(proxyImage(s.cover))}" alt="${esc(s.title)}" style="width: 100%; height: 100%; object-fit: cover;">
+              </a>
+            </div>
+
           </div>
         </div>
       `).join('')}
-      <button class="hero-arrow prev" aria-label="Previous slide">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
-      <button class="hero-arrow next" aria-label="Next slide">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-      <div class="hero-dots">
-        ${heroItems.map((_, i) => `<button class="hero-dot ${i === 0 ? 'active' : ''}" data-idx="${i}" aria-label="Slide ${i + 1}"></button>`).join('')}
-      </div>
+
+      <!-- Responsive CSS overrides for mobile -->
+      <style>
+        @media (max-width: 768px) {
+          #hero .hero-poster { display: none !important; }
+          #hero .hero-info { align-items: center; text-align: center; }
+          #hero > div:first-child > div:nth-child(1) { width: 100% !important; right: 0 !important; top: -10% !important; opacity: 0.5 !important; }
+          #hero > div:first-child > div:nth-child(2) { background: linear-gradient(to top, var(--bg) 0%, rgba(10,10,12,0.8) 50%, transparent 100%) !important; }
+        }
+      </style>
+
+      ${heroItems.length > 1 ? `
+        <!-- Navigation Controls -->
+        <div class="hero-nav" style="position:absolute; bottom:30px; left:5%; z-index:10; display:flex; gap:10px; align-items:center; width: 100%; justify-content: flex-start;">
+          ${heroItems.slice(0, 5).map((_, i) => `
+            <button class="hero-dot ${i === 0 ? 'active' : ''}" data-idx="${i}" aria-label="Slide ${i + 1}" style="width: 40px; height: 4px; border-radius: 2px; border:none; background: rgba(255,255,255,0.2); cursor:pointer; padding:0; position:relative; overflow:hidden; transition: width 0.3s;">
+              <div class="dot-progress" style="position:absolute; left:0; top:0; bottom:0; background:#fff; width: var(--dot-progress, 0%); border-radius: 3px;"></div>
+            </button>
+          `).join('')}
+        </div>
+      ` : ''}
     </section>
   `;
 
@@ -120,13 +168,18 @@ export async function home(_params, ctx) {
           <h2 class="section-title">Continue Reading</h2>
           <a href="/library?tab=history" class="section-link">View history →</a>
         </div>
-        <div class="card-grid">
+        <div class="card-grid card-grid-horizontal">
           ${continueReading.map(s => `
             <a href="/read/${esc(s.slug)}/${esc(s.lastReadChapter)}" class="card" aria-label="Continue ${esc(s.title)}">
               <div class="card-img-wrap">
                 <img src="${esc(proxyImage(s.cover) || '/assets/images/placeholder.png')}" alt="${esc(s.title)}" class="card-img" loading="lazy" decoding="async"
                      onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
                 <div class="card-chapter">Continue · Ch. ${esc(s.lastReadChapter)}</div>
+                ${(s.latestChapter && s.latestChapter > 0) ? `
+                  <div class="progress-bar-wrap">
+                    <div class="progress-bar-fill" style="width: ${Math.min(100, (s.lastReadChapter / s.latestChapter) * 100)}%;"></div>
+                  </div>
+                ` : ''}
               </div>
               <div class="card-info">
                 <div class="card-title">${esc(s.title)}</div>

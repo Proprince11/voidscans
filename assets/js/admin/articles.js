@@ -342,9 +342,15 @@ function renderBlockRow(block, idx, total) {
     inputs = `<textarea class="textarea" rows="3" data-field="value" placeholder="Paragraph text...">${esc(block.value || '')}</textarea>`;
   } else if (block.type === 'image') {
     inputs = `
-      <input class="input" type="url" data-field="url" value="${esc(block.url || '')}" placeholder="Image URL (catbox.moe, imgbb, etc.)">
-      <input class="input" type="text" data-field="alt" value="${esc(block.alt || '')}" placeholder="Alt text (optional)" style="margin-top:var(--s-2);">
-      <input class="input" type="text" data-field="caption" value="${esc(block.caption || '')}" placeholder="Caption (optional)" style="margin-top:var(--s-2);">
+      <div class="row gap-2" style="align-items: center; margin-bottom: var(--s-2);">
+        <input class="input" type="url" data-field="url" value="${esc(block.url || '')}" placeholder="Image URL" style="flex:1;">
+        <label class="btn btn-secondary btn-sm" style="margin:0;cursor:pointer;">
+          📁 Upload
+          <input type="file" class="block-img-upload" accept="image/*" style="display:none;" data-idx="${idx}">
+        </label>
+      </div>
+      <input class="input" type="text" data-field="alt" value="${esc(block.alt || '')}" placeholder="Alt text (optional)" style="margin-bottom:var(--s-2);">
+      <input class="input" type="text" data-field="caption" value="${esc(block.caption || '')}" placeholder="Caption (optional)">
       ${block.url ? `<img src="${esc(block.url)}" style="max-width:200px;max-height:120px;margin-top:var(--s-2);border-radius:var(--r-sm);" onerror="this.style.display='none';">` : ''}`;
   } else if (block.type === 'hyperlink') {
     inputs = `
@@ -392,6 +398,43 @@ function attachBlockEvents(listEl, onDelete, onUp, onDown, onInput) {
     inp.addEventListener(ev, () => {
       const val = inp.type === 'checkbox' ? inp.checked : inp.value;
       onInput(idx, field, val);
+    });
+  });
+  listEl.querySelectorAll('.block-img-upload').forEach(inp => {
+    inp.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const idx = Number(inp.dataset.idx);
+      const btn = inp.closest('.btn');
+      const origText = btn.innerHTML;
+      btn.innerHTML = 'Uploading…';
+      btn.style.pointerEvents = 'none';
+      try {
+        const fd = new FormData();
+        fd.append('file', file, file.name);
+        fd.append('series', document.querySelector('#f-slug').value || 'new-article');
+        fd.append('target', 'r2');
+        const res = await adminFetch('/api/upload', { method: 'POST', body: fd });
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || 'upload failed');
+        const urlInp = inp.closest('.block-row').querySelector('[data-field="url"]');
+        if (urlInp) urlInp.value = json.url;
+        onInput(idx, 'url', json.url);
+        
+        // Optionally trigger a re-render so the preview image tag shows up
+        // Instead of re-rendering everything, let's just dispatch an 'input' event 
+        // to naturally save state, but since we want the image preview to show:
+        urlInp.dispatchEvent(new Event('input'));
+        
+        toast('Image uploaded to R2', 'success');
+      } catch (err) {
+        console.error(err);
+        toast('Upload failed: ' + err.message, 'error');
+      } finally {
+        btn.innerHTML = origText;
+        btn.style.pointerEvents = 'auto';
+        inp.value = '';
+      }
     });
   });
 }

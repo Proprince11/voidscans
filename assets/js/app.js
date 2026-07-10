@@ -177,9 +177,20 @@ function mountAuthChrome() {
     const initial = avatarLetter(profileData?.displayName || user.displayName || user.email);
 
     const trigger = document.createElement('button');
-    trigger.className = 'icon-btn';
+    trigger.className = 'user-nav-trigger';
     trigger.setAttribute('aria-label', 'Account menu');
     trigger.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+    `;
+
+    const avatar = document.createElement('div');
+    avatar.style.cssText = `
       width: 32px; height: 32px;
       border-radius: var(--r-full);
       background: ${photoURL ? `url('${esc(photoURL)}') center/cover` : 'linear-gradient(135deg, var(--accent), var(--accent-2))'};
@@ -189,7 +200,13 @@ function mountAuthChrome() {
       font-size: var(--fs-sm);
       ${photoURL ? '' : 'display: grid; place-items: center;'}
     `;
-    trigger.textContent = photoURL ? '' : initial;
+    avatar.textContent = photoURL ? '' : initial;
+    
+    const chevron = document.createElement('div');
+    chevron.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.7; display: flex;"><polyline points="6 9 12 15 18 9"/></svg>`;
+
+    trigger.appendChild(avatar);
+    trigger.appendChild(chevron);
     slot.appendChild(trigger);
 
     let popover = null;

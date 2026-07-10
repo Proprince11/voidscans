@@ -465,11 +465,11 @@ body.has-bottom-nav {
    ===================================================== */
 .hero {
   position: relative;
-  min-height: 360px;
+  min-height: 560px;
   overflow: hidden;
   isolation: isolate;
 }
-@media (min-width: 768px) { .hero { min-height: 480px; } }
+@media (min-width: 768px) { .hero { min-height: 560px; } }
 @media (min-width: 1024px) { .hero { min-height: 560px; } }
 
 .hero-slide {
@@ -520,6 +520,45 @@ body.has-bottom-nav {
   }
 }
 
+.hero-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 900;
+  line-height: var(--lh-tight);
+  color: #fff;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hero-synopsis {
+  font-size: var(--fs-base);
+  color: var(--text-soft);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 600px;
+  line-height: var(--lh-base);
+}
+.empty-synopsis {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.hero-poster {
+  flex-shrink: 0;
+}
+
 .hero-card-link {
   position: relative;
   display: block;
@@ -544,13 +583,6 @@ body.has-bottom-nav {
   }
 }
 
-.hero-card-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
 .hero-card-overlay {
   position: absolute;
   inset: 0;
@@ -567,7 +599,7 @@ body.has-bottom-nav {
   pointer-events: none;
 }
 
-.hero-title-centered {
+.hero-title-scrim {
   font-family: var(--font-display);
   font-size: clamp(1.5rem, 5vw, 2.5rem);
   font-weight: 900;
@@ -576,6 +608,17 @@ body.has-bottom-nav {
   text-align: center;
   text-shadow: 0 4px 12px rgba(0,0,0,0.8);
   margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hero-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .hero-dots {
@@ -1692,4 +1735,56 @@ body.has-bottom-nav {
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+/* =====================================================
+   UX FIXES
+   ===================================================== */
+.card-grid-horizontal {
+  display: flex !important;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: var(--s-3);
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+.card-grid-horizontal::-webkit-scrollbar {
+  height: 6px;
+}
+.card-grid-horizontal::-webkit-scrollbar-thumb {
+  background-color: var(--surface-3);
+  border-radius: var(--r-full);
+}
+.card-grid-horizontal > .card {
+  flex: 0 0 calc(50% - var(--s-3));
+  scroll-snap-align: start;
+}
+@media (min-width: 480px) { .card-grid-horizontal > .card { flex: 0 0 160px; } }
+@media (min-width: 768px) { .card-grid-horizontal > .card { flex: 0 0 180px; } }
+@media (min-width: 1024px) { .card-grid-horizontal > .card { flex: 0 0 200px; } }
+
+.progress-bar-wrap {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+.hero-card-img {
+  object-position: center 10%;
+}
+
+.card-top-scrim {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 60px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+  z-index: 1;
+  pointer-events: none;
 }

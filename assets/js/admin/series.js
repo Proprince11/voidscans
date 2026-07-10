@@ -1,6 +1,7 @@
 // Admin: Series CRUD
 import {
-  fetchAllSeries, createSeries, updateSeries, deleteSeries, fetchSeriesBySlug, updateSeriesPublished
+  fetchAllSeries, createSeries, updateSeries, deleteSeries, fetchSeriesBySlug, updateSeriesPublished,
+  createChapter, updateChapter, deleteChapter, updateChapterPublished
 } from '../lib/api.js';
 import { esc, html, slugify, timeAgo, proxyImage } from '../lib/utils.js';
 import { toast, confirmModal, spinner } from '../lib/ui.js';
@@ -267,6 +268,7 @@ export async function seriesAdmin({ outlet }) {
           const fd = new FormData();
           fd.append('file', file, file.name);
           fd.append('series', $f('#f-slug').value || 'new-series');
+          fd.append('target', 'r2');
           const res = await adminFetch('/api/upload', { method: 'POST', body: fd });
           const json = await res.json();
           if (!json.ok) throw new Error(json.error || 'upload failed');
