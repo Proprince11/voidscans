@@ -4,8 +4,8 @@
 // =====================================================
 
 import { fetchChapter, fetchChapters, fetchSeriesBySlug, fetchAllSeries,
-  trackChapterView, fetchChapterComments, postComment, likeComment,
-  submitReport
+  fetchChapterComments, postComment, likeComment,
+  submitReport, trackChapterView
 } from '../lib/api.js';
 import {
   recordRead, saveProgress, getProgress,
@@ -108,7 +108,7 @@ export async function reader(params, ctx) {
     type: 'article'
   });
 
-  // Track chapter view (sessioned, fail-silent if rules reject)
+  // View tracking — server-side via Worker /api/track-view (rate-limited by IP).
   trackChapterView(slug, ch.number).catch(() => {});
 
   // Wire up

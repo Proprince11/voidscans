@@ -1,7 +1,7 @@
 // Admin: Series CRUD
 import {
   fetchAllSeries, createSeries, updateSeries, deleteSeries, fetchSeriesBySlug, updateSeriesPublished,
-  createChapter, updateChapter, deleteChapter, updateChapterPublished
+  createChapter, updateChapter, deleteChapter, updateChapterPublished, cacheBust
 } from '../lib/api.js';
 import { esc, html, slugify, timeAgo, proxyImage } from '../lib/utils.js';
 import { toast, confirmModal, spinner } from '../lib/ui.js';
@@ -84,6 +84,7 @@ export async function seriesAdmin({ outlet }) {
       b.textContent = '…';
       try {
         await updateSeriesPublished(b.dataset.pub, newVal);
+        cacheBust('series:'); // force fresh fetch past TTL cache
         toast(newVal ? '🟢 Published' : '🔴 Set to Draft', 'success');
         series = await fetchAllSeries({ limitTo: 500, includeUnpublished: true });
         render();
@@ -275,7 +276,11 @@ export async function seriesAdmin({ outlet }) {
           
           $f('#f-cover').value = json.url;
           $f('#f-cover').dispatchEvent(new Event('input')); // update preview
-          toast('Cover uploaded to R2', 'success');
+          if (json.backend !== 'r2' && json.errors && json.errors.r2) {
+            alert("R2 ERROR: " + json.errors.r2);
+          } else {
+            toast('Cover uploaded to ' + json.backend, 'success');
+          }
         } catch (err) {
           console.error(err);
           toast('Cover upload failed: ' + err.message, 'error');

@@ -60,6 +60,22 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"></noscript>
 
+  <!-- Critical CSS: navbar + background + spinner (avoids FOUC, instant first paint) -->
+  <style>
+    :root{--bg:#0a0a0c;--surface-1:#111114;--accent:#f0b941;--font-display:'Syne',sans-serif;--font-body:'Inter',sans-serif;--r-md:8px;--r-lg:12px}
+    *,*::before,*::after{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:#e4e4e7;font-family:var(--font-body);-webkit-font-smoothing:antialiased}
+    .navbar{position:sticky;top:0;z-index:100;background:rgba(10,10,12,.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.06);height:60px;display:flex;align-items:center}
+    .nav-inner{display:flex;align-items:center;width:100%;max-width:1400px;margin:0 auto;padding:0 1.25rem;gap:1rem}
+    .nav-logo{display:flex;align-items:center;gap:.5rem;font-family:var(--font-display);font-weight:800;font-size:1.25rem;color:#fff;text-decoration:none}
+    .nav-logo span{color:var(--accent)}
+    .spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,.1);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .center{display:flex;align-items:center;justify-content:center}
+    .container{width:100%;max-width:1400px;margin:0 auto;padding:0 1.25rem}
+    .section{padding:2rem 0}
+  </style>
+
   <!-- Styles -->
   <link rel="stylesheet" href="/assets/css/tokens.css">
   <link rel="stylesheet" href="/assets/css/reset.css">

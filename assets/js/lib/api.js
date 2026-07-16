@@ -149,7 +149,7 @@ export async function fetchAllSeries({ limitTo = 200, includeUnpublished = false
     // Edge cache only for public requests (admin always hits Firestore for freshness)
     if (!includeUnpublished) {
       const cached = await cachedApiGet('/api/series');
-      if (cached && Array.isArray(cached)) return cached.slice(0, limitTo);
+      if (cached && Array.isArray(cached)) return cached.filter(s => s.published !== false).slice(0, limitTo);
     }
     const q = query(collection(db, 'series'), orderBy('createdAt', 'desc'), limit(limitTo));
     const snap = await getDocs(q);
@@ -276,7 +276,7 @@ export async function fetchChapters(slug, { includeUnpublished = false } = {}) {
   return memoFetch(cacheKey, TTL.chapters, async () => {
     if (!includeUnpublished) {
       const cached = await cachedApiGet(`/api/chapters/${encodeURIComponent(slug)}`);
-      if (cached && Array.isArray(cached)) return cached;
+      if (cached && Array.isArray(cached)) return cached.filter(c => c.published !== false);
     }
     const q = query(
       collection(db, 'chapters'),
@@ -548,41 +548,40 @@ function markViewed(key) {
   try { sessionStorage.setItem(SESS_KEY(key), '1'); } catch {}
 }
 
-/** Track a series page view. Sessioned — counts once per session per series. */
+/** Track a series page view. Sessioned — counts once per session per series.
+ *  Uses the server-side /api/track-view endpoint (rate-limited by IP). */
 export async function trackSeriesView(slug) {
   if (!slug) return;
   const key = `series:${slug}`;
   if (alreadyViewed(key)) return;
   markViewed(key);
   try {
-    await updateDoc(doc(db, 'series', slug), { views: increment(1) });
-    cacheBust(`series:`);
+    await fetch('/api/track-view', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'series', slug }),
+      signal: AbortSignal.timeout(5000)
+    });
   } catch (e) {
-    // If rules reject (e.g. not yet updated to allow views), fail silent
-    console.debug('trackSeriesView skipped:', e?.code || e?.message);
+    console.debug('trackSeriesView skipped:', e?.message);
   }
 }
 
-/** Track a chapter view. Increments chapter.views + parent series.views. */
+/** Track a chapter view. Server-side increment via /api/track-view. */
 export async function trackChapterView(seriesSlug, chapterNum) {
   if (!seriesSlug || !chapterNum) return;
   const key = `ch:${seriesSlug}:${chapterNum}`;
   if (alreadyViewed(key)) return;
   markViewed(key);
   try {
-    // Find chapter doc by composite query
-    const q = query(
-      collection(db, 'chapters'),
-      where('seriesSlug', '==', seriesSlug),
-      where('chapterNum', '==', Number(chapterNum)),
-      limit(1)
-    );
-    const snap = await getDocs(q);
-    if (snap.empty) return;
-    await updateDoc(snap.docs[0].ref, { views: increment(1) });
-    cacheBust(`chapters:${seriesSlug}`);
+    await fetch('/api/track-view', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'chapter', slug: seriesSlug, chapter: Number(chapterNum) }),
+      signal: AbortSignal.timeout(5000)
+    });
   } catch (e) {
-    console.debug('trackChapterView skipped:', e?.code || e?.message);
+    console.debug('trackChapterView skipped:', e?.message);
   }
 }
 
@@ -763,16 +762,21 @@ export async function deleteArticle(slug) {
   cacheBust(`articles:slug:${slug}`);
 }
 
-/** Increment article view count. Session-deduplicated — counts once per session. */
+/** Increment article view count. Session-deduplicated — counts once per session.
+ *  Uses server-side /api/track-view endpoint (rate-limited by IP). */
 export async function trackArticleView(slug) {
   if (!slug) return;
   const key = `article:${slug}`;
   if (alreadyViewed(key)) return;
   markViewed(key);
   try {
-    await updateDoc(doc(db, 'articles', slug), { views: increment(1) });
-    cacheBust(`articles:slug:${slug}`);
+    await fetch('/api/track-view', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'article', slug }),
+      signal: AbortSignal.timeout(5000)
+    });
   } catch (e) {
-    console.debug('trackArticleView skipped:', e?.code || e?.message);
+    console.debug('trackArticleView skipped:', e?.message);
   }
 }

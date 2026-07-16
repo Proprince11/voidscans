@@ -21,7 +21,8 @@ import { handleUpload, handleStorageInfo } from './upload.js';
 import { handleProxyImage, handleMangaDexProxy } from './proxy.js';
 import { handleSitemap } from './sitemap.js';
 import { handleGlobalRss, handleSeriesRss } from './rss.js';
-import { queryDocs } from './firestore.js';
+import { queryDocs, mintTokenFromKey } from './firestore.js';
+import { servePrerenderedHome, refreshHomepageCache } from './ssr-home.js';
 
 const FIREBASE_PROJECT_ID = 'voidscans-6c66b';
 
@@ -38,6 +39,58 @@ const FIREBASE_PROJECT_ID = 'voidscans-6c66b';
 // Cache Firebase public keys for up to 1 hour to avoid fetching on every request.
 let _pubKeyCache = null;
 let _pubKeyCacheExpires = 0;
+
+/**
+ * Extract SubjectPublicKeyInfo (SPKI) from a DER-encoded X.509 certificate.
+ * X.509 structure: SEQUENCE { tbsCertificate, signatureAlgorithm, signatureValue }
+ * tbsCertificate: SEQUENCE { version, serialNumber, signature, issuer, validity, subject, subjectPublicKeyInfo, ... }
+ * We need the 7th element (index 6) of tbsCertificate.
+ */
+function extractSPKI(der) {
+  // Parse outermost SEQUENCE (the certificate)
+  let offset = 0;
+  if (der[offset++] !== 0x30) throw new Error('Not a SEQUENCE');
+  const certLen = readLength(der, offset);
+  offset = certLen.next;
+
+  // First element: tbsCertificate (SEQUENCE)
+  if (der[offset] !== 0x30) throw new Error('tbsCertificate not SEQUENCE');
+  const tbsStart = offset;
+  const tbsLen = readLength(der, offset + 1);
+  offset = tbsLen.next;
+
+  // Walk through tbsCertificate fields to find subjectPublicKeyInfo (7th field)
+  // Fields: [0] version (explicit tag), serialNumber, signature, issuer, validity, subject, subjectPublicKeyInfo
+  let fieldIndex = 0;
+  const targetField = 6; // subjectPublicKeyInfo is at index 6
+
+  while (fieldIndex <= targetField && offset < tbsStart + 1 + tbsLen.value + (tbsLen.next - tbsStart - 1)) {
+    const fieldStart = offset;
+    const tag = der[offset++];
+    const len = readLength(der, offset);
+    offset = len.next + len.value;
+
+    if (fieldIndex === targetField) {
+      // Return the entire TLV of subjectPublicKeyInfo
+      return der.slice(fieldStart, offset);
+    }
+    fieldIndex++;
+  }
+  throw new Error('Could not find SPKI in certificate');
+}
+
+function readLength(buf, offset) {
+  const first = buf[offset];
+  if (first < 0x80) {
+    return { value: first, next: offset + 1 };
+  }
+  const numBytes = first & 0x7f;
+  let value = 0;
+  for (let i = 0; i < numBytes; i++) {
+    value = (value << 8) | buf[offset + 1 + i];
+  }
+  return { value, next: offset + 1 + numBytes };
+}
 
 /**
  * Fetch Firebase's current RSA public keys (rotated periodically by Google).
@@ -65,10 +118,11 @@ async function getFirebasePublicKeys() {
     // Strip PEM headers and decode the DER-encoded X.509 certificate
     const pem = cert.replace(/-----BEGIN CERTIFICATE-----|-----END CERTIFICATE-----|\n/g, '');
     const der = Uint8Array.from(atob(pem), c => c.charCodeAt(0));
-    // Import the certificate's SubjectPublicKeyInfo for RS256 verify operations
+    // Extract SubjectPublicKeyInfo from the X.509 certificate (ASN.1 DER)
+    const spki = extractSPKI(der);
     const cryptoKey = await crypto.subtle.importKey(
       'spki',
-      der,
+      spki,
       { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
       false,
       ['verify']
@@ -182,6 +236,170 @@ function cors(response) {
 }
 
 // =====================================================
+// SERVER-SIDE VIEW TRACKING
+// Rate-limited by client IP + series/chapter key.
+// Uses Firestore REST transform (increment) to atomically bump view counts.
+// No auth required, but throttled to 1 view per IP per key per 60s.
+// =====================================================
+const _viewRateMap = new Map(); // key: `${ip}:${docKey}` → expiry timestamp
+
+function isRateLimited(ip, docKey) {
+  const k = `${ip}:${docKey}`;
+  const now = Date.now();
+  const exp = _viewRateMap.get(k);
+  if (exp && now < exp) return true;
+  _viewRateMap.set(k, now + 60_000); // 60s window
+  // Evict stale entries periodically (keeps map from growing unbounded)
+  if (_viewRateMap.size > 5000) {
+    for (const [key, ts] of _viewRateMap) {
+      if (ts < now) _viewRateMap.delete(key);
+    }
+  }
+  return false;
+}
+
+// =====================================================
+// SERVICE ACCOUNT TOKEN MINTING
+// Self-mints a Google OAuth2 access token from the service account JSON
+// stored in env.FIREBASE_SA_KEY (encrypted secret). Caches for 55 min.
+// This avoids manual token rotation — the Worker handles it automatically.
+// =====================================================
+let _saTokenCache = null;
+let _saTokenExpires = 0;
+
+async function getServiceAccountToken(env) {
+  // Support both: a pre-minted bearer token (FIREBASE_SA_TOKEN) or
+  // a full service account JSON key (FIREBASE_SA_KEY) for self-minting.
+  if (env.FIREBASE_SA_TOKEN) return env.FIREBASE_SA_TOKEN;
+  if (!env.FIREBASE_SA_KEY) return null;
+
+  const now = Date.now();
+  if (_saTokenCache && now < _saTokenExpires) return _saTokenCache;
+
+  try {
+    const token = await mintTokenFromKey(env.FIREBASE_SA_KEY);
+    _saTokenCache = token;
+    _saTokenExpires = now + 55 * 60 * 1000;
+    return token;
+  } catch (e) {
+    console.error('[sa-token] Failed to mint token:', e.message);
+    return null;
+  }
+}
+
+async function handleTrackView(request, env) {
+  try {
+    const body = await request.json();
+    const { type, slug, chapter } = body || {};
+
+    if (!slug || typeof slug !== 'string' || slug.length > 200) {
+      return Response.json({ ok: false, error: 'Invalid slug' }, { status: 400 });
+    }
+    if (type !== 'series' && type !== 'chapter' && type !== 'article') {
+      return Response.json({ ok: false, error: 'type must be "series", "chapter", or "article"' }, { status: 400 });
+    }
+    if (type === 'chapter' && (!chapter || isNaN(Number(chapter)))) {
+      return Response.json({ ok: false, error: 'chapter number required' }, { status: 400 });
+    }
+
+    const ip = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown';
+    const docKey = type === 'chapter' ? `ch:${slug}:${chapter}` : `series:${slug}`;
+
+    if (isRateLimited(ip, docKey)) {
+      return Response.json({ ok: true, counted: false, reason: 'rate-limited' });
+    }
+
+    const projectId = env.FIREBASE_PROJECT_ID;
+    const token = await getServiceAccountToken(env);
+    if (!token) {
+      // Without SA credentials, can't write. Silently accept so it doesn't break the frontend.
+      console.warn('[track-view] FIREBASE_SA_KEY not set, view not counted');
+      return Response.json({ ok: true, counted: false, reason: 'no-write-access' });
+    }
+
+    const baseUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
+
+    if (type === 'series') {
+      // Increment series.views using Firestore commit with transform
+      await firestoreIncrement(baseUrl, token, `series/${slug}`, 'views');
+    } else if (type === 'article') {
+      // Increment article.views — articles use slug as doc ID
+      await firestoreIncrement(baseUrl, token, `articles/${slug}`, 'views');
+    } else {
+      // For chapter, we need to find the doc by query first, then increment
+      const queryUrl = `${baseUrl}:runQuery`;
+      const queryRes = await fetch(queryUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          structuredQuery: {
+            from: [{ collectionId: 'chapters' }],
+            where: {
+              compositeFilter: {
+                op: 'AND',
+                filters: [
+                  { fieldFilter: { field: { fieldPath: 'seriesSlug' }, op: 'EQUAL', value: { stringValue: slug } } },
+                  { fieldFilter: { field: { fieldPath: 'chapterNum' }, op: 'EQUAL', value: { integerValue: String(Number(chapter)) } } }
+                ]
+              }
+            },
+            limit: 1
+          }
+        })
+      });
+      if (!queryRes.ok) {
+        console.warn('[track-view] chapter query failed:', queryRes.status);
+        return Response.json({ ok: true, counted: false, reason: 'query-failed' });
+      }
+      const results = await queryRes.json();
+      const docPath = results?.[0]?.document?.name;
+      if (!docPath) {
+        return Response.json({ ok: true, counted: false, reason: 'chapter-not-found' });
+      }
+      // Extract relative path from full resource name
+      const relPath = docPath.split('/documents/')[1];
+      await firestoreIncrement(baseUrl, token, relPath, 'views');
+      // Also increment the parent series view count
+      await firestoreIncrement(baseUrl, token, `series/${slug}`, 'views');
+    }
+
+    return Response.json({ ok: true, counted: true });
+  } catch (e) {
+    console.error('[track-view] Error:', e.message);
+    return Response.json({ ok: true, counted: false, reason: 'error' });
+  }
+}
+
+/** Atomically increment a numeric field using Firestore commit with fieldTransforms. */
+async function firestoreIncrement(baseUrl, token, docPath, field) {
+  // Extract project ID from baseUrl: .../projects/{id}/databases/...
+  const match = baseUrl.match(/projects\/([^/]+)\//);
+  const projectId = match ? match[1] : FIREBASE_PROJECT_ID;
+  const commitUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default):commit`;
+  const fullDocName = `projects/${projectId}/databases/(default)/documents/${docPath}`;
+
+  const res = await fetch(commitUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({
+      writes: [{
+        transform: {
+          document: fullDocName,
+          fieldTransforms: [{
+            fieldPath: field,
+            increment: { integerValue: '1' }
+          }]
+        }
+      }]
+    })
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    console.warn(`[track-view] increment failed for ${docPath}.${field}:`, res.status, text.slice(0, 200));
+  }
+}
+
+// =====================================================
 // MAIN FETCH HANDLER
 // =====================================================
 export default {
@@ -209,6 +427,11 @@ export default {
       }
       if (path === '/api/storage-info') return cors(await handleStorageInfo(request, env));
 
+      // ---- Public endpoint: Server-side view tracking (rate-limited by IP) ----
+      if (path === '/api/track-view' && request.method === 'POST') {
+        return cors(await handleTrackView(request, env));
+      }
+
       // ---- Admin-only endpoints (verified with full RS256 signature check) ----
       if (path === '/api/scrape' && request.method === 'GET') {
         await verifyAdmin(request);
@@ -230,8 +453,21 @@ export default {
         await verifyAdmin(request);
         return cors(await handleScrapeZip(request));
       }
+      if (path === '/api/refresh-cache' && request.method === 'POST') {
+        await verifyAdmin(request);
+        await refreshHomepageCache(env);
+        return cors(Response.json({ ok: true, message: 'Homepage cache refreshed' }));
+      }
 
       // Fall through to static assets (handled by wrangler assets binding)
+      // SSR: serve pre-rendered homepage for root page requests
+      if ((path === '/' || path === '/index.html') && request.method === 'GET') {
+        const accept = request.headers.get('Accept') || '';
+        if (accept.includes('text/html')) {
+          const ssrResponse = await servePrerenderedHome(request, env);
+          if (ssrResponse) return ssrResponse;
+        }
+      }
       if (env.ASSETS) return env.ASSETS.fetch(request);
       return new Response('Not found', { status: 404 });
     } catch (err) {
@@ -256,6 +492,7 @@ export default {
   // =====================================================
   async scheduled(_event, env, ctx) {
     ctx.waitUntil(runScheduledPublish(env));
+    ctx.waitUntil(refreshHomepageCache(env));
   }
 };
 

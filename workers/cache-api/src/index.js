@@ -38,7 +38,7 @@ export default {
       if (url.pathname === '/api/series') {
         const data = await cachedFetch(ctx, request, TTL.seriesAll, async () => {
           const docs = await firestoreList(env, 'series');
-          return docs.map(d => normalizeSeries(d));
+          return docs.map(d => normalizeSeries(d)).filter(s => s.published !== false);
         });
         return cors(env, json(data, 200, TTL.seriesAll));
       }
@@ -64,7 +64,7 @@ export default {
           const docs = await firestoreQuery(env, 'chapters', [
             { fieldPath: 'seriesSlug', op: 'EQUAL', value: { stringValue: slug } }
           ], { fieldPath: 'chapterNum', direction: 'DESCENDING' });
-          return docs.map(d => normalizeChapter(d));
+          return docs.map(d => normalizeChapter(d)).filter(c => c.published !== false);
         });
         return cors(env, json(data, 200, TTL.chaptersList));
       }
@@ -211,6 +211,7 @@ function normalizeSeries(d) {
     featured: !!d.featured,
     hot: !!d.hot,
     new: !!d.new,
+    published: d.published !== false,
     createdAt: d.createdAt || null,
     updatedAt: d.updatedAt || null
   };
@@ -225,6 +226,7 @@ function normalizeChapter(d) {
     title: d.title || '',
     pages: d.images || d.pages || [],
     views: d.views || 0,
+    published: d.published !== false,
     createdAt: d.createdAt || null
   };
 }

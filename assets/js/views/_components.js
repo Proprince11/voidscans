@@ -25,7 +25,7 @@ export function seriesCard(series, opts = {}) {
   return `
     <a href="${href}" class="card" aria-label="${esc(title)}">
       <div class="card-img-wrap">
-        <img src="${cover_}" alt="${esc(title)}" class="card-img" loading="${loadingAttr}" decoding="async"${priorityAttr}
+        <img src="${cover_}" alt="${esc(title)}" class="card-img" loading="${loadingAttr}" decoding="async"${priorityAttr} width="200" height="300"
              onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
         <div class="card-top-scrim"></div>
         ${hot ? `<div class="card-badge card-badge-right"><span class="badge badge-hot">HOT</span></div>` : ''}
@@ -82,7 +82,7 @@ export function updateRow(series) {
   return `
     <div class="update-item">
       <a href="${seriesHref}" aria-label="${esc(title)}">
-        <img src="${esc(proxyImage(cover))}" alt="${esc(title)}" class="update-thumb" loading="lazy" decoding="async"
+        <img src="${esc(proxyImage(cover))}" alt="${esc(title)}" class="update-thumb" loading="lazy" decoding="async" width="56" height="84"
              onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
       </a>
       <div class="update-meta">
@@ -113,7 +113,7 @@ export function updateCard(series) {
     <div class="update-card" role="listitem">
       <a href="${seriesHref}" aria-label="${esc(title)}" class="update-card-link">
         ${cover_
-          ? `<img src="${cover_}" alt="${esc(title)}" class="update-card-img" loading="lazy" decoding="async"
+          ? `<img src="${cover_}" alt="${esc(title)}" class="update-card-img" loading="lazy" decoding="async" width="150" height="225"
                onerror="this.style.display='none'; this.nextElementSibling && (this.nextElementSibling.style.display='block');">`
           : ''}
         ${!cover_ ? `<div class="update-card-shimmer skel"></div>` : ''}
@@ -138,7 +138,7 @@ export function rankItem(series, rank) {
     <a href="${seriesHref}" class="rank-item" aria-label="#${rank} ${esc(title)}">
       <span class="rank-number">${rank}</span>
       <div class="rank-thumb-wrap">
-        <img src="${esc(proxyImage(cover))}" alt="${esc(title)}" class="rank-thumb" loading="lazy" decoding="async"
+        <img src="${esc(proxyImage(cover))}" alt="${esc(title)}" class="rank-thumb" loading="lazy" decoding="async" width="56" height="84"
              onerror="this.style.background='var(--surface-3)';this.removeAttribute('src');">
       </div>
       <div class="rank-info">

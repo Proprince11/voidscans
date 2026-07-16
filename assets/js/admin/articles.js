@@ -212,13 +212,18 @@ function renderEditor(outlet, article, seriesCatalog) {
       try {
         const fd = new FormData();
         fd.append('file', file, file.name);
-        fd.append('series', slugEl.value || 'new-article'); // We reuse the 'series' folder field on R2 as a generic folder name
+        fd.append('series', slugEl.value || 'new-article');
+        fd.append('target', 'r2'); // explicitly route covers to R2
         const res = await adminFetch('/api/upload', { method: 'POST', body: fd });
         const json = await res.json();
         if (!json.ok) throw new Error(json.error || 'upload failed');
         
         outlet.querySelector('#f-cover').value = json.url;
-        toast('Cover uploaded to R2', 'success');
+        if (json.backend !== 'r2' && json.errors && json.errors.r2) {
+          alert("R2 ERROR: " + json.errors.r2);
+        } else {
+          toast('Cover uploaded to ' + json.backend, 'success');
+        }
       } catch (err) {
         console.error(err);
         toast('Cover upload failed: ' + err.message, 'error');
@@ -339,7 +344,18 @@ function renderBlockRow(block, idx, total) {
   const isLast  = idx === total - 1;
   let inputs = '';
   if (block.type === 'text') {
-    inputs = `<textarea class="textarea" rows="3" data-field="value" placeholder="Paragraph text...">${esc(block.value || '')}</textarea>`;
+    inputs = `
+      <div class="text-toolbar" style="display:flex;gap:4px;margin-bottom:var(--s-1);">
+        <button type="button" class="btn btn-sm btn-ghost fmt-btn" data-fmt="bold" title="Bold">B</button>
+        <button type="button" class="btn btn-sm btn-ghost fmt-btn" data-fmt="italic" title="Italic"><em>I</em></button>
+        <button type="button" class="btn btn-sm btn-ghost fmt-btn" data-fmt="h2" title="Heading">H</button>
+        <button type="button" class="btn btn-sm btn-ghost fmt-btn" data-fmt="h3" title="Subheading">h</button>
+        <button type="button" class="btn btn-sm btn-ghost fmt-btn" data-fmt="ul" title="Bullet list">•</button>
+        <button type="button" class="btn btn-sm btn-ghost fmt-btn" data-fmt="link" title="Link">🔗</button>
+        <button type="button" class="btn btn-sm btn-ghost fmt-btn" data-fmt="quote" title="Quote">"</button>
+      </div>
+      <textarea class="textarea block-text-area" rows="4" data-field="value" placeholder="Write here… Use the toolbar for formatting. Supports **bold**, *italic*, ## Heading, - lists, > quotes, [text](url)">${esc(block.value || '')}</textarea>
+      <div style="font-size:var(--fs-xs);color:var(--text-muted);margin-top:2px;">Markdown: **bold** · *italic* · ## Heading · - list item · > quote · [link text](url)</div>`;
   } else if (block.type === 'image') {
     inputs = `
       <div class="row gap-2" style="align-items: center; margin-bottom: var(--s-2);">
@@ -400,6 +416,33 @@ function attachBlockEvents(listEl, onDelete, onUp, onDown, onInput) {
       onInput(idx, field, val);
     });
   });
+  // Formatting toolbar for text blocks
+  listEl.querySelectorAll('.fmt-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const row = btn.closest('[data-idx]');
+      const ta = row.querySelector('.block-text-area');
+      if (!ta) return;
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const selected = ta.value.substring(start, end);
+      const fmt = btn.dataset.fmt;
+      let insert = '';
+      switch (fmt) {
+        case 'bold':   insert = `**${selected || 'bold text'}**`; break;
+        case 'italic': insert = `*${selected || 'italic text'}*`; break;
+        case 'h2':     insert = `\n## ${selected || 'Heading'}\n`; break;
+        case 'h3':     insert = `\n### ${selected || 'Subheading'}\n`; break;
+        case 'ul':     insert = `\n- ${selected || 'list item'}\n`; break;
+        case 'link':   insert = `[${selected || 'link text'}](https://)`; break;
+        case 'quote':  insert = `\n> ${selected || 'quote'}\n`; break;
+      }
+      ta.value = ta.value.substring(0, start) + insert + ta.value.substring(end);
+      ta.focus();
+      ta.selectionStart = ta.selectionEnd = start + insert.length;
+      ta.dispatchEvent(new Event('input'));
+    });
+  });
+
   listEl.querySelectorAll('.block-img-upload').forEach(inp => {
     inp.addEventListener('change', async (e) => {
       const file = e.target.files[0];

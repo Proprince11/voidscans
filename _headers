@@ -6,7 +6,7 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
   X-XSS-Protection: 1; mode=block
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com https://static.cloudflareinsights.com https://storage.ko-fi.com https://ko-fi.com https://pagead2.googlesyndication.com https://*.googletagservices.com https://www.google-analytics.com https://www.googletagmanager.com 'unsafe-inline' 'unsafe-eval'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src * data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.gstatic.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://catbox.moe https://api.imgbb.com https://files.catbox.moe https://i.ibb.co https://imgsrv4.com https://*.anilist.co https://api.mangadex.org https://*.mangadex.network https://uploads.mangadex.org https://discord.com https://discordapp.com https://*.cloudflareinsights.com https://jayascans-cache.isthe.workers.dev; frame-src https://accounts.google.com https://*.firebaseapp.com https://ko-fi.com https://*.youtube.com https://googleads.g.doubleclick.net; media-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com https://static.cloudflareinsights.com https://storage.ko-fi.com https://ko-fi.com https://pagead2.googlesyndication.com https://*.googletagservices.com https://www.google-analytics.com https://www.googletagmanager.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src * data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.gstatic.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://catbox.moe https://api.imgbb.com https://files.catbox.moe https://i.ibb.co https://imgsrv4.com https://*.anilist.co https://api.mangadex.org https://*.mangadex.network https://uploads.mangadex.org https://discord.com https://discordapp.com https://*.cloudflareinsights.com https://jayascans-cache.isthe.workers.dev https://voidscans.isthe.workers.dev; frame-src https://accounts.google.com https://*.firebaseapp.com https://ko-fi.com https://*.youtube.com https://googleads.g.doubleclick.net; media-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'
 
 # Long cache for images only
 /assets/images/*
@@ -16,9 +16,9 @@
 /assets/css/*
   Cache-Control: public, max-age=3600, must-revalidate
 
-# JS - always revalidate so new exports are picked up immediately
+# JS - cache with stale-while-revalidate (SW fetches fresh in background)
 /assets/js/*
-  Cache-Control: no-cache, must-revalidate
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
 
 # Service worker must not be cached
 /sw.js

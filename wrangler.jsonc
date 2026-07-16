@@ -6,12 +6,44 @@
     // Firebase project ID is immutable — keep the original even after the brand rename.
     // (See docs/14-rename-history.md for why.)
     "FIREBASE_PROJECT_ID": "voidscans-6c66b",
-    "PUBLIC_BASE_URL": "https://jayascans.online"
+    "PUBLIC_BASE_URL": "https://jayascans.online",
+
+    // ⬇️ REPLACE this with your actual R2 public URL after enabling public access:
+    //    Cloudflare Dashboard → R2 → your bucket → Settings → R2.dev subdomain → Allow Access
+    //    It looks like: https://pub-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.r2.dev
+    // R2 public URL for cover images. Chapter pages still go to Catbox (DMCA-safe).
+    // Covers explicitly send target='r2' from series.js — no global override needed.
+    "R2_PUBLIC_BASE": "https://pub-800e7988cce64b37b0696e491af8f8f0.r2.dev"
+    // STORAGE_PRIMARY is intentionally NOT set to 'r2' here.
+    // series.js and articles.js send target='r2' explicitly for covers only.
+    // Chapter bulk uploads send no target → default Catbox (safe for DMCA).
   },
+  "r2_buckets": [
+    {
+      // ⬇️ REPLACE "jayascans" with the exact bucket name you created in Cloudflare Dashboard
+      "binding": "R2_BUCKET",
+      "bucket_name": "jayascans"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "HOMEPAGE_CACHE",
+      "id": "443ada4995f5489cb112e02a3eb3fecd"
+    }
+  ],
   "assets": {
     "directory": "./",
     "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
-    "not_found_handling": "single-page-application"
-  }
+    "not_found_handling": "single-page-application",
+    "run_worker_first": true
+  },
+  "triggers": {
+    "crons": ["*/5 * * * *"]
+  },
+  "routes": [
+    { "pattern": "jayascans.online/*", "zone_name": "jayascans.online" }
+  ],
+  "workers_dev": true
 }
+

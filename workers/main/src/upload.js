@@ -64,7 +64,7 @@ async function toImgBB(env, file) {
 async function toR2(env, file, key) {
   if (!env.R2_BUCKET || !env.R2_PUBLIC_BASE) throw new Error('R2 not configured');
   const k = key || `uploads/${Date.now()}-${(file.name || 'img').replace(/[^a-z0-9._-]/gi, '_')}`;
-  await env.R2_BUCKET.put(k, file.stream(), {
+  await env.R2_BUCKET.put(k, await file.arrayBuffer(), {
     httpMetadata: { contentType: file.type || 'image/jpeg' }
   });
   return `${(env.R2_PUBLIC_BASE || '').replace(/\/$/, '')}/${k}`;
@@ -93,21 +93,20 @@ function buildChain(env, target = null) {
   return order.filter(name => BACKENDS[name]?.available(env));
 }
 
-/** Upload a file through the failover chain. Returns { url, backend }. */
+/** Upload a file through the failover chain. Returns { url, backend, errors }. */
 async function uploadFile(env, file, suggestedKey, target = null) {
   const chain = buildChain(env, target);
   if (!chain.length) throw new Error('No storage backend available');
-  let lastErr;
+  const errors = {};
   for (const name of chain) {
     try {
       const url = await BACKENDS[name].run(env, file, suggestedKey);
-      if (url) return { url, backend: name };
+      if (url) return { url, backend: name, errors };
     } catch (e) {
-      lastErr = e;
-      // try next backend in the chain
+      errors[name] = e.message; // collect per-backend error so caller can log it
     }
   }
-  throw new Error(`All storage backends failed (${chain.join(' → ')}): ${lastErr?.message || 'unknown'}`);
+  throw new Error(`All storage backends failed (${chain.join(' → ')}): ${JSON.stringify(errors)}`);
 }
 
 export function getStorageChain(env) {
@@ -156,9 +155,14 @@ export async function handleUpload(request, env) {
     const key = chapterNum
       ? `chapters/${seriesSlug}/${chapterNum}/${safeName}`
       : `uploads/${Date.now()}-${safeName}`;
-    const { url, backend } = await uploadFile(env, file, key, target);
-    return Response.json({ ok: true, url, name: file.name, backend });
+    const { url, backend, errors } = await uploadFile(env, file, key, target);
+    // Log any backend failures so we can debug R2 issues in Cloudflare logs
+    if (Object.keys(errors).length > 0) {
+      console.warn('[upload] Some backends failed before success:', JSON.stringify(errors), '| Used:', backend);
+    }
+    return Response.json({ ok: true, url, name: file.name, backend, errors });
   } catch (err) {
+    console.error('[upload] All backends failed:', err.message);
     return Response.json({ ok: false, error: err.message }, { status: 500 });
   }
 }

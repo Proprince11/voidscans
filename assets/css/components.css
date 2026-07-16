@@ -245,12 +245,12 @@
 .card-chapter {
   position: absolute;
   bottom: 0; left: 0; right: 0;
-  padding: var(--s-6) var(--s-3) var(--s-2);
-  background: linear-gradient(to top, rgba(0,0,0,0.95), transparent);
+  padding: var(--s-2) var(--s-3);
   color: #fff;
   font-size: var(--fs-xs);
   font-weight: var(--fw-bold);
   letter-spacing: 0.04em;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
 }
 
 /* =====================================================
@@ -1784,7 +1784,7 @@ body.has-bottom-nav {
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 60px;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+  background: transparent;
   z-index: 1;
   pointer-events: none;
 }

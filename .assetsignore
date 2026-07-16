@@ -6,6 +6,9 @@
 .git/
 .gitignore
 
+# Wrangler local state (should never be served as assets)
+.wrangler/
+
 # Server-only directories
 scripts/
 workers/

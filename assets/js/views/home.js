@@ -82,6 +82,16 @@ export async function home(_params, ctx) {
   } catch (e) { /* ignore — section just won't render */ }
 
   // Netflix-style Billboard Hero Slider
+  // Inject preload for first hero image (LCP optimization)
+  if (heroItems.length > 0) {
+    const lcp = document.createElement('link');
+    lcp.rel = 'preload';
+    lcp.as = 'image';
+    lcp.href = proxyImage(heroItems[0].cover);
+    lcp.fetchPriority = 'high';
+    document.head.appendChild(lcp);
+  }
+
   const heroHtml = heroItems.length === 0 ? '' : html`
     <section class="hero" id="hero" style="height: 60vh; min-height: 500px; max-height: 700px; position:relative; overflow:hidden; background: var(--bg); display: block;">
       ${heroItems.slice(0, 5).map((s, i) => `
@@ -130,7 +140,7 @@ export async function home(_params, ctx) {
               <div style="position: absolute; width: clamp(220px, 28vw, 380px); aspect-ratio: 2/3; background-image: url('${esc(proxyImage(s.cover))}'); background-size: cover; background-position: center; filter: blur(35px); opacity: 0.85; z-index: 0; border-radius: 12px; transform: rotateY(-15deg) rotateX(5deg) scale(1.05); transition: transform 0.4s ease, opacity 0.4s ease;"></div>
               
               <a href="/series/${encodeURIComponent(s.slug)}" style="position: relative; z-index: 1; display: block; width: clamp(220px, 28vw, 380px); aspect-ratio: 2/3; border-radius: 12px; overflow: hidden; box-shadow: -20px 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.1); transform: rotateY(-15deg) rotateX(5deg); transition: transform 0.4s ease, box-shadow 0.4s ease;" onmouseover="this.style.transform='rotateY(0deg) rotateX(0deg) scale(1.05)'; this.style.boxShadow='0 30px 60px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.2)'; this.previousElementSibling.style.transform='rotateY(0deg) rotateX(0deg) scale(1.15)'; this.previousElementSibling.style.opacity='1';" onmouseout="this.style.transform='rotateY(-15deg) rotateX(5deg)'; this.style.boxShadow='-20px 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.1)'; this.previousElementSibling.style.transform='rotateY(-15deg) rotateX(5deg) scale(1.05)'; this.previousElementSibling.style.opacity='0.85';">
-                <img src="${esc(proxyImage(s.cover))}" alt="${esc(s.title)}" style="width: 100%; height: 100%; object-fit: cover;">
+                <img src="${esc(proxyImage(s.cover))}" alt="${esc(s.title)}" style="width: 100%; height: 100%; object-fit: cover;"${i === 0 ? ' fetchpriority="high" loading="eager"' : ' loading="lazy"'}>
               </a>
             </div>
 

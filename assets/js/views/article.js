@@ -12,12 +12,75 @@ import { SITE } from '../lib/site.config.js';
  *  seriesCatalog is a Map<slug, seriesObject> for series/chapter block lookups.
  *  All user content is escaped. No DOM writes.
  */
+
+/** Lightweight Markdown-to-HTML renderer for article text blocks.
+ *  Supports: **bold**, *italic*, ## headings, - lists, > quotes, [text](url) */
+function renderMarkdown(text) {
+  if (!text) return '';
+  const lines = text.split('\n');
+  let html = '';
+  let inList = false;
+
+  for (const raw of lines) {
+    const line = raw;
+
+    // Close list if line doesn't start with -
+    if (inList && !line.match(/^\s*[-*]\s/)) {
+      html += '</ul>';
+      inList = false;
+    }
+
+    // Headings
+    if (line.match(/^###\s+(.+)/)) {
+      html += `<h3 class="article-block-text">${inlineFormat(esc(line.replace(/^###\s+/, '')))}</h3>`;
+      continue;
+    }
+    if (line.match(/^##\s+(.+)/)) {
+      html += `<h2 class="article-block-text">${inlineFormat(esc(line.replace(/^##\s+/, '')))}</h2>`;
+      continue;
+    }
+
+    // Blockquote
+    if (line.match(/^>\s?(.+)/)) {
+      html += `<blockquote class="article-block-text">${inlineFormat(esc(line.replace(/^>\s?/, '')))}</blockquote>`;
+      continue;
+    }
+
+    // List item
+    if (line.match(/^\s*[-*]\s+(.+)/)) {
+      if (!inList) { html += '<ul class="article-block-text">'; inList = true; }
+      html += `<li>${inlineFormat(esc(line.replace(/^\s*[-*]\s+/, '')))}</li>`;
+      continue;
+    }
+
+    // Empty line
+    if (!line.trim()) {
+      html += '';
+      continue;
+    }
+
+    // Regular paragraph
+    html += `<p class="article-block-text">${inlineFormat(esc(line))}</p>`;
+  }
+
+  if (inList) html += '</ul>';
+  return html;
+}
+
+/** Inline formatting: **bold**, *italic*, [text](url) — applied AFTER esc() */
+function inlineFormat(escaped) {
+  return escaped
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" rel="noopener" target="_blank">$1</a>');
+}
+
 export function renderBlocks(blocks, seriesCatalog = new Map()) {
   if (!Array.isArray(blocks) || !blocks.length) return '';
   return blocks.map(block => {
     switch (block.type) {
       case 'text':
-        return `<p class="article-block-text">${esc(block.value || '')}</p>`;
+        return renderMarkdown(block.value || '');
       case 'image':
         return `
           <figure class="article-block-figure">

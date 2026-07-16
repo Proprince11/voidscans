@@ -23,6 +23,11 @@ export const SITE = {
   // with wrangler.jsonc → vars.PUBLIC_BASE_URL (server side).
   baseUrl: 'https://jayascans.online',
 
+  // Worker API URL — admin uploads (R2) route here directly.
+  // The custom domain may route through Pages which lacks bindings,
+  // so uploads go to the Worker's native .workers.dev endpoint.
+  workerApi: 'https://voidscans.isthe.workers.dev',
+
   // Cache Worker URL — edge-caches Firestore reads (8× fewer reads).
   // Set to '' to disable (falls back to direct Firestore).
   cacheApi: 'https://jayascans-cache.isthe.workers.dev',

@@ -8,7 +8,7 @@ import {
   fetchReactions, addReaction,
   fetchRating, submitRating,
   fetchComments, postComment, likeComment,
-  trackSeriesView, adjustFollowers
+  adjustFollowers, trackSeriesView
 } from '../lib/api.js';
 import {
   isInLibrary, addToLibrary, removeFromLibrary,
@@ -95,7 +95,7 @@ export async function series(params, ctx) {
     type: 'book'
   });
 
-  // Track view (sessioned, fail-silent if rules reject)
+  // View tracking — server-side via Worker /api/track-view (rate-limited by IP).
   trackSeriesView(slug).catch(() => {});
 
   // Wire up shell actions

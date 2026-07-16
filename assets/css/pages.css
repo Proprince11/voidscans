@@ -820,22 +820,22 @@ body.reader-mode {
    ===================================================== */
 .genre-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--s-3);
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
   margin-bottom: var(--s-5);
 }
-@media (min-width: 480px) { .genre-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (min-width: 768px) { .genre-grid { grid-template-columns: repeat(4, 1fr); } }
-@media (min-width: 1024px) { .genre-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 480px) { .genre-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 768px) { .genre-grid { grid-template-columns: repeat(5, 1fr); gap: 8px; } }
+@media (min-width: 1024px) { .genre-grid { grid-template-columns: repeat(6, 1fr); } }
 
 .genre-tile {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
-  min-height: 100px;
-  padding: var(--s-3);
-  border-radius: var(--r-md);
+  min-height: 40px;
+  padding: 5px 7px;
+  border-radius: var(--r-sm);
   text-decoration: none;
   color: #ffffff;
   position: relative;
@@ -843,7 +843,13 @@ body.reader-mode {
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
   cursor: pointer;
   background: var(--surface-3); /* Fallback */
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+@media (min-width: 768px) {
+  .genre-tile { min-height: 44px; padding: 6px 9px; }
+}
+@media (min-width: 1024px) {
+  .genre-tile { min-height: 48px; padding: 8px 11px; }
 }
 
 @media (hover: hover) {
@@ -865,26 +871,41 @@ body.reader-mode {
 
 .genre-tile-label {
   font-family: var(--font-display);
-  font-size: 1.1rem;
+  font-size: 0.6rem;
   font-weight: 800;
   text-align: left;
   line-height: var(--lh-snug);
-  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
   z-index: 2;
+}
+@media (min-width: 480px) {
+  .genre-tile-label { font-size: 0.62rem; }
+}
+@media (min-width: 768px) {
+  .genre-tile-label { font-size: 0.65rem; }
+}
+@media (min-width: 1024px) {
+  .genre-tile-label { font-size: 0.68rem; }
 }
 
 .genre-tile-icon {
   position: absolute;
-  bottom: -5px;
-  right: -5px;
-  font-size: 3.5rem;
+  bottom: -2px;
+  right: -2px;
+  font-size: 1.4rem;
   line-height: 1;
   display: block;
   transform: rotate(15deg);
-  opacity: 0.8;
-  filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.3));
+  opacity: 0.75;
+  filter: drop-shadow(1px 2px 4px rgba(0,0,0,0.3));
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   z-index: 1;
+}
+@media (min-width: 768px) {
+  .genre-tile-icon { font-size: 1.6rem; }
+}
+@media (min-width: 1024px) {
+  .genre-tile-icon { font-size: 1.8rem; }
 }
 
 /* Specific Genre Gradients */

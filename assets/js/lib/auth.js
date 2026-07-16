@@ -5,6 +5,7 @@
 // =====================================================
 
 import { auth } from './firebase.js';
+import { SITE } from './site.config.js';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -126,5 +127,12 @@ export async function adminFetch(url, opts = {}) {
   const token = await getAuthToken();
   const headers = new Headers(opts.headers || {});
   if (token) headers.set('Authorization', `Bearer ${token}`);
-  return fetch(url, { ...opts, headers });
+
+  // Route upload/scrape requests through Worker's native endpoint
+  // (custom domain may lack R2 binding due to Pages routing)
+  let finalUrl = url;
+  if (url.startsWith('/api/') && typeof SITE !== 'undefined' && SITE.workerApi) {
+    finalUrl = SITE.workerApi + url;
+  }
+  return fetch(finalUrl, { ...opts, headers });
 }

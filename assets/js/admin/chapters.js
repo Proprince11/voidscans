@@ -1,7 +1,7 @@
 // Admin: Chapters CRUD with drag-reorder pages + image preview
 import {
   fetchAllSeries, fetchChapters, fetchChapter,
-  createChapter, updateChapter, deleteChapter, updateChapterPublished
+  createChapter, updateChapter, deleteChapter, updateChapterPublished, cacheBust
 } from '../lib/api.js';
 import { esc, html, timeAgo, proxyImage } from '../lib/utils.js';
 import { toast, confirmModal, spinner } from '../lib/ui.js';
@@ -95,6 +95,7 @@ export async function chaptersAdmin({ outlet }) {
       b.textContent = '…';
       try {
         await updateChapterPublished(b.dataset.chPub, newVal);
+        cacheBust(`chapters:${selectedSlug}`); // force fresh fetch past TTL cache
         toast(newVal ? '🟢 Chapter published' : '🔴 Chapter set to Draft', 'success');
         await render();
       } catch (e) {
